@@ -3,15 +3,16 @@
     "allow": [
       "Bash(git *)",
       "Bash(gh *)",
-      "Bash(npm *)",
-      "Bash(npx *)",
-      "Bash(pip *)",
-      "Bash(python *)",
-      "Bash(node *)",
-      "Bash(docker compose *)",
-      "Bash(curl *)",
+      "Bash(build.bat*)",
+      "Bash(run_tests.bat*)",
+      "Bash(dcc32*)",
+      "Bash(msbuild*)",
+      "Bash(cmd /c *)",
       "Bash(mkdir *)",
-      "Bash(ls *)"
+      "Bash(ls *)",
+      "Bash(dir *)",
+      "Bash(copy *)",
+      "Bash(xcopy *)"
     ]
   }
 }

@@ -35,25 +35,27 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      - sprints/{CURRENT_SPRINT}/GOAL.md
      - CLAUDE.md (빌드 명령 확인용)
 
-7-2. 빌드 실행 (스택 자동 판단)
-     Node.js  → npm run build 또는 npm run dev 실행 확인
-     Python   → pip install -r requirements.txt + 실행 확인
-     Go       → go build ./...
-     기타     → CLAUDE.md에서 빌드 명령 참조
+7-2. 빌드 실행 (Delphi 2007)
+     build.bat debug
+     → dcc32.exe 컴파일 성공 여부 확인
+     → 컴파일 에러: [Error] UnitName.pas(line): error message 형식 확인
 
      실패 시:
-     → 오류 분석 후 명백한 오류(타입 오류, import 누락 등)는 직접 수정
+     → 오류 메시지 분석 후 명백한 오류 (.pas 문법 오류, uses 누락 등)는 직접 수정
      → 재시도 최대 3회
      → 3회 실패 시 [PAUSE] "빌드 실패, 확인 필요합니다"
 
-7-3. GOAL.md 완료 조건 중 자동 검증 항목 체크
-     ✅ 자동 검증 항목:
-     - API 엔드포인트 응답 확인 (curl 또는 fetch)
-     - lint 오류 없음
-     - 타입 오류 없음
-     - 단위 테스트 통과 (테스트 파일 있는 경우)
+7-3. DUnit 테스트 실행
+     run_tests.bat
+     → Tests/Source/ 아래 테스트 유닛 있는 경우만
+     → 없으면 건너뜀
 
-7-4. 검증 결과 요약 출력
+7-4. 자동 검증 항목:
+     ✅ dcc32 컴파일 성공 (0 오류)
+     ✅ DUnit 테스트 통과 (Tests/Source/ 있는 경우)
+     ⚠️ 런타임 동작 확인은 수동 테스트(PHASE 8)에서
+
+7-5. 검증 결과 요약 출력
      ┌──────────────────────────────────┐
      │ 📊 자동 검증 결과                │
      │ ✅ 통과: N개                     │
@@ -61,12 +63,12 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      │ ❌ 실패: N개                     │
      └──────────────────────────────────┘
 
-7-5. 실패 항목 있으면
+7-6. 실패 항목 있으면
      → 명백한 수정사항이면 직접 수정 후 재검증
      → 구조적 문제면 [PAUSE] "Implementer 재실행 필요"
        STATUS.md PHASE=6 으로 리셋
 
-7-6. 전체 통과 → STATUS.md PHASE=8 업데이트
+7-7. 전체 통과 → STATUS.md PHASE=8 업데이트
 ```
 
 ---
@@ -81,22 +83,22 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      ┌──────────────────────────────────────────┐
      │ 🧪 수동 테스트 가이드 — {CURRENT_SPRINT} │
      │                                          │
-     │ 서버 시작 방법: {CLAUDE.md 기준}         │
+     │ 앱 실행 방법: Output\Debug\{앱명}.exe   │
      │                                          │
-     │ 1. {기능명}                              │
-     │    경로: http://localhost:PORT/path       │
+     │ 1. {폼/기능명}                           │
+     │    화면: {폼 이름 또는 메뉴 경로}         │
      │    시나리오:                             │
      │      ① ...                              │
      │      ② ...                              │
      │    예상 결과: ...                        │
      │    확인 포인트: ...                      │
      │                                          │
-     │ 2. {기능명}                              │
+     │ 2. {폼/기능명}                           │
      │    ...                                   │
      └──────────────────────────────────────────┘
 
 8-4. [PAUSE]
-     "직접 테스트해주세요.
+     "Output\Debug\ 에서 EXE를 직접 실행하여 테스트해주세요.
       - '통과' → PR 생성으로 진행
       - '수정 필요: {내용}' → 해당 내용 수정 후 재검증"
 
@@ -118,9 +120,9 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      (GOAL.md 체크박스 [x] 항목 정리)
 
      ## 생성/수정된 파일 목록
-     (git diff --name-only 결과)
+     (git diff --name-only 결과, .pas/.dfm 쌍 포함)
 
-     ## 추가된 API / 화면
+     ## 추가된 폼 / 유닛
      
      ## Tech Debt
      (TODO 주석 목록, OUT_OF_SCOPE.md 내용)
@@ -131,8 +133,8 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      git add .
      git commit -m "feat: [{CURRENT_SPRINT}] {목표 요약}
 
-     - 구현 기능 1
-     - 구현 기능 2
+     - 구현 기능 1 (.pas/.dfm)
+     - 구현 기능 2 (.pas/.dfm)
 
      Sprint: {CURRENT_SPRINT}"
 
@@ -145,13 +147,13 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      (DONE.md 완료된 기능 목록)
 
      ## 테스트 완료 항목
-     (자동 검증 + 수동 테스트 결과)
+     (dcc32 컴파일 + DUnit + 수동 테스트 결과)
 
      ## Tech Debt
      (TODO 주석, OUT_OF_SCOPE.md)
 
      ## 리뷰 포인트
-     (주의 깊게 봐야 할 부분)
+     (주의 깊게 봐야 할 .pas/.dfm 부분)
      EOF
      )"
 

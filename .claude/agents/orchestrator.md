@@ -141,18 +141,17 @@ color: blue
       "📋 PRD 기술 스택 기준으로 프로젝트를 초기화합니다.
        아래 질문에 답해주세요:
 
-       1. 프로젝트 초기화가 이미 되어 있나요? (package.json, requirements.txt 등 존재)
+       1. Delphi 프로젝트 초기화가 이미 되어 있나요? (.dpr 파일 존재 여부)
           → '예' / '아니오'
 
        2. '아니오'라면, 어떤 방식으로 초기화할까요?
-          → 예시: 'npx create-next-app', 'npm init', 'pip init', 직접 구성 등
-          → 또는 '알아서 해줘' 입력 시 PRD 기술 스택 기반으로 자동 초기화"
+          → 예시: 'Source/ProjectMain.dpr 직접 생성', 'Delphi IDE에서 새 프로젝트 생성'
+          → 또는 '알아서 해줘' 입력 시 PRD 기술 스택 기반으로 최소 .dpr 파일 생성"
 
 4.5-2. 사용자 응답에 따라 분기
        - '예' → 4.5-3으로 진행
-       - '아니오' + 구체적 명령 → 해당 명령 실행 후 4.5-3으로 진행
-       - '아니오' + '알아서 해줘' → PRD.md 기술 스택 기반으로 초기화 실행
-         (예: npm init -y, pip install 등 최소 스캐폴딩)
+       - '아니오' + 구체적 명령 → 해당 안내 제공 후 4.5-3으로 진행
+       - '아니오' + '알아서 해줘' → PRD.md 기술 스택 기반으로 최소 .dpr 파일 스캐폴딩
 
 4.5-3. CLAUDE.md 생성 질의
 
@@ -177,10 +176,25 @@ color: blue
        - '3' → 최소 CLAUDE.md 템플릿 생성:
                ---
                # CLAUDE.md
+
                ## 빌드 & 실행
-               (PRD 기술 스택 기반으로 기본값 채움)
+               - 빌드: `build.bat [debug|release]`
+               - 컴파일러: dcc32.exe (Delphi 2007 / BDS 5.0)
+               - 테스트: `run_tests.bat`
+               - 소스 경로: Source/ (Forms/, Units/, DataModules/)
+               - 출력 경로: Output/Debug/ (디버그), Output/Release/ (릴리스)
+
+               ## 프로젝트 구조
+               - Source/Forms/     ← 폼 (.pas + .dfm)
+               - Source/Units/     ← 비즈니스 로직
+               - Source/DataModules/ ← 데이터 모듈
+               - Tests/Source/     ← DUnit 테스트
+               - Lib/              ← 외부 .dcu
+
                ## 코딩 원칙
-               - 임시 코드에는 TODO 주석 필수
+               - TODO 주석: // TODO: [tech-debt] 임시처리 - 이유
+               - 폼 명명: TFrm접두사 (예: TFrmMain, TFrmLogin)
+               - 유닛 명명: U접두사 (예: UDataAccess, UBusinessLogic)
                ---
 
 4.5-5. CLAUDE.md 존재 최종 확인
