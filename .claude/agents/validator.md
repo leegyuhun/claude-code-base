@@ -16,7 +16,7 @@ color: green
 ## 실행 명령
 
 ```
-.claude/agents/validator.md와 STATUS.md를 읽고
+.claude/agents/validator.md와 docs/STATUS.md를 읽고
 sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 [PAUSE] 지점에서 멈추고 내 확인을 기다려.
 ```
@@ -31,7 +31,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
 ```
 7-1. 읽을 파일
-     - STATUS.md
+     - docs/STATUS.md
      - sprints/{CURRENT_SPRINT}/GOAL.md
      - CLAUDE.md (빌드 명령 확인용)
 
@@ -63,9 +63,9 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 7-6. 실패 항목 있으면
      → 명백한 수정사항이면 직접 수정 후 재검증
      → 구조적 문제면 [PAUSE] "Implementer 재실행 필요"
-       STATUS.md PHASE=6 으로 리셋
+       docs/STATUS.md PHASE=6 으로 리셋
 
-7-7. 전체 통과 → STATUS.md PHASE=8 업데이트
+7-7. 전체 통과 → docs/STATUS.md PHASE=8 업데이트
 ```
 
 ---
@@ -99,7 +99,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
       - '통과' → PR 생성으로 진행
       - '수정 필요: {내용}' → 해당 내용 수정 후 재검증"
 
-8-5. '통과' → STATUS.md PHASE=9 업데이트
+8-5. '통과' → docs/STATUS.md PHASE=9 업데이트
 8-6. '수정 필요' → 직접 수정 후 PHASE 7부터 재시도
 ```
 
@@ -181,7 +181,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
       머지 완료 후 '머지완료' 입력 시 다음 스프린트로 진행합니다."
 
 9-8. '머지완료' 입력 시
-     STATUS.md 업데이트:
+     docs/STATUS.md 업데이트:
      - 해당 스프린트 상태 → ✅ 완료
      - LAST_COMMIT, LAST_PR 기록
      - PHASE=10
@@ -203,14 +203,14 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
       "🎉 모든 스프린트 완료! MVP 달성" 출력 후 종료
 
 10-4. 다음 스프린트 있으면
-      STATUS.md 업데이트:
+      docs/STATUS.md 업데이트:
       - CURRENT_SPRINT → 다음 스프린트
       - PHASE=5
 
       [PAUSE]
       "다음 {NEXT_SPRINT}를 시작하려면 아래 명령어를 실행하세요:
 
-      '.claude/agents/planner.md와 STATUS.md 읽고
+      '.claude/agents/planner.md와 docs/STATUS.md 읽고
        sprints/{NEXT_SPRINT}/GOAL.md 작성해줘'"
 ```
 

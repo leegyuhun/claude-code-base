@@ -16,7 +16,7 @@ color: blue
 ## 실행 명령
 
 ```
-.claude/agents/planner.md와 STATUS.md를 읽고 현재 스프린트 GOAL.md를 작성해줘.
+.claude/agents/planner.md와 docs/STATUS.md를 읽고 현재 스프린트 GOAL.md를 작성해줘.
 코드 구현은 하지 마. GOAL.md 작성만 해.
 완료되면 다음 에이전트 실행 방법을 알려줘.
 ```
@@ -30,7 +30,7 @@ color: blue
 ### PHASE 5 — Sprint 계획 (상세 GOAL.md 작성)
 
 ```
-5-1. STATUS.md에서 CURRENT_SPRINT 확인
+5-1. docs/STATUS.md에서 CURRENT_SPRINT 확인
 5-2. 아래 파일 순서대로 읽기
      - sprints/ROADMAP.md
      - plan.md
@@ -41,7 +41,7 @@ color: blue
 
 5-3. 선행 스프린트 완료 여부 확인
      → ROADMAP.md에서 현재 스프린트의 의존성 확인
-     → STATUS.md 스프린트 진행 현황에서 선행 스프린트가 ✅ 완료인지 검증
+     → docs/STATUS.md 스프린트 진행 현황에서 선행 스프린트가 ✅ 완료인지 검증
      → 미완료 시 [PAUSE] "선행 스프린트 {sprint-XX}가 아직 완료되지 않았습니다"
 
 5-4. sprints/{CURRENT_SPRINT}/ 폴더 없으면 생성
@@ -109,10 +109,10 @@ color: blue
       - 예상 소요: 약 Nh
 
       다음 단계: .claude/agents/implementer.md 실행
-      명령어: '.claude/agents/implementer.md와 STATUS.md 읽고
+      명령어: '.claude/agents/implementer.md와 docs/STATUS.md 읽고
                sprints/{CURRENT_SPRINT}/GOAL.md 기준으로 구현 시작해줘'"
 
-5-7. STATUS.md PHASE=6 업데이트
+5-7. docs/STATUS.md PHASE=6 업데이트
 ```
 
 ---

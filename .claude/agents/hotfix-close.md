@@ -15,7 +15,7 @@ color: red
 ## 실행 명령
 
 ```
-.claude/agents/hotfix-close.md와 STATUS.md를 읽고
+.claude/agents/hotfix-close.md와 docs/STATUS.md를 읽고
 현재 hotfix 브랜치의 마무리 작업을 진행해줘.
 ```
 
@@ -124,6 +124,6 @@ color: red
 ## 이 에이전트의 금지 사항
 
 - ❌ ROADMAP.md 수정
-- ❌ STATUS.md PHASE 변경 (Sprint 프로세스와 독립)
+- ❌ docs/STATUS.md PHASE 변경 (Sprint 프로세스와 독립)
 - ❌ Sprint 문서 생성
 - ❌ force push

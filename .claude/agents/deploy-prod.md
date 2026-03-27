@@ -14,7 +14,7 @@ color: red
 ## 실행 명령
 
 ```
-.claude/agents/deploy-prod.md와 STATUS.md를 읽고
+.claude/agents/deploy-prod.md와 docs/STATUS.md를 읽고
 프로덕션 배포를 진행해줘.
 ```
 
@@ -30,7 +30,7 @@ color: red
      git diff main...HEAD --stat
 
 1-2. 배포 대상 확인
-     - STATUS.md에서 완료된 스프린트 확인
+     - docs/STATUS.md에서 완료된 스프린트 확인
      - sprints/{CURRENT_SPRINT}/DONE.md 존재 확인
      - 미완료 스프린트가 포함되어 있지 않은지 확인
 
@@ -108,9 +108,9 @@ color: red
       📋 다음 단계:
       1. PR 리뷰 후 main에 머지
       2. 배포 완료 후 검증 체크리스트 수행
-      3. 문제 없으면 STATUS.md 업데이트"
+      3. 문제 없으면 docs/STATUS.md 업데이트"
 
-4-2. STATUS.md 업데이트
+4-2. docs/STATUS.md 업데이트
      - 해당 스프린트 상태 최종 확인
      - LAST_PR 기록
 ```

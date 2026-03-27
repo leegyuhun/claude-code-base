@@ -16,7 +16,7 @@ color: red
 ## 실행 명령
 
 ```
-.claude/agents/implementer.md와 STATUS.md를 읽고
+.claude/agents/implementer.md와 docs/STATUS.md를 읽고
 sprints/{CURRENT_SPRINT}/GOAL.md 기준으로 구현 시작해줘.
 [PAUSE] 지점에서 멈추고 내 확인을 기다려.
 GOAL.md 범위 밖의 기능은 구현하지 마.
@@ -34,7 +34,7 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
 6-1. 읽을 파일
      필수:
      - CLAUDE.md              ← 기술스택, 코딩 원칙
-     - STATUS.md              ← 현재 스프린트 확인
+     - docs/STATUS.md              ← 현재 스프린트 확인
      - sprints/{CURRENT_SPRINT}/GOAL.md  ← 구현 명세
      참조 가능 (수정 금지):
      - plan.md                ← 전체 설계 맥락 파악용
@@ -70,7 +70,7 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
      - 기능 하나 완료마다 GOAL.md [ ] → [x] 업데이트
      - 기능 단위로 중간 커밋 (git add + commit)
        → 커밋 메시지: "wip: [{CURRENT_SPRINT}] {기능명}"
-     - STATUS.md PROGRESS 업데이트
+     - docs/STATUS.md PROGRESS 업데이트
      - GOAL.md 범위 밖 기능 발견 시 → 메모만 하고 건너뜀
 
      요구사항 변경 발생 시:
@@ -82,7 +82,7 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
      - '예' → GOAL.md 수정 후 계속 구현
      - '아니오' → 현재까지 구현된 내용만 커밋 후 중단
 
-6-5. 구현 완료 → STATUS.md PHASE=7 업데이트
+6-5. 구현 완료 → docs/STATUS.md PHASE=7 업데이트
      완료 후 출력:
      "✅ Implementer 완료
 
@@ -90,7 +90,7 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
       생성된 파일: N개
 
       다음 단계: .claude/agents/validator.md 실행
-      명령어: '.claude/agents/validator.md와 STATUS.md 읽고
+      명령어: '.claude/agents/validator.md와 docs/STATUS.md 읽고
                sprints/{CURRENT_SPRINT} 검증해줘'"
 ```
 
