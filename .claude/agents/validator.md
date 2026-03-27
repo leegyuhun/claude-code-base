@@ -1,6 +1,6 @@
 ---
 name: validator
-description: "Use this agent when PHASE 7~10 is reached. Runs build/test verification, guides manual testing, creates PR, and transitions to next sprint.\n\n<example>\nContext: Implementation is done, time to verify.\nuser: \"검증 시작해줘.\"\nassistant: \"validator 에이전트로 검증을 시작할게요.\"\n</example>"
+description: "PHASE 7~10에 도달했을 때 사용. 빌드/테스트 검증 실행, 수동 테스트 가이드 제시, PR 생성, 다음 스프린트 전환을 처리한다.\n\n<example>\nContext: Implementation is done, time to verify.\nuser: \"검증 시작해줘.\"\nassistant: \"validator 에이전트로 검증을 시작할게요.\"\n</example>"
 model: sonnet
 color: green
 ---
@@ -35,25 +35,24 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      - sprints/{CURRENT_SPRINT}/GOAL.md
      - CLAUDE.md (빌드 명령 확인용)
 
-7-2. 빌드 실행 (스택 자동 판단)
-     Node.js  → npm run build 또는 npm run dev 실행 확인
-     Python   → pip install -r requirements.txt + 실행 확인
-     Go       → go build ./...
-     기타     → CLAUDE.md에서 빌드 명령 참조
+7-2. 빌드 실행 (CLAUDE.md에서 빌드 명령 참조)
+     → 빌드 성공 여부 확인
 
      실패 시:
-     → 오류 분석 후 명백한 오류(타입 오류, import 누락 등)는 직접 수정
+     → 오류 메시지 분석 후 명백한 오류(타입 오류, import 누락 등)는 직접 수정
      → 재시도 최대 3회
      → 3회 실패 시 [PAUSE] "빌드 실패, 확인 필요합니다"
 
-7-3. GOAL.md 완료 조건 중 자동 검증 항목 체크
-     ✅ 자동 검증 항목:
-     - API 엔드포인트 응답 확인 (curl 또는 fetch)
-     - lint 오류 없음
-     - 타입 오류 없음
-     - 단위 테스트 통과 (테스트 파일 있는 경우)
+7-3. 테스트 실행
+     → CLAUDE.md에서 테스트 명령 참조
+     → 테스트 파일 있는 경우만
 
-7-4. 검증 결과 요약 출력
+7-4. 자동 검증 항목:
+     ✅ 빌드 성공
+     ✅ 테스트 통과 (테스트 존재 시)
+     ⚠️ 런타임 동작 확인은 수동 테스트(PHASE 8)에서
+
+7-5. 검증 결과 요약 출력
      ┌──────────────────────────────────┐
      │ 📊 자동 검증 결과                │
      │ ✅ 통과: N개                     │
@@ -61,12 +60,12 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      │ ❌ 실패: N개                     │
      └──────────────────────────────────┘
 
-7-5. 실패 항목 있으면
+7-6. 실패 항목 있으면
      → 명백한 수정사항이면 직접 수정 후 재검증
      → 구조적 문제면 [PAUSE] "Implementer 재실행 필요"
        STATUS.md PHASE=6 으로 리셋
 
-7-6. 전체 통과 → STATUS.md PHASE=8 업데이트
+7-7. 전체 통과 → STATUS.md PHASE=8 업데이트
 ```
 
 ---
@@ -81,10 +80,10 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      ┌──────────────────────────────────────────┐
      │ 🧪 수동 테스트 가이드 — {CURRENT_SPRINT} │
      │                                          │
-     │ 서버 시작 방법: {CLAUDE.md 기준}         │
+     │ 시작 방법: {CLAUDE.md 기준 실행 명령}    │
      │                                          │
      │ 1. {기능명}                              │
-     │    경로: http://localhost:PORT/path       │
+     │    경로: {URL 또는 실행 방법}            │
      │    시나리오:                             │
      │      ① ...                              │
      │      ② ...                              │
@@ -121,13 +120,30 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      (git diff --name-only 결과)
 
      ## 추가된 API / 화면
-     
+
      ## Tech Debt
      (TODO 주석 목록, OUT_OF_SCOPE.md 내용)
 
      ## 다음 스프린트 주의사항
 
-9-2. 최종 커밋 (Implementer의 중간 커밋을 스쿼시)
+9-2. CHANGELOG.md 업데이트
+     - 루트의 CHANGELOG.md 읽기 (없으면 새로 생성)
+     - 맨 위에 새 항목 추가:
+       ## [{CURRENT_SPRINT}] {목표 요약} — {YYYY-MM-DD}
+       ### 추가
+       - 완료된 기능 목록 (GOAL.md [x] 항목)
+       ### 기술 부채
+       - OUT_OF_SCOPE.md 항목 요약
+
+9-3. sprints/TECH_DEBT.md 업데이트
+     - 없으면 새로 생성
+     - OUT_OF_SCOPE.md의 항목과 TODO 주석 목록을 아래 형식으로 추가:
+       | 항목 | 출처 스프린트 | 우선순위 | 처리 스프린트 |
+       | ---- | ------------ | -------- | ------------ |
+       | ...  | {CURRENT_SPRINT} | P1/P2 | -      |
+     - 이미 처리된 항목은 ✅ 표시 후 행 유지
+
+9-4. 최종 커밋 (Implementer의 중간 커밋을 스쿼시)
      git add .
      git commit -m "feat: [{CURRENT_SPRINT}] {목표 요약}
 
@@ -136,11 +152,14 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
      Sprint: {CURRENT_SPRINT}"
 
-9-3. 브랜치 푸시
-     git push -u origin sprint/{CURRENT_SPRINT}
+9-5. 브랜치 푸시 및 base 브랜치 결정
+     현재 브랜치에서 _{CURRENT_SPRINT} suffix 제거 → BASE_BRANCH
+     예: main_sprint-01 → main
+     BASE_BRANCH=$(git branch --show-current | sed 's/_sprint-[0-9]*//')
+     git push -u origin $(git branch --show-current)
 
-9-4. gh CLI로 PR 자동 생성
-     gh pr create --title "[{CURRENT_SPRINT}] {목표 요약}" --body "$(cat <<'EOF'
+9-6. gh CLI로 PR 자동 생성
+     gh pr create --base ${BASE_BRANCH} --title "[{CURRENT_SPRINT}] {목표 요약}" --body "$(cat <<'EOF'
      ## 변경 사항
      (DONE.md 완료된 기능 목록)
 
@@ -157,11 +176,11 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
      → gh 미설치 시 PR 내용을 출력하여 수동 생성 안내
 
-9-5. [PAUSE]
+9-7. [PAUSE]
      "PR이 생성되었습니다: {PR_URL}
       머지 완료 후 '머지완료' 입력 시 다음 스프린트로 진행합니다."
 
-9-6. '머지완료' 입력 시
+9-8. '머지완료' 입력 시
      STATUS.md 업데이트:
      - 해당 스프린트 상태 → ✅ 완료
      - LAST_COMMIT, LAST_PR 기록

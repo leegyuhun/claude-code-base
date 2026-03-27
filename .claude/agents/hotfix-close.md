@@ -1,6 +1,6 @@
 ---
 name: hotfix-close
-description: "Use this agent when a hotfix implementation is complete and needs to be wrapped up. Handles hotfix closing: PR to main, lightweight code review, targeted verification, deploy.md recording.\n\n<example>\nContext: The user has finished implementing a hotfix.\nuser: \"hotfix 구현 끝났어. 마무리해줘.\"\nassistant: \"hotfix-close 에이전트로 핫픽스 마무리 작업을 진행할게요.\"\n</example>"
+description: "핫픽스 구현이 완료되어 마무리가 필요할 때 사용. 핫픽스 종료 처리: main으로 PR, 경량 코드 리뷰, 핀포인트 검증, deploy.md 기록을 수행한다.\n\n<example>\nContext: The user has finished implementing a hotfix.\nuser: \"hotfix 구현 끝났어. 마무리해줘.\"\nassistant: \"hotfix-close 에이전트로 핫픽스 마무리 작업을 진행할게요.\"\n</example>"
 model: sonnet
 color: red
 ---
@@ -26,8 +26,13 @@ color: red
 ### 1단계: 현재 상태 파악
 
 ```
-1-1. 현재 브랜치가 hotfix/* 형식인지 확인
-     → 아니면 "hotfix/* 브랜치에서 실행해주세요" 출력 후 종료
+1-1. 현재 브랜치 확인
+     허용 형식: `hotfix/*` 또는 `{베이스브랜치}_hotfix/{설명}`
+     예: hotfix/login-fix, main_hotfix/login-fix
+     → 위 형식이 아니면 [PAUSE]
+       "hotfix 브랜치 형식이 아닙니다. 현재 브랜치: {브랜치명}
+        hotfix 브랜치를 생성하려면:
+        git checkout -b {현재브랜치}_hotfix/{설명}"
 
 1-2. 변경 범위 확인
      git diff main...HEAD --stat
@@ -58,7 +63,7 @@ color: red
 3-2. 자동 검증 실행
      - 빌드 성공 확인
      - 변경 관련 테스트만 실행
-     - 변경된 API 엔드포인트 curl 검증 (해당 시)
+     - 변경된 API 엔드포인트 검증 (해당 시)
 
 3-3. 검증 결과 요약 출력
 ```
@@ -75,8 +80,8 @@ color: red
 4-2. 브랜치 푸시
      git push -u origin {현재 브랜치}
 
-4-3. gh CLI로 main PR 생성
-     gh pr create --base main \
+4-3. gh CLI로 베이스 브랜치에 PR 생성
+     gh pr create --base {베이스브랜치} \
        --title "fix: {핫픽스 설명} (hotfix)" \
        --body "$(cat <<'EOF'
      ## 문제 원인
@@ -107,10 +112,10 @@ color: red
       검증: {통과/실패 항목}
 
       📋 다음 단계:
-      1. PR 리뷰 후 main에 머지
+      1. PR 리뷰 후 베이스 브랜치에 머지
       2. 머지 후 역머지 실행:
-         git checkout main && git pull
-         git checkout {개발 브랜치} && git merge main
+         git checkout {베이스 브랜치} && git pull
+         git checkout {개발 브랜치} && git merge {베이스 브랜치}
       3. 수동 검증 필요 항목: {목록}"
 ```
 

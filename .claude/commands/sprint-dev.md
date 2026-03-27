@@ -20,8 +20,8 @@ GOAL.md에 따라 스프린트를 구현하는 오케스트레이터.
 
 ### 2단계: 브랜치 준비
 
-1. 현재 브랜치가 `sprint/{CURRENT_SPRINT}`이 아니면:
-   - `main` 브랜치에서 `git checkout -b sprint/{CURRENT_SPRINT}` 생성
+1. 현재 브랜치가 `{현재 브랜치명}_{CURRENT_SPRINT}`이 아니면:
+   - 현재 브랜치명을 확인(`git branch --show-current`)하여 `{현재 브랜치명}_{CURRENT_SPRINT}` 브랜치 생성
 2. 이미 해당 브랜치면 그대로 진행
 
 ### 3단계: 구현 Plan 작성 후 [PAUSE]

@@ -1,6 +1,6 @@
 ---
 name: deploy-prod
-description: "Use this agent when ready to deploy to production. Handles pre-deployment checklist, PR creation (develop/sprint → main), and post-deployment verification guide.\n\n<example>\nContext: Sprint is verified and ready for production.\nuser: \"프로덕션 배포 준비됐어.\"\nassistant: \"deploy-prod 에이전트로 배포 절차를 진행할게요.\"\n</example>"
+description: "프로덕션 배포 준비가 완료됐을 때 사용. 배포 전 사전 점검, PR 생성(develop/sprint → main), 배포 후 검증 가이드를 처리한다.\n\n<example>\nContext: Sprint is verified and ready for production.\nuser: \"프로덕션 배포 준비됐어.\"\nassistant: \"deploy-prod 에이전트로 배포 절차를 진행할게요.\"\n</example>"
 model: sonnet
 color: red
 ---
@@ -35,9 +35,9 @@ color: red
      - 미완료 스프린트가 포함되어 있지 않은지 확인
 
 1-3. 자동 검증 항목 확인
+     - CLAUDE.md에서 빌드/테스트 명령 확인
      - 빌드 성공 여부
      - 테스트 통과 여부
-     - lint/타입체크 통과 여부
 
 1-4. 문제 발견 시 → [PAUSE] 사용자에게 보고
 ```
@@ -66,9 +66,9 @@ color: red
      - ✅ 코드 리뷰 완료
 
      ## 배포 후 검증
-     - ⬜ 헬스체크 확인
-     - ⬜ 주요 페이지 접속 확인
      - ⬜ 핵심 기능 동작 확인
+     - ⬜ 주요 페이지/API 접속 확인
+     - ⬜ 모니터링 대시보드 이상 없음
      EOF
      )"
 
@@ -83,13 +83,13 @@ color: red
      │ 📋 배포 후 검증 체크리스트           │
      │                                      │
      │ 자동 검증:                           │
-     │  ⬜ 헬스체크 API 응답 확인           │
-     │  ⬜ 주요 API 엔드포인트 응답 확인    │
+     │  ⬜ 빌드 성공 확인                   │
+     │  ⬜ 테스트 통과 확인                 │
      │                                      │
      │ 수동 검증:                           │
-     │  ⬜ 메인 페이지 접속                 │
-     │  ⬜ 로그인/인증 기능                 │
-     │  ⬜ 핵심 비즈니스 로직               │
+     │  ⬜ 핵심 기능 동작 확인              │
+     │  ⬜ 주요 페이지/API 접속 확인        │
+     │  ⬜ 모니터링 이상 없음               │
      │                                      │
      │ 문제 발생 시 롤백:                   │
      │  git revert {merge_commit}           │

@@ -1,6 +1,6 @@
 ---
 name: planner
-description: "Use this agent when PHASE 5 is reached and a sprint GOAL.md needs to be created. Reads ROADMAP.md and creates detailed sprint execution plans.\n\n<example>\nContext: Orchestrator is done, time to plan the first sprint.\nuser: \"스프린트 계획 세워줘.\"\nassistant: \"planner 에이전트로 GOAL.md를 작성할게요.\"\n</example>"
+description: "PHASE 5에 도달하여 스프린트 GOAL.md 작성이 필요할 때 사용. ROADMAP.md를 읽고 스프린트 상세 실행 계획을 수립한다.\n\n<example>\nContext: Orchestrator is done, time to plan the first sprint.\nuser: \"스프린트 계획 세워줘.\"\nassistant: \"planner 에이전트로 GOAL.md를 작성할게요.\"\n</example>"
 model: opus
 color: blue
 ---
@@ -34,6 +34,9 @@ color: blue
 5-2. 아래 파일 순서대로 읽기
      - sprints/ROADMAP.md
      - plan.md
+     - sprints/TECH_DEBT.md (존재하면 → 이번 스프린트에 처리할 항목 파악)
+     - sprints/{PREV_SPRINT}/DONE.md (직전 스프린트 완료 보고 — 주의사항 확인)
+     - sprints/{PREV_SPRINT}/OUT_OF_SCOPE.md (직전 스프린트 범위 외 사항)
      - sprints/{CURRENT_SPRINT}/GOAL.md (존재하면 → 완료 출력 후 종료)
 
 5-3. 선행 스프린트 완료 여부 확인
