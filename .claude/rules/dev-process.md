@@ -1,8 +1,8 @@
 ---
 paths:
   - "sprints/**"
-  - "STATUS.md"
-  - "PRD.md"
+  - "docs/STATUS.md"
+  - "docs/PRD.md"
   - "plan.md"
 ---
 
@@ -16,7 +16,7 @@ paths:
 ## 1. 프로젝트 라이프사이클
 
 ```
-PRD.md 작성
+docs/PRD.md 작성
   → Orchestrator (PHASE 1~4.5)
     → PRD 분석 → plan.md → ROADMAP.md → 프로젝트 초기화
   → Planner (PHASE 5)
@@ -135,7 +135,7 @@ PRD.md 작성
 
 ```
 # 직접 실행
-.claude/agents/{에이전트}.md와 STATUS.md를 읽고 ...
+.claude/agents/{에이전트}.md와 docs/STATUS.md를 읽고 ...
 
 # /next 스킬로 다음 단계 자동 안내
 /next
@@ -221,9 +221,9 @@ Hotfix: {브랜치명}
 
 ```
 프로젝트 루트/
-├── PRD.md                              ← 프로젝트 요구사항
+├── docs/PRD.md                              ← 프로젝트 요구사항
 ├── plan.md                             ← 기능 분석 결과 (Orchestrator 생성)
-├── STATUS.md                           ← 파이프라인 상태 (공유 상태 파일)
+├── docs/STATUS.md                           ← 파이프라인 상태 (공유 상태 파일)
 ├── CLAUDE.md                           ← 코딩 원칙, 빌드 명령 (claude /init)
 ├── .gitignore
 │
@@ -264,7 +264,7 @@ Hotfix: {브랜치명}
 
 ### 9.1 계획 단계 (PHASE 1~5)
 
-1. **PRD.md 작성** (사용자)
+1. **docs/PRD.md 작성** (사용자)
    - 목적 & 배경, 핵심 기능, 기술 스택, MVP 기준, 제약 조건
 
 2. **Orchestrator 실행** (PHASE 1~4.5)
@@ -351,7 +351,7 @@ git push origin main
 
 또는 직접:
 ```
-STATUS.md를 읽고 현재 PHASE에 맞는 에이전트를 실행해줘.
+docs/STATUS.md를 읽고 현재 PHASE에 맞는 에이전트를 실행해줘.
 ```
 
 ---
@@ -372,7 +372,7 @@ STATUS.md를 읽고 현재 PHASE에 맞는 에이전트를 실행해줘.
 
 새 프로젝트를 시작할 때:
 
-- [ ] PRD.md 작성 (목적, 기능, 기술 스택, MVP, 제약 조건)
+- [ ] docs/PRD.md 작성 (목적, 기능, 기술 스택, MVP, 제약 조건)
 - [ ] Orchestrator 실행 (PHASE 1~4.5)
 - [ ] plan.md 확인 및 수정
 - [ ] ROADMAP.md 확인

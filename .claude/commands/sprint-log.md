@@ -1,10 +1,10 @@
 # /sprint-log — 현재 스프린트 종합 요약
 
-STATUS.md에서 CURRENT_SPRINT을 확인하고, 해당 스프린트의 모든 문서를 읽어서 종합 요약해줘.
+docs/STATUS.md에서 CURRENT_SPRINT을 확인하고, 해당 스프린트의 모든 문서를 읽어서 종합 요약해줘.
 
 ## 읽을 파일
 
-- STATUS.md → CURRENT_SPRINT 확인
+- docs/STATUS.md → CURRENT_SPRINT 확인
 - sprints/{CURRENT_SPRINT}/GOAL.md → 목표, 체크리스트, 완료 조건
 - sprints/{CURRENT_SPRINT}/DONE.md → 완료 보고 (있는 경우)
 - sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md → 범위 외 사항 (있는 경우)

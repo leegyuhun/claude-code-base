@@ -4,13 +4,13 @@ GOAL.md에 따라 스프린트를 구현하는 오케스트레이터.
 
 `$ARGUMENTS`: 스프린트 이름 (예: `sprint-01`, `01`)
 - `sprints/{CURRENT_SPRINT}/GOAL.md` 경로를 결정한다.
-- 인수가 없으면 STATUS.md에서 CURRENT_SPRINT을 읽는다.
+- 인수가 없으면 docs/STATUS.md에서 CURRENT_SPRINT을 읽는다.
 
 ## 실행 절차
 
 ### 1단계: 스프린트 문서 읽기
 
-1. STATUS.md에서 현재 PHASE와 CURRENT_SPRINT을 확인한다.
+1. docs/STATUS.md에서 현재 PHASE와 CURRENT_SPRINT을 확인한다.
 2. `sprints/{CURRENT_SPRINT}/GOAL.md`를 **전체** 읽는다.
 3. 다음을 파악한다:
    - **구현 기능 체크리스트**: 구현할 기능 목록과 순서
@@ -80,11 +80,11 @@ GOAL.md에 따라 스프린트를 구현하는 오케스트레이터.
    | ... | ... |
 
    다음 단계: Validator 에이전트 실행
-   명령어: '.claude/agents/validator.md와 STATUS.md 읽고
+   명령어: '.claude/agents/validator.md와 docs/STATUS.md 읽고
             sprints/{CURRENT_SPRINT} 검증해줘'
    ```
 
-4. STATUS.md PHASE=7 업데이트
+4. docs/STATUS.md PHASE=7 업데이트
 
 ## 주의사항
 

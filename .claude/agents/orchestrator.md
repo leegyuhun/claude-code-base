@@ -16,7 +16,7 @@ color: blue
 ## 실행 명령
 
 ```
-.claude/agents/orchestrator.md와 STATUS.md를 읽고 현재 PHASE부터 실행해줘.
+.claude/agents/orchestrator.md와 docs/STATUS.md를 읽고 현재 PHASE부터 실행해줘.
 [PAUSE] 지점에서 멈추고 내 확인을 기다려.
 코드 구현은 하지 마. 계획 문서 작성만 해.
 ```
@@ -30,8 +30,8 @@ color: blue
 ### PHASE 1 — PRD 분석
 
 ```
-1-1. PRD.md 존재 확인 (대소문자 주의)
-     → 없으면 "PRD.md가 없습니다" 출력 후 종료
+1-1. docs/PRD.md 존재 확인 (대소문자 주의)
+     → 없으면 "docs/PRD.md가 없습니다" 출력 후 종료
 
 1-2. 필수 섹션 검증
      - 목적 & 배경
@@ -43,10 +43,10 @@ color: blue
 1-3. 누락 섹션 있으면 → [PAUSE]
      "아래 섹션을 prd.md에 추가해주세요: {목록}"
 
-1-4. 통과 → STATUS.md PHASE=2 업데이트
+1-4. 통과 → docs/STATUS.md PHASE=2 업데이트
 
 1-R. [롤백] plan.md를 다시 작성하고 싶으면
-     → plan.md 삭제 후 STATUS.md PHASE=2 로 리셋
+     → plan.md 삭제 후 docs/STATUS.md PHASE=2 로 리셋
 ```
 
 ---
@@ -56,7 +56,7 @@ color: blue
 ```
 2-1. plan.md 존재하면 → PHASE 3 스킵
 
-2-2. PRD.md 분석 후 plan.md 생성
+2-2. docs/PRD.md 분석 후 plan.md 생성
 
      ## 프로젝트 개요
      (1~3줄 요약)
@@ -72,7 +72,7 @@ color: blue
 
      ## 제외 범위 (v2 이후)
 
-2-3. 완료 → STATUS.md PHASE=3 업데이트
+2-3. 완료 → docs/STATUS.md PHASE=3 업데이트
 ```
 
 ---
@@ -90,7 +90,7 @@ color: blue
       수정 있으면 직접 편집하거나 알려주세요.
       완료되면 '계속' 입력해주세요."
 
-3-3. 완료 → STATUS.md PHASE=4 업데이트
+3-3. 완료 → docs/STATUS.md PHASE=4 업데이트
 ```
 
 ---
@@ -121,13 +121,13 @@ color: blue
 
       다음 단계: 프로젝트 초기 세팅이 필요합니다. (PHASE 4.5)"
 
-4-6. STATUS.md 업데이트
+4-6. docs/STATUS.md 업데이트
      PHASE=4.5
      CURRENT_SPRINT=sprint-01
      ORCHESTRATOR=roadmap_done
 
 4-R. [롤백] ROADMAP.md를 다시 작성하고 싶으면
-     → sprints/ROADMAP.md 삭제 후 STATUS.md PHASE=4 로 리셋
+     → sprints/ROADMAP.md 삭제 후 docs/STATUS.md PHASE=4 로 리셋
 ```
 
 ---
@@ -135,7 +135,7 @@ color: blue
 ### PHASE 4.5 — 프로젝트 초기화 & CLAUDE.md 생성 [PAUSE]
 
 ```
-4.5-1. PRD.md의 기술 스택을 기반으로 초기화 질의
+4.5-1. docs/PRD.md의 기술 스택을 기반으로 초기화 질의
 
       [PAUSE]
       "📋 PRD 기술 스택 기준으로 프로젝트를 초기화합니다.
@@ -147,12 +147,12 @@ color: blue
 
        2. '아니오'라면, 어떤 방식으로 초기화할까요?
           → 구체적 명령을 알려주거나 '알아서 해줘' 입력
-          → '알아서 해줘' 시 PRD.md 기술 스택 기반으로 최소 프로젝트 구조 생성"
+          → '알아서 해줘' 시 docs/PRD.md 기술 스택 기반으로 최소 프로젝트 구조 생성"
 
 4.5-2. 사용자 응답에 따라 분기
        - '예' → 4.5-3으로 진행
        - '아니오' + 구체적 명령 → 해당 안내 제공 후 4.5-3으로 진행
-       - '아니오' + '알아서 해줘' → PRD.md 기술 스택 기반으로 최소 프로젝트 구조 스캐폴딩
+       - '아니오' + '알아서 해줘' → docs/PRD.md 기술 스택 기반으로 최소 프로젝트 구조 스캐폴딩
 
 4.5-3. CLAUDE.md 생성 질의
 
@@ -174,22 +174,22 @@ color: blue
          → '완료' 입력 시 CLAUDE.md 존재 확인
          → 없으면 "CLAUDE.md가 생성되지 않았습니다. 다시 시도해주세요."
        - '2' → "CLAUDE.md를 직접 작성한 후 '완료' 입력해주세요."
-       - '3' → PRD.md 기술 스택을 참조하여 최소 CLAUDE.md 템플릿 생성:
+       - '3' → docs/PRD.md 기술 스택을 참조하여 최소 CLAUDE.md 템플릿 생성:
                ---
                # CLAUDE.md
 
                ## 빌드 & 실행
-               (PRD.md 기술 스택 기반으로 빌드/실행/테스트 명령 기입)
+               (docs/PRD.md 기술 스택 기반으로 빌드/실행/테스트 명령 기입)
 
                ## 프로젝트 구조
-               (PRD.md 기반으로 주요 폴더 구조 기입)
+               (docs/PRD.md 기반으로 주요 폴더 구조 기입)
 
                ## 코딩 원칙
-               (PRD.md 기반으로 언어/프레임워크 코딩 원칙 기입)
+               (docs/PRD.md 기반으로 언어/프레임워크 코딩 원칙 기입)
                ---
 
 4.5-5. CLAUDE.md 존재 최종 확인
-       → 존재 → STATUS.md PHASE=5 업데이트, ORCHESTRATOR=done
+       → 존재 → docs/STATUS.md PHASE=5 업데이트, ORCHESTRATOR=done
        → 미존재 → [PAUSE] "CLAUDE.md가 필요합니다. 위 옵션 중 하나를 선택해주세요."
 
 4.5-6. 완료 후 출력:
@@ -198,7 +198,7 @@ color: blue
         - CLAUDE.md: 생성 완료
 
         다음 단계: .claude/agents/planner.md 실행
-        명령어: '.claude/agents/planner.md와 STATUS.md 읽고 sprint-01 계획 수립해줘'"
+        명령어: '.claude/agents/planner.md와 docs/STATUS.md 읽고 sprint-01 계획 수립해줘'"
 ```
 
 ---
@@ -214,7 +214,7 @@ color: blue
       "📋 신규 요구사항 반영을 시작합니다.
        아래 질문에 답해주세요:
 
-       1. PRD.md에 새 요구사항을 추가했나요?
+       1. docs/PRD.md에 새 요구사항을 추가했나요?
           → '예' (이미 수정됨) / '아니오' (지금 추가할게요)
 
        2. 요구사항의 규모는?
@@ -226,8 +226,8 @@ color: blue
          hotfix-close 에이전트를 사용하세요."
       → 종료
 
-11-3. PRD.md 읽기 및 변경 분석
-      - PRD.md 전체 읽기
+11-3. docs/PRD.md 읽기 및 변경 분석
+      - docs/PRD.md 전체 읽기
       - plan.md 읽기 (기존 기능 목록 파악)
       - 새로 추가된 요구사항만 추출
 
@@ -241,7 +241,7 @@ color: blue
       - 완료된 스프린트 번호 파악 후 이어서 스프린트 추가
       - 의존성 순서 준수
 
-11-6. STATUS.md 업데이트
+11-6. docs/STATUS.md 업데이트
       - CURRENT_SPRINT → 새 스프린트 (예: sprint-04)
       - PHASE=5
       - 스프린트 진행 현황 테이블에 새 행 추가
@@ -252,7 +252,7 @@ color: blue
        - 추가된 스프린트: {sprint-XX} ~ {sprint-YY}
 
        다음 단계: .claude/agents/planner.md 실행
-       명령어: '.claude/agents/planner.md와 STATUS.md 읽고
+       명령어: '.claude/agents/planner.md와 docs/STATUS.md 읽고
                 {NEXT_SPRINT} 계획 수립해줘'"
 ```
 

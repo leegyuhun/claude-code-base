@@ -1,7 +1,7 @@
 ---
 paths:
   - "sprints/**"
-  - "STATUS.md"
+  - "docs/STATUS.md"
 ---
 
 # Sprint/Hotfix 워크플로우 규칙
@@ -62,17 +62,17 @@ paths:
 
 **대규모 변경** (스프린트 목표 자체가 바뀌는 수준):
 - 현재 스프린트 중단 → Planner가 GOAL.md 재작성
-- STATUS.md PHASE=5로 리셋
+- docs/STATUS.md PHASE=5로 리셋
 
 ## 스프린트 Skip / 취소
 
 **Skip** (스프린트를 건너뛰어야 할 때):
-- STATUS.md 스프린트 진행 현황에서 해당 스프린트 상태 → ⏭️ skip
+- docs/STATUS.md 스프린트 진행 현황에서 해당 스프린트 상태 → ⏭️ skip
 - CURRENT_SPRINT → 다음 스프린트로 업데이트
 - ROADMAP.md에 skip 이유 기록
 
 **취소** (더 이상 필요 없는 스프린트):
-- STATUS.md에서 해당 스프린트 상태 → ❌ 취소
+- docs/STATUS.md에서 해당 스프린트 상태 → ❌ 취소
 - plan.md에 취소 이유 메모
 - ROADMAP.md 해당 행에 취소 표시
 
@@ -81,7 +81,7 @@ paths:
 모든 스프린트 완료 후 새 요구사항이 생기면:
 - 규모 판단: Hotfix 기준 이하 → Hotfix 프로세스 / 이상 → Re-plan
 - Re-plan: Orchestrator PHASE 11 진입
-  명령어: `.claude/agents/orchestrator.md와 STATUS.md 읽고 PHASE 11 실행해줘`
+  명령어: `.claude/agents/orchestrator.md와 docs/STATUS.md 읽고 PHASE 11 실행해줘`
 
 ## 누적 Tech Debt 관리
 
