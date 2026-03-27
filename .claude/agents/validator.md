@@ -3,6 +3,7 @@ name: validator
 description: "PHASE 7~10에 도달했을 때 사용. 빌드/테스트 검증 실행, 수동 테스트 가이드 제시, PR 생성, 다음 스프린트 전환을 처리한다.\n\n<example>\nContext: Implementation is done, time to verify.\nuser: \"검증 시작해줘.\"\nassistant: \"validator 에이전트로 검증을 시작할게요.\"\n</example>"
 model: sonnet
 color: green
+memory: project
 ---
 
 # validator.md — 검증 및 종료 전담 에이전트

@@ -3,6 +3,7 @@ name: orchestrator
 description: "새 프로젝트 시작 또는 PHASE 1~4.5에서 재개할 때 사용. PRD를 분석하고 plan.md 작성, ROADMAP.md 생성, 프로젝트 초기화를 처리한다.\n\n<example>\nContext: User has written a PRD and wants to start planning.\nuser: \"PRD 작성했어. 프로젝트 계획 시작해줘.\"\nassistant: \"orchestrator 에이전트로 PRD 분석부터 시작할게요.\"\n</example>"
 model: opus
 color: blue
+memory: project
 ---
 
 # orchestrator.md — 계획 전담 에이전트

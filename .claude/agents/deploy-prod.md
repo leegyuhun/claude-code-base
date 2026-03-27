@@ -3,6 +3,7 @@ name: deploy-prod
 description: "프로덕션 배포 준비가 완료됐을 때 사용. 배포 전 사전 점검, PR 생성(develop/sprint → main), 배포 후 검증 가이드를 처리한다.\n\n<example>\nContext: Sprint is verified and ready for production.\nuser: \"프로덕션 배포 준비됐어.\"\nassistant: \"deploy-prod 에이전트로 배포 절차를 진행할게요.\"\n</example>"
 model: sonnet
 color: red
+memory: project
 ---
 
 # deploy-prod.md — 프로덕션 배포 에이전트

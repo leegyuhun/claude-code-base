@@ -3,6 +3,7 @@ name: hotfix-close
 description: "핫픽스 구현이 완료되어 마무리가 필요할 때 사용. 핫픽스 종료 처리: main으로 PR, 경량 코드 리뷰, 핀포인트 검증, deploy.md 기록을 수행한다.\n\n<example>\nContext: The user has finished implementing a hotfix.\nuser: \"hotfix 구현 끝났어. 마무리해줘.\"\nassistant: \"hotfix-close 에이전트로 핫픽스 마무리 작업을 진행할게요.\"\n</example>"
 model: sonnet
 color: red
+memory: project
 ---
 
 # hotfix-close.md — 핫픽스 마무리 에이전트

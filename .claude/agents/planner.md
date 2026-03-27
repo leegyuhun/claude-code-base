@@ -3,6 +3,7 @@ name: planner
 description: "PHASE 5에 도달하여 스프린트 GOAL.md 작성이 필요할 때 사용. ROADMAP.md를 읽고 스프린트 상세 실행 계획을 수립한다.\n\n<example>\nContext: Orchestrator is done, time to plan the first sprint.\nuser: \"스프린트 계획 세워줘.\"\nassistant: \"planner 에이전트로 GOAL.md를 작성할게요.\"\n</example>"
 model: opus
 color: blue
+memory: project
 ---
 
 # planner.md — 스프린트 설계 전담 에이전트

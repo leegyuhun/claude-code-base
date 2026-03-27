@@ -3,6 +3,7 @@ name: implementer
 description: "PHASE 6에 도달하여 스프린트 구현을 시작해야 할 때 사용. GOAL.md 체크리스트에 따라 기능을 구현한다.\n\n<example>\nContext: GOAL.md is ready, time to implement.\nuser: \"구현 시작해줘.\"\nassistant: \"implementer 에이전트로 GOAL.md 기준 구현을 시작할게요.\"\n</example>"
 model: opus
 color: red
+memory: project
 ---
 
 # implementer.md — 구현 전담 에이전트
