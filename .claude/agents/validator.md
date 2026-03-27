@@ -1,6 +1,6 @@
 ---
 name: validator
-description: "Use this agent when PHASE 7~10 is reached. Runs build/test verification, guides manual testing, creates PR, and transitions to next sprint.\n\n<example>\nContext: Implementation is done, time to verify.\nuser: \"검증 시작해줘.\"\nassistant: \"validator 에이전트로 검증을 시작할게요.\"\n</example>"
+description: "PHASE 7~10에 도달했을 때 사용. 빌드/테스트 검증 실행, 수동 테스트 가이드 제시, PR 생성, 다음 스프린트 전환을 처리한다.\n\n<example>\nContext: Implementation is done, time to verify.\nuser: \"검증 시작해줘.\"\nassistant: \"validator 에이전트로 검증을 시작할게요.\"\n</example>"
 model: sonnet
 color: green
 ---
@@ -37,7 +37,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
 7-2. 빌드 실행 (Delphi 2007)
      build.bat debug
-     → dcc32.exe 컴파일 성공 여부 확인
+     → msbuild 컴파일 성공 여부 확인
      → 컴파일 에러: [Error] UnitName.pas(line): error message 형식 확인
 
      실패 시:
@@ -51,7 +51,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      → 없으면 건너뜀
 
 7-4. 자동 검증 항목:
-     ✅ dcc32 컴파일 성공 (0 오류)
+     ✅ build.bat 컴파일 성공 (0 오류)
      ✅ DUnit 테스트 통과 (Tests/Source/ 있는 경우)
      ⚠️ 런타임 동작 확인은 수동 테스트(PHASE 8)에서
 
@@ -129,7 +129,24 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
      ## 다음 스프린트 주의사항
 
-9-2. 최종 커밋 (Implementer의 중간 커밋을 스쿼시)
+9-2. CHANGELOG.md 업데이트
+     - 루트의 CHANGELOG.md 읽기 (없으면 새로 생성)
+     - 맨 위에 새 항목 추가:
+       ## [{CURRENT_SPRINT}] {목표 요약} — {YYYY-MM-DD}
+       ### 추가
+       - 완료된 기능 목록 (GOAL.md [x] 항목)
+       ### 기술 부채
+       - OUT_OF_SCOPE.md 항목 요약
+
+9-3. sprints/TECH_DEBT.md 업데이트
+     - 없으면 새로 생성
+     - OUT_OF_SCOPE.md의 항목과 TODO 주석 목록을 아래 형식으로 추가:
+       | 항목 | 출처 스프린트 | 우선순위 | 처리 스프린트 |
+       | ---- | ------------ | -------- | ------------ |
+       | ...  | {CURRENT_SPRINT} | P1/P2 | -      |
+     - 이미 처리된 항목은 ✅ 표시 후 행 유지
+
+9-4. 최종 커밋 (Implementer의 중간 커밋을 스쿼시)
      git add .
      git commit -m "feat: [{CURRENT_SPRINT}] {목표 요약}
 
@@ -138,16 +155,19 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
      Sprint: {CURRENT_SPRINT}"
 
-9-3. 브랜치 푸시
-     git push -u origin sprint/{CURRENT_SPRINT}
+9-5. 브랜치 푸시 및 base 브랜치 결정
+     현재 브랜치에서 _{CURRENT_SPRINT} suffix 제거 → BASE_BRANCH
+     예: main_delphi_sprint-01 → main_delphi
+     BASE_BRANCH=$(git branch --show-current | sed 's/_sprint-[0-9]*//')
+     git push -u origin $(git branch --show-current)
 
-9-4. gh CLI로 PR 자동 생성
-     gh pr create --title "[{CURRENT_SPRINT}] {목표 요약}" --body "$(cat <<'EOF'
+9-6. gh CLI로 PR 자동 생성
+     gh pr create --base ${BASE_BRANCH} --title "[{CURRENT_SPRINT}] {목표 요약}" --body "$(cat <<'EOF'
      ## 변경 사항
      (DONE.md 완료된 기능 목록)
 
      ## 테스트 완료 항목
-     (dcc32 컴파일 + DUnit + 수동 테스트 결과)
+     (build.bat 컴파일 + DUnit + 수동 테스트 결과)
 
      ## Tech Debt
      (TODO 주석, OUT_OF_SCOPE.md)
@@ -159,11 +179,11 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
      → gh 미설치 시 PR 내용을 출력하여 수동 생성 안내
 
-9-5. [PAUSE]
+9-7. [PAUSE]
      "PR이 생성되었습니다: {PR_URL}
       머지 완료 후 '머지완료' 입력 시 다음 스프린트로 진행합니다."
 
-9-6. '머지완료' 입력 시
+9-8. '머지완료' 입력 시
      STATUS.md 업데이트:
      - 해당 스프린트 상태 → ✅ 완료
      - LAST_COMMIT, LAST_PR 기록

@@ -1,14 +1,14 @@
 ---
 paths:
-  - "Source/**"
-  - "Tests/**"
+  - "**/*.pas"
+  - "**/*.dfm"
 ---
 
 # 코딩 원칙 (Delphi 2007 / Object Pascal)
 
 ## 기술 스택
 # TODO: 프로젝트 초기화(PHASE 4.5) 후 기술 스택을 기입하세요
-# 예: Delphi 2007 (BDS 5.0), VCL, ADO/BDE, FastReport
+# 예: Delphi 2007 (BDS 5.0), VCL
 
 ## 핵심 규칙
 
@@ -31,17 +31,18 @@ paths:
 - TComponent 계층에 속하면 Owner가 해제 담당
 
 ## 명명 규칙
-- 폼 클래스: TFrm접두사 (예: TFrmMain)
-- 데이터 모듈 클래스: TDM접두사 (예: TDMMain)
-- 일반 클래스: T접두사 (예: TCustomer)
-- 유닛 파일명: U접두사 (예: UBusinessLogic.pas)
-- 상수: c접두사 (예: cMaxRetry = 3)
-- 전역 변수: g접두사 (사용 최소화)
+- 클래스: TMyClassName
+- 폼: TfrmLogin, TfrmMain
+- 데이터모듈: TdmMain
+- 변수: 지역변수 AVarName, 멤버변수 FVarName, 전역변수 GVarName, 매개변수 MParam
+- 상수: S_CONST_NAME
+- 프로시저: DoSomething, HandleClick
 
-## 보안
-- DB 연결 문자열은 설정 파일(.ini)로 분리 (코드 하드코딩 금지)
-- SQL은 파라미터 바인딩 사용 (SQL injection 방지)
-  예: Query.Parameters.ParamByName('Id').Value := Id;
+## DBMS
+ - Sybase와 PostgreSQL을 모두 사용중입니다.
+  가능하다면 두 DBMS에서 모두 동작할 수 있는 SQL을 작성합니다.
+  불가피하게 분기해야할 경우, TtsQuery.UsingPG 프로퍼티를 이용해 SQL을 분기합니다.
+  TsQuery.pas 내 정의된 SQL 문법 관련 메소드를 적극적으로 활용합니다.
 
 ## 임시 코드
 - 임시 코드 사용 시 TODO 주석 필수
@@ -50,3 +51,10 @@ paths:
 ## .dfm / .pas 동기화
 - 폼 컴포넌트 추가/삭제 시 반드시 .dfm도 함께 커밋
 - 텍스트 .dfm 형식 권장 (IDE: Edit → Form as Text)
+
+## 파일인코딩
+ - **Delphi 2007** 프로젝트의 `.pas` 파일은 **CP949(EUC-KR)** 인코딩입니다.
+ - Edit 도구로 편집 시 기존 한글 주석은 절대 수정하지 않습니다.
+   - 파일을 읽으면 기존 한글이 깨진 문자(`���`, `�Լ�` 등)로 보이는데, CP949 바이트가 그대로 표시된 것이므로 **원본 그대로 유지**합니다.
+   - `old_string` 매칭 시 깨진 한글이 포함되어도, `new_string`에도 그대로 복사하여 변경하지 않습니다.
+ - **Delphi Berlin 이상** 프로젝트의 `.pas` 파일은 **UTF-8** 인코딩이지만, BOM 처리 문제로 깨질 수 있으므로 한글 주석은 수정하지 않습니다.

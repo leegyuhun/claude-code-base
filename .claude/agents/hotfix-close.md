@@ -1,6 +1,6 @@
 ---
 name: hotfix-close
-description: "Use this agent when a hotfix implementation is complete and needs to be wrapped up. Handles hotfix closing: PR to main, lightweight code review, targeted verification, deploy.md recording.\n\n<example>\nContext: The user has finished implementing a hotfix.\nuser: \"hotfix 구현 끝났어. 마무리해줘.\"\nassistant: \"hotfix-close 에이전트로 핫픽스 마무리 작업을 진행할게요.\"\n</example>"
+description: "핫픽스 구현이 완료되어 마무리가 필요할 때 사용. 핫픽스 종료 처리: main으로 PR, 경량 코드 리뷰, 핀포인트 검증, deploy.md 기록을 수행한다.\n\n<example>\nContext: The user has finished implementing a hotfix.\nuser: \"hotfix 구현 끝났어. 마무리해줘.\"\nassistant: \"hotfix-close 에이전트로 핫픽스 마무리 작업을 진행할게요.\"\n</example>"
 model: sonnet
 color: red
 ---
@@ -26,8 +26,13 @@ color: red
 ### 1단계: 현재 상태 파악
 
 ```
-1-1. 현재 브랜치가 hotfix/* 형식인지 확인
-     → 아니면 "hotfix/* 브랜치에서 실행해주세요" 출력 후 종료
+1-1. 현재 브랜치 확인
+     허용 형식: `hotfix/*` 또는 `{베이스브랜치}_hotfix/{설명}`
+     예: hotfix/login-fix, main_delphi_hotfix/login-fix
+     → 위 형식이 아니면 [PAUSE]
+       "hotfix 브랜치 형식이 아닙니다. 현재 브랜치: {브랜치명}
+        hotfix 브랜치를 생성하려면:
+        git checkout -b {현재브랜치}_hotfix/{설명}"
 
 1-2. 변경 범위 확인
      git diff main...HEAD --stat
@@ -56,7 +61,7 @@ color: red
 3-1. CLAUDE.md에서 빌드/테스트 명령 확인
 
 3-2. 자동 검증 실행
-     - build.bat debug 성공 확인 (dcc32 컴파일)
+     - build.bat debug 성공 확인 (msbuild 컴파일)
      - 변경된 유닛 관련 DUnit 테스트 실행 (있는 경우)
      - 변경된 폼 .dfm 파일과 .pas 파일 싱크 확인
 
@@ -86,7 +91,7 @@ color: red
      {변경 요약 (.pas/.dfm 파일 목록 포함)}
 
      ## 검증 결과
-     - {dcc32 컴파일 결과}
+     - {build.bat 컴파일 결과}
      - {DUnit 테스트 결과 (있는 경우)}
 
      ## 수동 확인 필요

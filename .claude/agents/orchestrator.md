@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: "Use this agent when starting a new project or resuming from PHASE 1~4.5. Analyzes PRD, creates plan.md, generates ROADMAP.md, and handles project initialization.\n\n<example>\nContext: User has written a PRD and wants to start planning.\nuser: \"PRD 작성했어. 프로젝트 계획 시작해줘.\"\nassistant: \"orchestrator 에이전트로 PRD 분석부터 시작할게요.\"\n</example>"
+description: "새 프로젝트 시작 또는 PHASE 1~4.5에서 재개할 때 사용. PRD를 분석하고 plan.md 작성, ROADMAP.md 생성, 프로젝트 초기화를 처리한다.\n\n<example>\nContext: User has written a PRD and wants to start planning.\nuser: \"PRD 작성했어. 프로젝트 계획 시작해줘.\"\nassistant: \"orchestrator 에이전트로 PRD 분석부터 시작할게요.\"\n</example>"
 model: opus
 color: blue
 ---
@@ -141,17 +141,18 @@ color: blue
       "📋 PRD 기술 스택 기준으로 프로젝트를 초기화합니다.
        아래 질문에 답해주세요:
 
-       1. Delphi 프로젝트 초기화가 이미 되어 있나요? (.dpr 파일 존재 여부)
+       1. 프로젝트 초기화가 이미 되어 있나요?
+          (예: .dpr, package.json, pyproject.toml 등 프로젝트 파일 존재 여부)
           → '예' / '아니오'
 
        2. '아니오'라면, 어떤 방식으로 초기화할까요?
-          → 예시: 'Source/ProjectMain.dpr 직접 생성', 'Delphi IDE에서 새 프로젝트 생성'
-          → 또는 '알아서 해줘' 입력 시 PRD 기술 스택 기반으로 최소 .dpr 파일 생성"
+          → 구체적 명령을 알려주거나 '알아서 해줘' 입력
+          → '알아서 해줘' 시 PRD.md 기술 스택 기반으로 최소 프로젝트 구조 생성"
 
 4.5-2. 사용자 응답에 따라 분기
        - '예' → 4.5-3으로 진행
        - '아니오' + 구체적 명령 → 해당 안내 제공 후 4.5-3으로 진행
-       - '아니오' + '알아서 해줘' → PRD.md 기술 스택 기반으로 최소 .dpr 파일 스캐폴딩
+       - '아니오' + '알아서 해줘' → PRD.md 기술 스택 기반으로 최소 프로젝트 구조 스캐폴딩
 
 4.5-3. CLAUDE.md 생성 질의
 
@@ -173,28 +174,18 @@ color: blue
          → '완료' 입력 시 CLAUDE.md 존재 확인
          → 없으면 "CLAUDE.md가 생성되지 않았습니다. 다시 시도해주세요."
        - '2' → "CLAUDE.md를 직접 작성한 후 '완료' 입력해주세요."
-       - '3' → 최소 CLAUDE.md 템플릿 생성:
+       - '3' → PRD.md 기술 스택을 참조하여 최소 CLAUDE.md 템플릿 생성:
                ---
                # CLAUDE.md
 
                ## 빌드 & 실행
-               - 빌드: `build.bat [debug|release]`
-               - 컴파일러: dcc32.exe (Delphi 2007 / BDS 5.0)
-               - 테스트: `run_tests.bat`
-               - 소스 경로: Source/ (Forms/, Units/, DataModules/)
-               - 출력 경로: Output/Debug/ (디버그), Output/Release/ (릴리스)
+               (PRD.md 기술 스택 기반으로 빌드/실행/테스트 명령 기입)
 
                ## 프로젝트 구조
-               - Source/Forms/     ← 폼 (.pas + .dfm)
-               - Source/Units/     ← 비즈니스 로직
-               - Source/DataModules/ ← 데이터 모듈
-               - Tests/Source/     ← DUnit 테스트
-               - Lib/              ← 외부 .dcu
+               (PRD.md 기반으로 주요 폴더 구조 기입)
 
                ## 코딩 원칙
-               - TODO 주석: // TODO: [tech-debt] 임시처리 - 이유
-               - 폼 명명: TFrm접두사 (예: TFrmMain, TFrmLogin)
-               - 유닛 명명: U접두사 (예: UDataAccess, UBusinessLogic)
+               (PRD.md 기반으로 언어/프레임워크 코딩 원칙 기입)
                ---
 
 4.5-5. CLAUDE.md 존재 최종 확인
@@ -208,6 +199,61 @@ color: blue
 
         다음 단계: .claude/agents/planner.md 실행
         명령어: '.claude/agents/planner.md와 STATUS.md 읽고 sprint-01 계획 수립해줘'"
+```
+
+---
+
+### PHASE 11 — 신규 요구사항 반영 (Re-plan) [PAUSE]
+
+> 모든 스프린트 완료 후 새로운 요구사항이 생겼을 때 진입하는 경로.
+> plan.md와 ROADMAP.md를 업데이트하고 다음 스프린트를 추가한다.
+
+```
+11-1. 신규 요구사항 확인
+      [PAUSE]
+      "📋 신규 요구사항 반영을 시작합니다.
+       아래 질문에 답해주세요:
+
+       1. PRD.md에 새 요구사항을 추가했나요?
+          → '예' (이미 수정됨) / '아니오' (지금 추가할게요)
+
+       2. 요구사항의 규모는?
+          → Hotfix 기준 (파일 3개↓, 50줄↓): 'hotfix' 입력
+          → 스프린트 기준 (그 이상): 계속 진행"
+
+11-2. Hotfix 판단 시
+      → "hotfix 브랜치를 생성해 진행하는 게 적합합니다.
+         hotfix-close 에이전트를 사용하세요."
+      → 종료
+
+11-3. PRD.md 읽기 및 변경 분석
+      - PRD.md 전체 읽기
+      - plan.md 읽기 (기존 기능 목록 파악)
+      - 새로 추가된 요구사항만 추출
+
+11-4. plan.md 업데이트
+      - 기존 내용은 유지
+      - "## 신규 요구사항 (v{N})" 섹션 추가하여 새 기능 행 추가
+      - 우선순위/복잡도/의존성 분석
+
+11-5. ROADMAP.md 업데이트
+      - sprints/ROADMAP.md 읽기
+      - 완료된 스프린트 번호 파악 후 이어서 스프린트 추가
+      - 의존성 순서 준수
+
+11-6. STATUS.md 업데이트
+      - CURRENT_SPRINT → 새 스프린트 (예: sprint-04)
+      - PHASE=5
+      - 스프린트 진행 현황 테이블에 새 행 추가
+
+11-7. 완료 후 출력:
+      "✅ Re-plan 완료
+       - 추가된 기능: N개
+       - 추가된 스프린트: {sprint-XX} ~ {sprint-YY}
+
+       다음 단계: .claude/agents/planner.md 실행
+       명령어: '.claude/agents/planner.md와 STATUS.md 읽고
+                {NEXT_SPRINT} 계획 수립해줘'"
 ```
 
 ---

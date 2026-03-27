@@ -1,6 +1,6 @@
 ---
 name: implementer
-description: "Use this agent when PHASE 6 is reached and sprint implementation should begin. Implements features according to GOAL.md checklist.\n\n<example>\nContext: GOAL.md is ready, time to implement.\nuser: \"구현 시작해줘.\"\nassistant: \"implementer 에이전트로 GOAL.md 기준 구현을 시작할게요.\"\n</example>"
+description: "PHASE 6에 도달하여 스프린트 구현을 시작해야 할 때 사용. GOAL.md 체크리스트에 따라 기능을 구현한다.\n\n<example>\nContext: GOAL.md is ready, time to implement.\nuser: \"구현 시작해줘.\"\nassistant: \"implementer 에이전트로 GOAL.md 기준 구현을 시작할게요.\"\n</example>"
 model: opus
 color: red
 ---
@@ -39,11 +39,14 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
      참조 가능 (수정 금지):
      - plan.md                ← 전체 설계 맥락 파악용
      - sprints/ROADMAP.md     ← 스프린트 간 의존성 확인용
+     - sprints/TECH_DEBT.md   ← 누적 기술 부채 (이번 스프린트 처리 항목 확인)
+     - sprints/{PREV_SPRINT}/DONE.md        ← 직전 스프린트 주의사항
+     - sprints/{PREV_SPRINT}/OUT_OF_SCOPE.md ← 직전 스프린트 범위 외 사항
 
 6-2. 브랜치 생성
-     git checkout main
-     git pull origin main
-     git checkout -b sprint/{CURRENT_SPRINT}
+     CURRENT_BRANCH=$(git branch --show-current)
+     git checkout -b {CURRENT_BRANCH}_{CURRENT_SPRINT}
+     # 예: main_delphi_sprint-01
 
 6-3. 구현 Plan 작성 후 [PAUSE]
      아래 형식으로 출력:
@@ -70,6 +73,15 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
      - STATUS.md PROGRESS 업데이트
      - GOAL.md 범위 밖 기능 발견 시 → 메모만 하고 건너뜀
      - .pas 파일 수정 시 해당 .dfm 파일과 싱크 유지
+
+     요구사항 변경 발생 시:
+     - 사용자가 구현 중 요구사항 변경을 요청하면 → [PAUSE]
+       "요구사항 변경이 감지되었습니다.
+        변경 내용: {내용}
+        영향받는 항목: {목록}
+        GOAL.md를 수정하고 계속할까요? (예/아니오)"
+     - '예' → GOAL.md 수정 후 계속 구현
+     - '아니오' → 현재까지 구현된 내용만 커밋 후 중단
 
 6-5. 구현 완료 → STATUS.md PHASE=7 업데이트
      완료 후 출력:
@@ -100,38 +112,8 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
 ✅ .pas 수정 시 반드시 .dfm 파일과 싱크 확인
 ```
 
-### Delphi 2007 / Object Pascal 코딩 원칙
-
-**1. 코딩 전에 생각하라**
-- 가정을 명시적으로 밝혀라. 불확실하면 물어봐라.
-- 해석이 여러 개면 제시하라 — 임의로 골라서 진행하지 마라.
-- .dfm 변경이 필요한지 먼저 파악하라.
-- 더 단순한 접근이 있으면 말하라. 필요하면 반론을 제기하라.
-
-**2. 단순함 우선**
-- 요청한 것 이상의 기능을 만들지 마라.
-- VCL 표준 컴포넌트로 해결 가능하면 서드파티 불필요.
-- 한 번만 쓰는 코드에 추상화를 만들지 마라.
-- 요청하지 않은 "유연성"이나 "설정 가능성"을 넣지 마라.
-
-**3. 수술적 변경**
-- 요청과 관련된 유닛/폼만 건드려라.
-- .pas 수정 시 해당 .dfm 파일과 싱크를 유지하라.
-- 주변 코드, 주석, 포맷을 "개선"하지 마라.
-- 기존 스타일을 따라라 (내 취향이 달라도).
-- 내 변경으로 인해 안 쓰게 된 uses 항목/변수/함수만 제거하라.
-
-**4. 메모리 관리 (중요)**
-- 생성한 객체는 반드시 해제하라: FreeAndNil(Obj)
-- try..finally 블록으로 리소스 보호
-- TComponent 계층에 속하면 Owner가 해제 담당
-- {$IFDEF DEBUG} 로 디버그 전용 코드 분리
-
-**5. 명명 규칙**
-- 폼 클래스: TFrm접두사 (예: TFrmMain, TFrmLogin)
-- 데이터 모듈 클래스: TDM접두사 (예: TDMMain)
-- 일반 클래스: T접두사 (예: TCustomer)
-- 유닛 파일명: U접두사 (예: UBusinessLogic.pas)
+### 코딩 원칙
+→ `.claude/rules/coding-principles.md` 자동 적용됨 (별도 참조 불필요)
 
 ---
 

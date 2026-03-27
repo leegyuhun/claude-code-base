@@ -1,3 +1,11 @@
+---
+paths:
+  - "sprints/**"
+  - "STATUS.md"
+  - "PRD.md"
+  - "plan.md"
+---
+
 # 개발 프로세스
 
 > 이 문서는 claude-code-base 프로젝트의 전체 개발 프로세스를 정의합니다.
@@ -89,21 +97,21 @@ PRD.md 작성
 ### Sprint 흐름
 
 ```
-sprint/{sprint-name}  →  PR to main  →  배포
+{현재브랜치}_{CURRENT_SPRINT}  →  PR to 베이스 브랜치  →  배포
 ```
 
 ### Hotfix 흐름
 
 ```
-hotfix/{설명}  →  PR to main  →  배포  →  개발 브랜치에 역머지
+{현재브랜치}_hotfix/{설명}  →  PR to 베이스 브랜치  →  배포  →  스프린트 브랜치에 역머지
 ```
 
 ### 브랜치 명명 규칙
 
 | 용도 | 패턴 | 예시 |
 |------|------|------|
-| 스프린트 | `sprint/{sprint-name}` | `sprint/sprint-01` |
-| 핫픽스 | `hotfix/{설명}` | `hotfix/fix-login-error` |
+| 스프린트 | `{현재브랜치}_{CURRENT_SPRINT}` | `main_delphi_sprint-01` |
+| 핫픽스 | `{현재브랜치}_hotfix/{설명}` | `main_delphi_hotfix/login-fix` |
 | 메인 | `main` | — |
 
 ---
@@ -219,9 +227,6 @@ Hotfix: {브랜치명}
 ├── CLAUDE.md                           ← 코딩 원칙, 빌드 명령 (claude /init)
 ├── .gitignore
 │
-├── docs/
-│   └── dev-process.md                  ← 이 문서
-│
 ├── sprints/
 │   ├── ROADMAP.md                      ← 전체 스프린트 로드맵
 │   ├── sprint-01/
@@ -241,16 +246,16 @@ Hotfix: {브랜치명}
     │   ├── hotfix-close.md             ← 핫픽스 마무리
     │   └── deploy-prod.md              ← 프로덕션 배포
     ├── commands/
-    │   └── sprint-dev.md               ← Sprint 구현 오케스트레이터
-    ├── rules/
-    │   ├── sprint-workflow.md          ← Sprint/Hotfix 워크플로우 규칙
-    │   └── coding-principles.md        ← 코딩 원칙 (paths 기반 자동 활성화)
-    └── skills/
-        ├── status.md                   ← /status — 현재 상태 요약
-        ├── next.md                     ← /next — 다음 에이전트 안내
-        ├── rollback.md                 ← /rollback — PHASE 롤백
-        ├── sprint-log.md               ← /sprint-log — 스프린트 종합 요약
-        └── debt.md                     ← /debt — Tech Debt 보고
+    │   ├── sprint-dev.md               ← Sprint 구현 오케스트레이터
+    │   ├── status.md                   ← /status — 현재 상태 요약
+    │   ├── next.md                     ← /next — 다음 에이전트 안내
+    │   ├── rollback.md                 ← /rollback — PHASE 롤백
+    │   ├── sprint-log.md               ← /sprint-log — 스프린트 종합 요약
+    │   └── debt.md                     ← /debt — Tech Debt 보고
+    └── rules/
+        ├── sprint-workflow.md          ← Sprint/Hotfix 워크플로우 규칙
+        ├── coding-principles.md        ← 코딩 원칙 (paths 기반 자동 활성화)
+        └── dev-process.md              ← 개발 프로세스 정책 (이 문서)
 ```
 
 ---
