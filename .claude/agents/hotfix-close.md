@@ -80,8 +80,13 @@ color: red
 4-2. 브랜치 푸시
      git push -u origin {현재 브랜치}
 
-4-3. gh CLI로 main PR 생성
-     gh pr create --base main \
+4-3. 베이스 브랜치 결정
+     현재 브랜치에서 _hotfix/... suffix 제거 → BASE_BRANCH
+     예: main_delphi_hotfix/login-fix → main_delphi
+     BASE_BRANCH=$(git branch --show-current | sed 's/_hotfix\/.*//')
+
+4-4. gh CLI로 PR 생성
+     gh pr create --base ${BASE_BRANCH} \
        --title "fix: {핫픽스 설명} (hotfix)" \
        --body "$(cat <<'EOF'
      ## 문제 원인

@@ -241,6 +241,7 @@ Hotfix: {브랜치명}
 │   └── sprint-02/
 │       └── ...
 │
+├── CHANGELOG.md                        ← 전체 변경 이력 (Validator가 스프린트 종료 시 자동 업데이트)
 └── .claude/
     ├── settings.json                   ← 권한 설정
     ├── agents/
