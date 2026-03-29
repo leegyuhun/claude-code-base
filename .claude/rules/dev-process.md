@@ -180,6 +180,11 @@ docs/PRD.md 작성
 - [ ] 성능 이슈 (N+1 쿼리, 불필요한 루프)
 - [ ] 에러 핸들링 누락 (외부 API 호출, DB 연결)
 - [ ] 테스트 커버리지 부족
+- [ ] [Delphi] TDataSet.State 미체크로 Post/Cancel 누락
+- [ ] [Delphi] 백그라운드 쓰레드에서 VCL 직접 접근 (Synchronize 누락)
+- [ ] [Delphi] GDI 객체 DeleteObject 누락
+- [ ] [Delphi] ProcessMessages 호출 시 재진입 가드 없음
+- [ ] [Delphi] BeginUpdate/EndUpdate 누락 (대량 리스트 업데이트)
 
 ### Medium (기록)
 - [ ] 코딩 스타일 불일치

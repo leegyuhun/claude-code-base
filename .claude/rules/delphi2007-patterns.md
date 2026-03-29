@@ -1,0 +1,466 @@
+---
+paths:
+  - "**/*.pas"
+  - "**/*.dfm"
+---
+
+# Delphi 2007 코딩 패턴 레퍼런스
+
+> coding-principles.md의 규칙에 대한 구체적 구현 패턴 모음.
+> "어떻게 짜야 하나?" 막힐 때 먼저 여기서 찾아라.
+
+---
+
+## 1. 재진입 가드 (Reentrancy Guard)
+
+### 단순 플래그
+```pascal
+type
+  TfrmMain = class(TForm)
+  private
+    FIsProcessing: Boolean;
+  end;
+
+procedure TfrmMain.btnSaveClick(Sender: TObject);
+begin
+  if FIsProcessing then Exit;
+  FIsProcessing := True;
+  btnSave.Enabled := False;
+  try
+    DoSave;
+    Application.ProcessMessages;
+  finally
+    FIsProcessing := False;
+    btnSave.Enabled := True;
+  end;
+end;
+```
+
+### Action 기반 (ActionList 사용 시 권장)
+```pascal
+procedure TfrmMain.actSaveExecute(Sender: TObject);
+begin
+  actSave.Enabled := False;
+  try
+    DoSave;
+  finally
+    actSave.Enabled := True;
+  end;
+end;
+```
+
+---
+
+## 2. TDataSet 상태 패턴
+
+### 저장 확인 후 닫기
+```pascal
+procedure TfrmOrder.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+  if qryOrder.State in [dsEdit, dsInsert] then
+  begin
+    case MessageDlg('변경사항을 저장하시겠습니까?',
+                    mtConfirmation, [mbYes, mbNo, mbCancel], 0) of
+      mrYes:    qryOrder.Post;
+      mrNo:     qryOrder.Cancel;
+      mrCancel: CanClose := False;
+    end;
+  end;
+end;
+```
+
+### 안전한 Post 헬퍼
+```pascal
+// dmMain 등 DataModule에 공통 헬퍼로
+function SafePost(ADataSet: TDataSet): Boolean;
+begin
+  Result := False;
+  if not (ADataSet.State in [dsEdit, dsInsert]) then
+  begin
+    Result := True;
+    Exit;
+  end;
+  try
+    ADataSet.Post;
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      ADataSet.Cancel;
+      raise;
+    end;
+  end;
+end;
+```
+
+### 트랜잭션 + 여러 DataSet
+```pascal
+procedure TdmOrder.SaveOrder;
+begin
+  dmMain.Database.StartTransaction;
+  try
+    if qryOrder.State in [dsEdit, dsInsert] then qryOrder.Post;
+    if qryOrderItem.State in [dsEdit, dsInsert] then qryOrderItem.Post;
+    dmMain.Database.Commit;
+  except
+    dmMain.Database.Rollback;
+    raise;
+  end;
+end;
+```
+
+---
+
+## 3. TThread 패턴
+
+### 기본 작업 쓰레드
+```pascal
+type
+  TWorkerThread = class(TThread)
+  private
+    FProgress: Integer;
+    FOnProgress: TNotifyEvent;
+    procedure SyncProgress;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AOnProgress: TNotifyEvent);
+  end;
+
+constructor TWorkerThread.Create(AOnProgress: TNotifyEvent);
+begin
+  FOnProgress := AOnProgress;
+  FreeOnTerminate := True;
+  inherited Create(False);
+end;
+
+procedure TWorkerThread.Execute;
+var
+  i: Integer;
+begin
+  for i := 1 to 100 do
+  begin
+    if Terminated then Break;
+    // 작업
+    FProgress := i;
+    Synchronize(SyncProgress); // UI 업데이트는 반드시 Synchronize
+    Sleep(10);
+  end;
+end;
+
+procedure TWorkerThread.SyncProgress;
+begin
+  if Assigned(FOnProgress) then FOnProgress(Self);
+end;
+```
+
+### 폼에서 쓰레드 생성/종료
+```pascal
+type
+  TfrmMain = class(TForm)
+  private
+    FWorker: TWorkerThread;
+    procedure HandleProgress(Sender: TObject);
+  end;
+
+procedure TfrmMain.StartWork;
+begin
+  btnStart.Enabled := False;
+  // FreeOnTerminate = True 이므로 직접 Free 금지
+  FWorker := TWorkerThread.Create(HandleProgress);
+end;
+
+procedure TfrmMain.HandleProgress(Sender: TObject);
+begin
+  // 이미 Synchronize 통해 호출됨 → UI 직접 접근 안전
+  pbProgress.Position := (Sender as TWorkerThread).FProgress;
+end;
+
+procedure TfrmMain.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  if Assigned(FWorker) then
+  begin
+    FWorker.Terminate;
+    FWorker.WaitFor; // FreeOnTerminate = False일 때만
+  end;
+end;
+```
+
+---
+
+## 4. GDI 핸들 패턴
+
+### 폰트
+```pascal
+procedure TfrmReport.PaintHeader(ACanvas: TCanvas);
+var
+  hFont, hOldFont: HFONT;
+begin
+  hFont := CreateFont(
+    -14, 0, 0, 0, FW_BOLD, 0, 0, 0,
+    HANGEUL_CHARSET, OUT_DEFAULT_PRECIS,
+    CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+    DEFAULT_PITCH or FF_DONTCARE, '굴림');
+  hOldFont := SelectObject(ACanvas.Handle, hFont);
+  try
+    ACanvas.TextOut(10, 10, '제목');
+  finally
+    SelectObject(ACanvas.Handle, hOldFont);
+    DeleteObject(hFont);
+  end;
+end;
+```
+
+### 펜/브러시
+```pascal
+procedure DrawCustomRect(ACanvas: TCanvas; R: TRect);
+var
+  hPen, hOldPen: HPEN;
+  hBrush, hOldBrush: HBRUSH;
+begin
+  hPen := CreatePen(PS_SOLID, 2, clRed);
+  hBrush := CreateSolidBrush(clYellow);
+  hOldPen := SelectObject(ACanvas.Handle, hPen);
+  hOldBrush := SelectObject(ACanvas.Handle, hBrush);
+  try
+    Rectangle(ACanvas.Handle, R.Left, R.Top, R.Right, R.Bottom);
+  finally
+    SelectObject(ACanvas.Handle, hOldPen);
+    SelectObject(ACanvas.Handle, hOldBrush);
+    DeleteObject(hPen);
+    DeleteObject(hBrush);
+  end;
+end;
+```
+
+---
+
+## 5. 타입 안전 컬렉션 (제네릭 대체)
+
+Delphi 2007에는 `TList<T>` 없음. Typed wrapper로 대체:
+
+```pascal
+type
+  TOrderItem = class
+    OrderID: Integer;
+    Amount: Currency;
+  end;
+
+  TOrderItemList = class(TObjectList)  // OwnsObjects = True
+  private
+    function GetItem(Index: Integer): TOrderItem;
+  public
+    function Add(AItem: TOrderItem): Integer; reintroduce;
+    function FindByOrderID(AID: Integer): TOrderItem;
+    property Items[Index: Integer]: TOrderItem read GetItem; default;
+  end;
+
+function TOrderItemList.GetItem(Index: Integer): TOrderItem;
+begin
+  Result := TOrderItem(inherited Items[Index]);
+end;
+
+function TOrderItemList.Add(AItem: TOrderItem): Integer;
+begin
+  Result := inherited Add(AItem);
+end;
+
+function TOrderItemList.FindByOrderID(AID: Integer): TOrderItem;
+var
+  i: Integer;
+begin
+  Result := nil;
+  for i := 0 to Count - 1 do
+    if Items[i].OrderID = AID then
+    begin
+      Result := Items[i];
+      Break;
+    end;
+end;
+```
+
+---
+
+## 6. 커스텀 윈도우 메시지
+
+```pascal
+const
+  // WM_USER($0400) 이상, 앱 전용 범위
+  WM_REFRESH_GRID   = WM_USER + 100;
+  WM_WORKER_DONE    = WM_USER + 101;
+  WM_STATUS_UPDATE  = WM_USER + 102;
+
+type
+  TfrmMain = class(TForm)
+  private
+    procedure WMRefreshGrid(var Msg: TMessage); message WM_REFRESH_GRID;
+    procedure WMWorkerDone(var Msg: TMessage); message WM_WORKER_DONE;
+  end;
+
+procedure TfrmMain.WMRefreshGrid(var Msg: TMessage);
+begin
+  inherited;
+  RefreshGrid;
+end;
+
+// 쓰레드에서 PostMessage (비동기, 안전)
+procedure TWorkerThread.NotifyDone;
+begin
+  PostMessage(FOwnerHandle, WM_WORKER_DONE, 0, 0);
+end;
+```
+
+---
+
+## 7. Modal 폼 패턴
+
+### 결과 처리
+```pascal
+// 호출 측
+procedure TfrmMain.OpenOrderDetail(AOrderID: Integer);
+var
+  frm: TfrmOrderDetail;
+begin
+  frm := TfrmOrderDetail.Create(nil);
+  try
+    frm.OrderID := AOrderID;
+    if frm.ShowModal = mrOk then
+      RefreshOrderList;
+    // mrCancel이면 아무것도 안 함
+  finally
+    frm.Free;
+  end;
+end;
+
+// 상세 폼 측
+procedure TfrmOrderDetail.btnOkClick(Sender: TObject);
+begin
+  if not ValidateInput then Exit;
+  SaveOrder;
+  ModalResult := mrOk; // 폼 자동 닫힘
+end;
+
+procedure TfrmOrderDetail.btnCancelClick(Sender: TObject);
+begin
+  ModalResult := mrCancel;
+end;
+```
+
+---
+
+## 8. TDataModule 분리 원칙
+
+```
+TfrmXxx (폼)          ← UI 이벤트, 화면 표시만
+    ↓ 호출
+TdmXxx (DataModule)   ← 쿼리, 비즈니스 로직
+    ↓ 호출
+TdmMain (공용 DM)     ← DB 연결, 공용 쿼리
+```
+
+### 폼에서 DataModule 참조
+```pascal
+// frmOrderList.pas
+uses dmOrderU; // DataModule 유닛 uses
+
+procedure TfrmOrderList.LoadData;
+begin
+  dmOrder.LoadOrders(edtSearch.Text);
+  dsOrders.DataSet := dmOrder.qryOrders; // DataSource 연결
+end;
+```
+
+### DataModule 책임 범위
+- **허용**: SQL 작성, 파라미터 바인딩, 결과 가공, 비즈니스 로직
+- **금지**: ShowMessage, MessageDlg (UI 의존), 폼 직접 참조
+
+---
+
+## 9. 에러 처리 패턴
+
+### 계층별 예외 처리
+```pascal
+// 예외 정의 (별도 유닛 권장: AppExceptionsU.pas)
+type
+  EAppError = class(Exception);
+  EDBError = class(EAppError);
+  EValidationError = class(EAppError);
+
+// DataModule에서
+procedure TdmOrder.SaveOrder(AOrder: TOrderRec);
+begin
+  if AOrder.Amount <= 0 then
+    raise EValidationError.Create('금액은 0보다 커야 합니다.');
+  try
+    // DB 작업
+  except
+    on E: EDatabaseError do
+      raise EDBError.CreateFmt('주문 저장 실패: %s', [E.Message]);
+  end;
+end;
+
+// 폼에서
+procedure TfrmOrder.btnSaveClick(Sender: TObject);
+begin
+  try
+    dmOrder.SaveOrder(BuildOrderRec);
+    ShowMessage('저장되었습니다.');
+  except
+    on E: EValidationError do
+      ShowMessage('입력 오류: ' + E.Message);
+    on E: EDBError do
+      ShowMessage('DB 오류: ' + E.Message);
+  end;
+end;
+```
+
+---
+
+## 10. AnsiString / WideString 변환
+
+```pascal
+// AnsiString(CP949) → WideString
+function AnsiToWide(const S: AnsiString): WideString;
+begin
+  Result := WideString(S); // Delphi가 CP949 기준 변환
+end;
+
+// WideString → AnsiString(CP949)
+function WideToAnsi(const W: WideString): AnsiString;
+begin
+  Result := AnsiString(W);
+end;
+
+// UTF-8 파일 읽기 → AnsiString
+function UTF8FileToAnsi(const FileName: string): string;
+var
+  sl: TStringList;
+begin
+  sl := TStringList.Create;
+  try
+    sl.LoadFromFile(FileName); // BOM 있으면 자동 인식 안 됨
+    // UTF8Decode → WideString → AnsiString 변환 필요
+    Result := UTF8Decode(sl.Text);
+  finally
+    sl.Free;
+  end;
+end;
+```
+
+---
+
+## 11. 리소스 정리 체크리스트
+
+코드 리뷰 시 아래 항목 확인:
+
+```
+[ ] Create/Free 짝 맞음 (try..finally)
+[ ] FreeAndNil 사용 (nil 체크 없이 재접근 방지)
+[ ] TDataSet.State 체크 후 Post/Cancel
+[ ] GDI 객체 DeleteObject 호출
+[ ] TThread.Terminate + WaitFor 쌍
+[ ] BeginUpdate → EndUpdate 짝 (ListView, TreeView, StringList)
+[ ] ProcessMessages 호출 시 재진입 가드
+[ ] UI 컴포넌트는 메인 쓰레드에서만 접근
+[ ] WideString ↔ AnsiString 암묵적 혼용 없음
+```
