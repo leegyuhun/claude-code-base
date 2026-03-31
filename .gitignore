@@ -13,7 +13,7 @@
 __history/
 
 # 빌드 출력 디렉토리 (내용만 무시, 폴더 유지)
-Lib/*.dcu
+Lib/
 Output/Debug/
 Output/Release/
 

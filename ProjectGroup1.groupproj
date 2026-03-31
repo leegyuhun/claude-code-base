@@ -1,0 +1,44 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{d8c116ff-bd79-4081-88e5-574afed45c7c}</ProjectGuid>
+  </PropertyGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <Projects Include="PrinterScanApp.dproj" />
+    <Projects Include="PrinterScanLib.dproj" />
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Default.Personality</Borland.Personality>
+    <Borland.ProjectType />
+    <BorlandProject>
+  <BorlandProject xmlns=""> <Default.Personality> </Default.Personality> </BorlandProject></BorlandProject>
+  </ProjectExtensions>
+  <Target Name="PrinterScanApp">
+    <MSBuild Projects="PrinterScanApp.dproj" Targets="" />
+  </Target>
+  <Target Name="PrinterScanApp:Clean">
+    <MSBuild Projects="PrinterScanApp.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="PrinterScanApp:Make">
+    <MSBuild Projects="PrinterScanApp.dproj" Targets="Make" />
+  </Target>
+  <Target Name="PrinterScanLib">
+    <MSBuild Projects="PrinterScanLib.dproj" Targets="" />
+  </Target>
+  <Target Name="PrinterScanLib:Clean">
+    <MSBuild Projects="PrinterScanLib.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="PrinterScanLib:Make">
+    <MSBuild Projects="PrinterScanLib.dproj" Targets="Make" />
+  </Target>
+  <Target Name="Build">
+    <CallTarget Targets="PrinterScanApp;PrinterScanLib" />
+  </Target>
+  <Target Name="Clean">
+    <CallTarget Targets="PrinterScanApp:Clean;PrinterScanLib:Clean" />
+  </Target>
+  <Target Name="Make">
+    <CallTarget Targets="PrinterScanApp:Make;PrinterScanLib:Make" />
+  </Target>
+  <Import Condition="Exists('$(MSBuildBinPath)\Borland.Group.Targets')" Project="$(MSBuildBinPath)\Borland.Group.Targets" />
+</Project>
