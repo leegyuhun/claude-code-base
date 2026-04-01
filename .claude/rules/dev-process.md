@@ -197,7 +197,28 @@ docs/PRD.md 작성
 
 ## 7. 커밋 메시지 규칙
 
-> 커밋 메시지의 본문(설명, 목록 등)은 **한글**로 작성한다. type prefix(`feat:`, `fix:`, `wip:` 등)와 브랜치명·스프린트명은 그대로 유지한다.
+> **[필수]** 커밋 메시지의 제목 요약과 본문(설명, 목록 등)은 반드시 **한글**로 작성한다.
+> type prefix(`feat:`, `fix:`, `wip:` 등), 브랜치명·스프린트명, 코드 식별자(함수명·변수명)는 영문 유지.
+> **영문 설명은 허용하지 않는다.**
+
+### 올바른 예
+
+```
+wip: [sprint-02] F8 WmGetMinMaxInfo / SetFixForm floating 제약
+
+- floating 상태에서 최소 크기를 300x200으로 설정하여 사용 가능한 창 크기 보장
+- SetFixForm에서 floating 상태 시 Constraints를 초기화하여 자유 크기 조절 허용
+- WmGetMinMaxInfo에서 floating 시 최대 트랙 크기 제한 제거
+```
+
+### 잘못된 예 (금지)
+
+```
+wip: [sprint-02] F8 WmGetMinMaxInfo / SetFixForm floating constraints
+
+- Floating state uses 300x200 min size for usable window   ← 영문 금지
+- SetFixForm clears Constraints in floating state           ← 영문 금지
+```
 
 ### Sprint 중간 커밋
 
