@@ -449,7 +449,104 @@ end;
 
 ---
 
-## 11. 리소스 정리 체크리스트
+## 11. TQuery / SQL 구성 패턴
+
+### 기본 SQL 구성 (with문 사용)
+```pascal
+procedure TdmOrder.LoadOrders(const ASearchText: string);
+begin
+  with qryOrders do
+  begin
+    Close;
+    SQL.Clear;
+    SQL.Add('SELECT');
+    SQL.Add('  order_id, customer_nm, order_dt, amount');
+    SQL.Add('FROM orders');
+    SQL.Add('WHERE 1=1');
+    if ASearchText <> '' then
+      SQL.Add('  AND customer_nm LIKE ' + QuotedStr('%' + ASearchText + '%'));
+    SQL.Add('ORDER BY order_dt DESC');
+    Open;
+  end;
+end;
+```
+
+### 동적 WHERE 조건 추가
+```pascal
+procedure TdmOrder.SearchOrders(AFromDt, AToDt: TDateTime; AStatus: string);
+begin
+  with qryOrders do
+  begin
+    Close;
+    SQL.Clear;
+    SQL.Add('SELECT order_id, customer_nm, order_dt, amount, status');
+    SQL.Add('FROM orders');
+    SQL.Add('WHERE order_dt BETWEEN ' + QuotedStr(FormatDateTime('YYYY-MM-DD', AFromDt))
+          + ' AND ' + QuotedStr(FormatDateTime('YYYY-MM-DD', AToDt)));
+    if AStatus <> '' then
+      SQL.Add('  AND status = ' + QuotedStr(AStatus));
+    SQL.Add('ORDER BY order_dt DESC');
+    Open;
+  end;
+end;
+```
+
+### INSERT / UPDATE (ExecSQL)
+```pascal
+procedure TdmOrder.InsertOrder(const ARec: TOrderRec);
+begin
+  with qryExec do
+  begin
+    SQL.Clear;
+    SQL.Add('INSERT INTO orders');
+    SQL.Add('  (customer_nm, order_dt, amount, status)');
+    SQL.Add('VALUES (');
+    SQL.Add('  ' + QuotedStr(ARec.CustomerNm) + ',');
+    SQL.Add('  ' + QuotedStr(FormatDateTime('YYYY-MM-DD', ARec.OrderDt)) + ',');
+    SQL.Add('  ' + FloatToStr(ARec.Amount) + ',');
+    SQL.Add('  ' + QuotedStr(ARec.Status));
+    SQL.Add(')');
+    ExecSQL;
+  end;
+end;
+
+procedure TdmOrder.UpdateOrderStatus(AOrderID: Integer; const AStatus: string);
+begin
+  with qryExec do
+  begin
+    SQL.Clear;
+    SQL.Add('UPDATE orders');
+    SQL.Add('SET status = ' + QuotedStr(AStatus));
+    SQL.Add('WHERE order_id = ' + IntToStr(AOrderID));
+    ExecSQL;
+  end;
+end;
+```
+
+### 값 타입별 SQL 삽입 규칙
+```
+문자열   → QuotedStr(Value)             → 'value' (따옴표 포함, 내부 ' 자동 이스케이프)
+정수     → IntToStr(Value)              → 123
+실수     → FloatToStr(Value)            → 123.45
+날짜     → QuotedStr(FormatDateTime('YYYY-MM-DD', Value))
+날짜시간 → QuotedStr(FormatDateTime('YYYY-MM-DD HH:NN:SS', Value))
+Boolean  → IntToStr(Ord(Value))         → 0 또는 1
+NULL     → 'NULL' (따옴표 없이 그대로)
+```
+
+### 주의사항
+```
+[ ] Open 전 반드시 Close 호출 (이미 열려있을 때 예외 방지)
+[ ] SQL.Clear 후 SQL.Add (이전 SQL 잔존 방지)
+[ ] 문자열 값은 반드시 QuotedStr() 사용 (내부 홑따옴표 이스케이프 처리)
+[ ] 직접 따옴표 금지: '"' + Value + '"'  ← 값에 ' 포함 시 SQL 오류
+[ ] ExecSQL은 SELECT 아닌 DML(INSERT/UPDATE/DELETE)에만
+[ ] SELECT 결과 필요 시 Open, 결과 불필요한 DML은 ExecSQL
+```
+
+---
+
+## 12. 리소스 정리 체크리스트
 
 코드 리뷰 시 아래 항목 확인:
 

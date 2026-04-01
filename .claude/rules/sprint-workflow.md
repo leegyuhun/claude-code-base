@@ -20,7 +20,7 @@ paths:
 - 기능 단위로 중간 커밋: `wip: [{CURRENT_SPRINT}] {기능명}`
 - 완료마다 GOAL.md `[ ]` → `[x]` 업데이트
 - GOAL.md 범위 밖 발견사항 → `sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md`에 기록
-- karpathy-guidelines 준수
+- coding-principles.md 준수 (단순함 우선, 수술적 변경)
 
 ### 3. 검증 (Validator)
 - 빌드/린트/타입체크/테스트 자동 검증

@@ -44,7 +44,7 @@ paths:
   불가피하게 분기해야할 경우, TtsQuery.UsingPG 프로퍼티를 이용해 SQL을 분기합니다.
   TsQuery.pas 내 정의된 SQL 문법 관련 메소드를 적극적으로 활용합니다.
 
-## 5. Application.ProcessMessages 재진입 방지 (중요)
+### 5. Application.ProcessMessages 재진입 방지 (중요)
 - 버튼/액션 핸들러에서 ProcessMessages 호출 전 재진입 가드 필수
 ```pascal
 procedure TfrmMain.btnProcessClick(Sender: TObject);
@@ -61,7 +61,7 @@ begin
 end;
 ```
 
-## 6. TDataSet 상태 관리 (중요)
+### 6. TDataSet 상태 관리 (중요)
 - 폼 종료/닫기 전 반드시 State 확인
 ```pascal
 // FormClose, 저장 전 공통 패턴
@@ -75,7 +75,7 @@ end;
 ```
 - `Post` 누락은 조용히 데이터를 날린다. 반드시 명시적으로 처리.
 
-## 7. TThread UI 접근 금지
+### 7. TThread UI 접근 금지
 - 백그라운드 쓰레드에서 VCL 컴포넌트 직접 접근 금지
 - 반드시 `Synchronize` 사용
 ```pascal
@@ -96,7 +96,7 @@ begin
 end;
 ```
 
-## 8. GDI 핸들 관리
+### 8. GDI 핸들 관리
 - CreateFont, CreatePen, CreateBrush 등 GDI 생성 후 반드시 DeleteObject
 ```pascal
 var hFont: HFONT; hOld: HGDIOBJ;
@@ -112,7 +112,7 @@ begin
 end;
 ```
 
-## 9. AnsiString / WideString 혼용 금지
+### 9. AnsiString / WideString 혼용 금지
 - Delphi 2007의 String은 AnsiString(CP949). WideString과 암묵적 변환 금지
 - DB/파일/API 경계에서만 명시적 변환 수행
 ```pascal
@@ -123,7 +123,7 @@ s := ws; // WideString → AnsiString, 한글 손실 가능
 s := AnsiString(WideCharToString(PWideChar(ws)));
 ```
 
-## 10. BeginUpdate / EndUpdate 패턴
+### 10. BeginUpdate / EndUpdate 패턴
 - TListView, TTreeView, TStringList 대량 업데이트 시 필수
 ```pascal
 lvwList.Items.BeginUpdate;
@@ -135,7 +135,7 @@ finally
 end;
 ```
 
-## 11. IFDEF 전략
+### 11. IFDEF 전략
 - 디버그 로그는 반드시 `{$IFDEF DEBUG}` 블록 안에
 - 프로젝트 옵션에서 DEBUG/RELEASE 조건부 컴파일 심볼 분리 관리
 ```pascal
@@ -144,7 +144,7 @@ end;
 {$ENDIF}
 ```
 
-## 12. TDataModule 분리 원칙
+### 12. TDataModule 분리 원칙
 - 비즈니스 로직, DB 쿼리는 TDataModule에. 폼에 직접 작성 금지
 - TfrmXxx는 UI 이벤트 처리와 화면 표시만 담당
 - 복잡한 폼은 TFrame으로 분해하여 재사용

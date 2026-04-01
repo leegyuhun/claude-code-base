@@ -41,7 +41,7 @@ color: blue
      - 제약 조건
 
 1-3. 누락 섹션 있으면 → [PAUSE]
-     "아래 섹션을 prd.md에 추가해주세요: {목록}"
+     "아래 섹션을 docs/PRD.md에 추가해주세요: {목록}"
 
 1-4. 통과 → docs/STATUS.md PHASE=2 업데이트
 
