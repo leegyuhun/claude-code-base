@@ -402,7 +402,36 @@ docs/STATUS.md를 읽고 현재 PHASE에 맞는 에이전트를 실행해줘.
 
 ---
 
-## 13. 프로젝트 시작 체크리스트
+## 13. 멀티모듈 프로젝트 적용 가이드
+
+YSR처럼 다수의 `.dpr`을 가진 멀티모듈 프로젝트에서 각 모듈에 이 설정을 적용할 때 확인사항:
+
+### 모듈별 필수 설정
+- `build.bat` — 해당 모듈의 `.dproj`를 빌드하는 스크립트 (모듈 루트에 배치)
+- `run_tests.bat` — 해당 모듈의 DUnit 테스트 실행 스크립트 (없으면 생략 가능)
+- `docs/PRD.md`, `docs/STATUS.md` — 모듈 루트의 `docs/` 폴더에 배치
+- `CLAUDE.md` — 모듈별 기술 스택, 빌드 경로, 출력 경로 명시
+
+### 모듈별 경로 확인
+validator/deploy-prod 에이전트가 참조하는 경로는 모듈마다 다를 수 있습니다.
+CLAUDE.md에 아래 항목을 반드시 기입하세요:
+```
+## 빌드
+- 빌드 스크립트: build.bat debug / build.bat release
+- 출력 경로: Output\Debug\{실행파일명}.exe
+
+## 테스트
+- 테스트 스크립트: run_tests.bat
+- 테스트 디렉토리: Tests\Source\
+```
+
+### 공유 유닛 주의
+`ComUnit/`, `Common/`, `CommonBL/`, `CommonV7/` 수정은 전체 모듈에 영향을 줍니다.
+반드시 `coding-principles.md`의 "공유 유닛 변경 주의" 규칙을 따르세요.
+
+---
+
+## 14. 프로젝트 시작 체크리스트
 
 새 프로젝트를 시작할 때:
 

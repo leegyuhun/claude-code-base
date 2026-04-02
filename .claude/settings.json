@@ -13,18 +13,10 @@
       "Bash(dir *)",
       "Bash(copy *)",
       "Bash(xcopy *)",
-	  "Bash(npm run:*)",
       "Bash(git commit *)",
       "Bash(git * main)",
       "Bash(* --version)",
-      "Bash(* --help *)",
-      "Bash(npm *)",
-      "Bash(npx *)",
-      "Bash(node *)",
-      "Bash(curl *)",
-      "Bash(mkdir *)",
-      "Bash(ls *)",
-      "Bash(grep -E \"\\\\.\\(jsx|js|css\\)$\")"
+      "Bash(* --help *)"
     ]
   }
 }
