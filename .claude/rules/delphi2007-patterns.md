@@ -97,13 +97,13 @@ end;
 ```pascal
 procedure TdmOrder.SaveOrder;
 begin
-  dmMain.Database.StartTransaction;
+  DBBeginTrans;
   try
     if qryOrder.State in [dsEdit, dsInsert] then qryOrder.Post;
     if qryOrderItem.State in [dsEdit, dsInsert] then qryOrderItem.Post;
-    dmMain.Database.Commit;
+    DBCommitTrans;
   except
-    dmMain.Database.Rollback;
+    DBRollbackTrans;
     raise;
   end;
 end;
@@ -560,4 +560,223 @@ NULL     → 'NULL' (따옴표 없이 그대로)
 [ ] ProcessMessages 호출 시 재진입 가드
 [ ] UI 컴포넌트는 메인 쓰레드에서만 접근
 [ ] WideString ↔ AnsiString 암묵적 혼용 없음
+```
+
+---
+
+## 13. TtsQuery 사용 패턴
+
+### 기본 SELECT
+```pascal
+procedure TdmOrder.LoadOrders(const ASearchKey: string);
+var
+  AQuery: TtsQuery;
+begin
+  AQuery := TtsQuery.Create(nil);
+  try
+    with AQuery do
+    begin
+      Close;
+      SQL.Clear;
+      SQL.Add('SELECT order_id, customer_nm, order_dt');
+      SQL.Add('FROM orders');
+      SQL.Add('WHERE 1=1');
+      if ASearchKey <> '' then
+        SQL.Add('AND customer_nm LIKE ' + QuotedStr('%' + ASearchKey + '%'));
+      SQL.Add('ORDER BY order_dt DESC');
+      Open;
+      while not EOF do
+      begin
+        Next;
+      end;
+    end;
+  finally
+    AQuery.Free;
+  end;
+end;
+```
+
+### 다중 DB 분기 (PostgreSQL vs Sybase)
+```pascal
+procedure TdmOrder.ExecPlatformSQL(AQuery: TtsQuery);
+begin
+  with AQuery do
+  begin
+    Close;
+    SQL.Clear;
+    if UsingPg then
+    begin
+      SQL.Add('SELECT COALESCE(MAX(seq), 0) + 1 FROM orders');
+    end
+    else
+    begin
+      SQL.Add('SELECT ISNULL(MAX(seq), 0) + 1 FROM orders');
+    end;
+    Open;
+  end;
+end;
+```
+
+### ExecSQL (DML)
+```pascal
+procedure TdmOrder.UpdateStatus(AOrderID: Integer; const AStatus: string);
+var
+  AQuery: TtsQuery;
+begin
+  AQuery := TtsQuery.Create(nil);
+  try
+    with AQuery do
+    begin
+      SQL.Clear;
+      SQL.Add('UPDATE orders');
+      SQL.Add('SET status = ' + QuotedStr(AStatus));
+      SQL.Add('WHERE order_id = ' + IntToStr(AOrderID));
+      ExecSQL;
+    end;
+  finally
+    AQuery.Free;
+  end;
+end;
+```
+
+---
+
+## 14. Record 기반 데이터 전달 패턴
+
+함수 간 복합 파라미터 전달 시 Record 구조체 사용.
+
+```pascal
+type
+  TSearchDateType = (sdtJsDate, sdtRegDate);
+  TSearchKeyType  = (sktChartNo, sktPatientNm);
+
+  TRecSearchCondition = record
+    SearchDateType: TSearchDateType;
+    BeginDate: TDateTime;
+    EndDate: TDateTime;
+    SearchKeyType: TSearchKeyType;
+    SearchKey: string;
+  end;
+
+procedure TdmOrder.Search(const ACondition: TRecSearchCondition);
+begin
+  // ACondition.BeginDate, ACondition.SearchKey 등 사용
+end;
+
+procedure TfrmOrder.btnSearchClick(Sender: TObject);
+var
+  aCondition: TRecSearchCondition;
+begin
+  aCondition.SearchDateType := sdtJsDate;
+  aCondition.BeginDate := dtpBegin.Date;
+  aCondition.EndDate := dtpEnd.Date;
+  aCondition.SearchKey := edtSearch.Text;
+  dmOrder.Search(aCondition);
+end;
+```
+
+---
+
+## 15. Logger 패턴
+
+### TLogger (성능 측정 포함)
+```pascal
+uses Logger;
+
+procedure TdmOrder.HeavyProcess;
+begin
+  TLogger.BeginTask('HeavyProcess');
+  try
+    // 작업
+  finally
+    TLogger.EndTask('HeavyProcess');
+  end;
+end;
+```
+
+### LogMan (간단한 위치 로그)
+```pascal
+uses LogMan;
+
+procedure TdmOrder.SaveOrder;
+begin
+  WriteLogMan('TdmOrder.SaveOrder', 'start', qryOrder.SQL.Text);
+end;
+```
+
+---
+
+## 16. INI 기반 폼 설정 저장/복원 패턴
+
+폼 크기, 위치, 컬럼 너비 등 사용자 설정은 INI 파일로 저장.
+
+```pascal
+procedure TfrmOrder.LoadProfile;
+var
+  aIni: TIniFile;
+begin
+  aIni := TIniFile.Create(GetProfilePath);
+  try
+    Left   := aIni.ReadInteger('Form', 'Left', Left);
+    Top    := aIni.ReadInteger('Form', 'Top', Top);
+    Width  := aIni.ReadInteger('Form', 'Width', Width);
+    Height := aIni.ReadInteger('Form', 'Height', Height);
+  finally
+    aIni.Free;
+  end;
+end;
+
+procedure TfrmOrder.SaveProfile;
+var
+  aIni: TIniFile;
+begin
+  aIni := TIniFile.Create(GetProfilePath);
+  try
+    aIni.WriteInteger('Form', 'Left', Left);
+    aIni.WriteInteger('Form', 'Top', Top);
+    aIni.WriteInteger('Form', 'Width', Width);
+    aIni.WriteInteger('Form', 'Height', Height);
+  finally
+    aIni.Free;
+  end;
+end;
+
+procedure TfrmOrder.FormCreate(Sender: TObject);
+begin
+  LoadProfile;
+end;
+
+procedure TfrmOrder.FormDestroy(Sender: TObject);
+begin
+  SaveProfile;
+end;
+```
+
+---
+
+## 17. TJGrid 기본 패턴
+
+TJGrid는 프로젝트 커스텀 그리드 컴포넌트. TStringGrid 대신 이것을 사용.
+
+```pascal
+procedure TfrmOrder.FillGrid(AQuery: TtsQuery);
+var
+  i: Integer;
+begin
+  FGrid.BeginUpdate;
+  try
+    FGrid.RowCount := 1;
+    AQuery.First;
+    while not AQuery.EOF do
+    begin
+      FGrid.RowCount := FGrid.RowCount + 1;
+      i := FGrid.RowCount - 1;
+      FGrid.Cells[0, i] := AQuery.Fields[0].AsString;
+      FGrid.Cells[1, i] := AQuery.Fields[1].AsString;
+      AQuery.Next;
+    end;
+  finally
+    FGrid.EndUpdate;
+  end;
+end;
 ```

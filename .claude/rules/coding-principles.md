@@ -7,8 +7,10 @@ paths:
 # 코딩 원칙 (Delphi 2007 / Object Pascal)
 
 ## 기술 스택
-# TODO: 프로젝트 초기화(PHASE 4.5) 후 기술 스택을 기입하세요
-# 예: Delphi 2007 (BDS 5.0), VCL
+- Delphi 2007 (BDS 5.0), VCL
+- TtsQuery: 커스텀 DB 쿼리 컴포넌트 (TsQuery.pas)
+- TJGrid: 커스텀 그리드 컴포넌트
+- superobject: JSON 처리 라이브러리
 
 ## 핵심 규칙
 
@@ -43,6 +45,9 @@ paths:
   가능하다면 두 DBMS에서 모두 동작할 수 있는 SQL을 작성합니다.
   불가피하게 분기해야할 경우, TtsQuery.UsingPG 프로퍼티를 이용해 SQL을 분기합니다.
   TsQuery.pas 내 정의된 SQL 문법 관련 메소드를 적극적으로 활용합니다.
+
+ - 트랜잭션은 DBBeginTrans / DBCommitTrans / DBRollbackTrans 커스텀 함수를 사용합니다.
+  직접 dmMain.Database.StartTransaction 등을 호출하지 않습니다.
 
 ### 5. Application.ProcessMessages 재진입 방지 (중요)
 - 버튼/액션 핸들러에서 ProcessMessages 호출 전 재진입 가드 필수
@@ -152,6 +157,8 @@ end;
 ## 임시 코드
 - 임시 코드 사용 시 TODO 주석 필수
   // TODO: [tech-debt] 임시처리 - 이유
+- 이슈 추적 주석은 이슈 번호를 명시
+  // #이슈번호 설명 (예: #193862 접수파트 결핵 본인부담 처리)
 
 ## .dfm / .pas 동기화
 - 폼 컴포넌트 추가/삭제 시 반드시 .dfm도 함께 커밋
