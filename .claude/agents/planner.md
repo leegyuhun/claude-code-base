@@ -69,30 +69,73 @@ memory: project
 - [ ] 기능 2 (예상 소요: Xh)
 
 ## 완료 조건
-- [ ] 조건 1 (✅ 자동 검증)
-- [ ] 조건 2 (⚠️ 수동 확인 필요)
+- [ ] 조건 1 (✅ 자동 검증 — pytest/vitest)
+- [ ] 조건 2 (✅ E2E 자동 검증 — Playwright)
+- [ ] 조건 3 (⚠️ 수동 확인 필요)
 
 ## 예상 산출물
-### 생성될 파일
-- path/to/file.ts
-- path/to/file.py
+### 생성될 파일 (Python + React/TS 기준)
+```
+backend/app/
+  api/v1/routes/xxx.py          ← FastAPI 라우터
+  services/xxx_service.py       ← 비즈니스 로직
+  repositories/xxx_repository.py← DB 접근
+  models/xxx.py                 ← SQLAlchemy 모델
+  schemas/xxx.py                ← Pydantic 스키마
+
+backend/tests/
+  unit/test_xxx_service.py
+  integration/test_xxx_api.py
+
+backend/alembic/versions/
+  {revision}_xxx.py             ← DB 마이그레이션 (스키마 변경 시)
+
+frontend/src/
+  pages/XxxPage.tsx             ← 라우트 페이지
+  components/feature/Xxx.tsx    ← 기능 컴포넌트
+  hooks/useXxx.ts               ← 커스텀 훅
+  services/xxxService.ts        ← API 호출
+  types/xxx.ts                  ← TS 타입 정의
+
+e2e/tests/
+  xxx.spec.ts                   ← Playwright E2E (핵심 시나리오만)
+```
 
 ### 추가될 API 엔드포인트
-- GET /api/...
-- POST /api/...
+- GET    /api/v1/...
+- POST   /api/v1/...
+- PUT    /api/v1/.../{id}
+- DELETE /api/v1/.../{id}
 
-### 추가될 화면/컴포넌트
-- 페이지명: /path
+### DB 스키마 변경
+- 테이블: (없으면 "없음")
+- 컬럼 추가/수정: (없으면 "없음")
+
+### 추가될 화면/경로
+- 경로: /path — 설명
 
 ## 기술 고려사항
-(구현 시 주의할 기술적 내용, 예외 처리 포인트 등)
+(구현 시 주의할 기술적 내용)
+- 비동기 처리 (async/await):
+- N+1 쿼리 방지:
+- 예외 처리 포인트:
+- 보안 고려사항 (인증/인가):
+- TypeScript 타입 설계:
 
 ## 수동 테스트 시나리오
 (PHASE 8에서 사용할 테스트 케이스 미리 작성)
 1. [기능명]
-   - 경로: http://localhost:PORT/...
+   - 경로: http://localhost:3000/...
+   - API: http://localhost:8000/api/v1/...
    - 시나리오: ① → ② → ③
    - 예상 결과:
+
+## E2E 테스트 시나리오 (Playwright)
+(핵심 사용자 흐름만 — PHASE 7 자동 실행)
+1. [시나리오명]
+   - 파일: e2e/tests/xxx.spec.ts
+   - 흐름: ① → ② → ③
+   - 검증 포인트:
 ```
 
 ---

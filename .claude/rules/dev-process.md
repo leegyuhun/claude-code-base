@@ -150,18 +150,23 @@ docs/PRD.md 작성
 
 ## 5. 검증 매트릭스
 
-| 검증 항목 | Sprint | Hotfix | Deploy |
+| 검증 항목 | Sprint | Hotfix | Deploy (CI/CD) |
 |-----------|--------|--------|--------|
-| 빌드 성공 | ✅ 자동 | ✅ 자동 | ✅ 자동 |
-| lint/타입체크 | ✅ 자동 | — | — |
-| 단위 테스트 | ✅ 자동 | ✅ 타겟 | ✅ 전체 |
-| API 엔드포인트 | ✅ 자동 | ✅ 타겟 | ✅ 전체 |
+| Python lint/타입체크 (ruff, mypy) | ✅ 자동 | — | ✅ CI 자동 |
+| pytest (단위/통합 테스트) | ✅ 자동 | ✅ 타겟 | ✅ CI 전체 |
+| TypeScript 타입체크 (tsc) | ✅ 자동 | — | ✅ CI 자동 |
+| 프론트엔드 빌드 | ✅ 자동 | ✅ 자동 | ✅ CI 자동 |
+| Vitest 단위 테스트 | ✅ 자동 | ✅ 타겟 | ✅ CI 자동 |
+| Playwright E2E 테스트 | ✅ 자동 | — | ✅ CI 자동 |
+| API 엔드포인트 응답 | ✅ 자동 | ✅ 타겟 | ✅ CI 전체 |
 | 수동 UI 테스트 | ⚠️ 수동 | ⚠️ 타겟 | ⚠️ 수동 |
-| 헬스체크 | — | — | ✅ 자동 |
+| Docker 빌드/Push | — | — | ✅ CI 자동 |
+| 헬스체크 (GET /health) | — | — | ✅ 자동 |
 
 범례:
 - ✅ 자동: 에이전트가 자동 실행
 - ✅ 타겟: 변경 관련만 자동 실행
+- ✅ CI 자동: GitHub Actions 파이프라인에서 자동 실행
 - ⚠️ 수동: 사용자가 직접 수행
 - —: 해당 없음
 
@@ -219,42 +224,79 @@ Hotfix: {브랜치명}
 
 ```
 프로젝트 루트/
-├── docs/PRD.md                              ← 프로젝트 요구사항
-├── plan.md                             ← 기능 분석 결과 (Orchestrator 생성)
-├── docs/STATUS.md                           ← 파이프라인 상태 (공유 상태 파일)
-├── CLAUDE.md                           ← 코딩 원칙, 빌드 명령 (claude /init)
+├── docs/PRD.md                                  ← 프로젝트 요구사항
+├── plan.md                                      ← 기능 분석 결과 (Orchestrator 생성)
+├── docs/STATUS.md                               ← 파이프라인 상태 (공유 상태 파일)
+├── CLAUDE.md                                    ← 코딩 원칙, 빌드 명령 (claude /init)
+├── CHANGELOG.md                                 ← 전체 변경 이력
 ├── .gitignore
 │
+├── backend/                                     ← Python (FastAPI 등)
+│   ├── app/
+│   │   ├── api/v1/routes/                       ← FastAPI 라우터
+│   │   ├── core/                                ← config, security
+│   │   ├── models/                              ← SQLAlchemy 모델
+│   │   ├── schemas/                             ← Pydantic 스키마
+│   │   ├── services/                            ← 비즈니스 로직
+│   │   └── repositories/                        ← DB 접근
+│   ├── tests/
+│   │   ├── unit/
+│   │   └── integration/
+│   ├── alembic/                                 ← DB 마이그레이션
+│   └── pyproject.toml / requirements.txt
+│
+├── frontend/                                    ← React + TypeScript (Vite)
+│   ├── src/
+│   │   ├── pages/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── services/                            ← API 호출 함수
+│   │   ├── store/                               ← 전역 상태 (Zustand 등)
+│   │   └── types/
+│   ├── package.json
+│   └── vite.config.ts
+│
+├── e2e/                                         ← Playwright E2E 테스트
+│   ├── playwright.config.ts
+│   └── tests/
+│       └── *.spec.ts
+│
+├── docker-compose.yml                           ← 로컬 개발용
+├── .github/
+│   └── workflows/
+│       └── ci.yml                               ← CI/CD 파이프라인
+│
 ├── sprints/
-│   ├── ROADMAP.md                      ← 전체 스프린트 로드맵
-│   ├── TECH_DEBT.md                    ← 누적 기술 부채 중앙 관리
+│   ├── ROADMAP.md                               ← 전체 스프린트 로드맵
+│   ├── TECH_DEBT.md                             ← 누적 기술 부채 중앙 관리
 │   ├── sprint-01/
-│   │   ├── GOAL.md                     ← 구현 명세서 (Planner 생성)
-│   │   ├── DONE.md                     ← 완료 보고서 (Validator 생성)
-│   │   └── OUT_OF_SCOPE.md             ← 범위 외 발견사항
+│   │   ├── GOAL.md                              ← 구현 명세서 (Planner 생성)
+│   │   ├── DONE.md                              ← 완료 보고서 (Validator 생성)
+│   │   └── OUT_OF_SCOPE.md                      ← 범위 외 발견사항
 │   └── sprint-02/
 │       └── ...
 │
 └── .claude/
-    ├── settings.json                   ← 권한 설정
+    ├── settings.json                            ← 권한 설정
     ├── agents/
-    │   ├── orchestrator.md             ← PHASE 1~4.5
-    │   ├── planner.md                  ← PHASE 5
-    │   ├── implementer.md              ← PHASE 6
-    │   ├── validator.md                ← PHASE 7~10
-    │   ├── hotfix-close.md             ← 핫픽스 마무리
-    │   └── deploy-prod.md              ← 프로덕션 배포
+    │   ├── orchestrator.md                      ← PHASE 1~4.5
+    │   ├── planner.md                           ← PHASE 5
+    │   ├── implementer.md                       ← PHASE 6
+    │   ├── validator.md                         ← PHASE 7~10
+    │   ├── hotfix-close.md                      ← 핫픽스 마무리
+    │   └── deploy-prod.md                       ← 프로덕션 배포
     ├── commands/
-    │   ├── sprint-dev.md               ← Sprint 구현 오케스트레이터
-    │   ├── status.md                   ← /status — 현재 상태 요약
-    │   ├── next.md                     ← /next — 다음 에이전트 안내
-    │   ├── rollback.md                 ← /rollback — PHASE 롤백
-    │   ├── sprint-log.md               ← /sprint-log — 스프린트 종합 요약
-    │   └── debt.md                     ← /debt — Tech Debt 보고
+    │   ├── sprint-dev.md                        ← Sprint 구현 오케스트레이터
+    │   ├── status.md                            ← /status — 현재 상태 요약
+    │   ├── next.md                              ← /next — 다음 에이전트 안내
+    │   ├── rollback.md                          ← /rollback — PHASE 롤백
+    │   ├── sprint-log.md                        ← /sprint-log — 스프린트 종합 요약
+    │   └── debt.md                              ← /debt — Tech Debt 보고
     └── rules/
-        ├── sprint-workflow.md          ← Sprint/Hotfix 워크플로우 규칙
-        ├── coding-principles.md        ← 코딩 원칙 (paths 기반 자동 활성화)
-        └── dev-process.md              ← 개발 프로세스 정책 (이 문서)
+        ├── sprint-workflow.md                   ← Sprint/Hotfix 워크플로우 규칙
+        ├── coding-principles.md                 ← Python + React/TS 코딩 원칙
+        ├── cicd.md                              ← CI/CD 파이프라인 규칙 (GitHub Actions)
+        └── dev-process.md                       ← 개발 프로세스 정책 (이 문서)
 ```
 
 ---
@@ -293,7 +335,9 @@ Hotfix: {브랜치명}
 ### 9.3 검증 단계 (PHASE 7~8)
 
 1. **자동 검증** (PHASE 7)
-   - 빌드, lint, 타입체크, 단위 테스트, API 응답
+   - 백엔드: ruff lint, mypy 타입체크, pytest
+   - 프론트엔드: tsc 타입체크, eslint, vitest, vite build
+   - E2E: Playwright 테스트 (GOAL.md에 시나리오 있는 경우)
    - 실패 시: 명백한 오류 직접 수정 → 3회 실패 시 Implementer로 롤백
 
 2. **수동 테스트** (PHASE 8)
@@ -315,9 +359,10 @@ Hotfix: {브랜치명}
 ```
 Sprint 완료 (PHASE 10)
   → deploy-prod 에이전트 실행
-    → 사전 점검 (빌드, 테스트, 완료된 스프린트 확인)
+    → 사전 점검 (pytest, tsc, Playwright E2E, CI 파이프라인 상태 확인)
     → main PR 생성
-    → 배포 후 검증 가이드 제공
+    → CI/CD 파이프라인 자동 배포 (GitHub Actions)
+    → 배포 후 검증 가이드 제공 (API 헬스체크 포함)
 ```
 
 ### Hotfix 배포
@@ -330,12 +375,23 @@ Hotfix 구현 완료
     → 머지 후 역머지 안내
 ```
 
+### CI/CD 파이프라인 (자동)
+
+```
+PR → main 머지
+  → GitHub Actions 트리거
+    → 백엔드 (lint/mypy/pytest) → 프론트엔드 (tsc/lint/vitest/build) → E2E (Playwright) → Docker 빌드/Push → 배포
+```
+
+→ 파이프라인 설정: `.claude/rules/cicd.md` 참조
+
 ### 롤백
 
 문제 발생 시:
 ```bash
 git revert {merge_commit_hash}
 git push origin main
+# CI/CD 파이프라인이 자동으로 이전 버전 배포
 ```
 
 ---
@@ -376,6 +432,12 @@ docs/STATUS.md를 읽고 현재 PHASE에 맞는 에이전트를 실행해줘.
 - [ ] plan.md 확인 및 수정
 - [ ] ROADMAP.md 확인
 - [ ] 프로젝트 초기화 (PHASE 4.5)
+  - 백엔드: `python -m venv venv` + FastAPI 패키지 설치
+  - 프론트엔드: `npm create vite@latest frontend -- --template react-ts`
 - [ ] CLAUDE.md 생성 (`claude /init` 권장)
-- [ ] `.claude/rules/coding-principles.md`에 기술 스택 기입
+- [ ] `.claude/rules/coding-principles.md`에 기술 스택 기입 (Python 버전, 프레임워크, Node.js 버전)
+- [ ] `e2e/` 디렉토리 생성 + Playwright 초기화 (`npm init playwright@latest`)
+- [ ] `.github/workflows/ci.yml` 생성 (`.claude/rules/cicd.md` 템플릿 참조)
+- [ ] `docker-compose.yml` 생성 (로컬 개발 DB, Redis 등)
+- [ ] `.gitignore`에 `.env`, `__pycache__`, `node_modules`, `.venv` 등 추가
 - [ ] 첫 스프린트 시작 (Planner → Implementer → Validator)

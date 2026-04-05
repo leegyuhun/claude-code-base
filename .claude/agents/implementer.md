@@ -102,13 +102,53 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
 ### 기본 규칙
 ```
 ✅ GOAL.md에 명시된 것만 구현
-✅ CLAUDE.md의 코딩 원칙 준수
+✅ CLAUDE.md + .claude/rules/coding-principles.md 준수
 ✅ 임시 코드 사용 시 TODO 주석 필수
-   // TODO: [tech-debt] 임시처리 - 이유
+   # TODO: [tech-debt] 임시처리 - 이유  (Python)
+   // TODO: [tech-debt] 임시처리 - 이유  (TypeScript)
 
 ✅ 기능 하나 완료마다 GOAL.md 체크박스 업데이트
 ✅ 범위 외 발견사항은 구현하지 말고 메모
    → sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md 에 기록
+```
+
+### Python + React/TS 구현 순서 (기능당 권장 순서)
+```
+[백엔드]
+1. DB 모델 (SQLAlchemy) 작성
+2. Alembic 마이그레이션 파일 생성 (스키마 변경 시)
+3. Pydantic 스키마 (Request/Response) 작성
+4. Repository 작성 (DB 접근 로직)
+5. Service 작성 (비즈니스 로직)
+6. FastAPI Router 작성 (엔드포인트)
+7. 백엔드 테스트 작성 (pytest — unit + integration)
+
+[프론트엔드]
+8. TypeScript 타입 정의 (types/xxx.ts)
+9. API 서비스 함수 작성 (services/xxxService.ts)
+10. 커스텀 훅 작성 (hooks/useXxx.ts) — React Query 활용
+11. 컴포넌트 작성 (components/feature/Xxx.tsx)
+12. 페이지 작성 (pages/XxxPage.tsx)
+13. 프론트엔드 테스트 작성 (Vitest)
+
+[E2E]
+14. Playwright 테스트 작성 (GOAL.md E2E 시나리오 기준)
+```
+
+### 코드 품질 체크리스트
+```
+[Python]
+✅ 타입 힌트 모든 함수에 적용
+✅ async/await 일관성 (비동기 함수 체인 누락 없음)
+✅ print() 대신 logging 사용
+✅ 시크릿 하드코딩 없음 (settings.py 경유)
+✅ Pydantic 스키마 Request/Response 분리
+
+[TypeScript]
+✅ any 타입 사용 없음
+✅ API 응답 타입 명시 (types/ 정의)
+✅ 컴포넌트에 비즈니스 로직 없음 (훅으로 분리)
+✅ console.log 배포 코드에 없음
 ```
 
 ### 코딩 원칙

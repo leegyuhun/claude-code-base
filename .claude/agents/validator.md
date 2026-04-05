@@ -34,39 +34,77 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 7-1. 읽을 파일
      - docs/STATUS.md
      - sprints/{CURRENT_SPRINT}/GOAL.md
-     - CLAUDE.md (빌드 명령 확인용)
+     - CLAUDE.md (빌드/테스트 명령 확인용)
 
-7-2. 빌드 실행 (CLAUDE.md에서 빌드 명령 참조)
-     → 빌드 성공 여부 확인
+7-2. 백엔드 검증 (Python/FastAPI)
+     → CLAUDE.md에서 명령 참조
+
+     린트/타입체크:
+       cd backend && ruff check . && mypy app/
+     테스트 실행:
+       pytest --tb=short
+     → 테스트 파일 있는 경우만 실행
 
      실패 시:
-     → 오류 메시지 분석 후 명백한 오류(타입 오류, import 누락 등)는 직접 수정
+     → 오류 메시지 분석 후 명백한 오류(import 누락, 타입 오류 등)는 직접 수정
      → 재시도 최대 3회
-     → 3회 실패 시 [PAUSE] "빌드 실패, 확인 필요합니다"
+     → 3회 실패 시 [PAUSE] "백엔드 검증 실패, 확인 필요합니다"
 
-7-3. 테스트 실행
-     → CLAUDE.md에서 테스트 명령 참조
-     → 테스트 파일 있는 경우만
+7-3. 프론트엔드 검증 (React/TypeScript)
+     → CLAUDE.md에서 명령 참조
 
-7-4. 자동 검증 항목:
-     ✅ 빌드 성공
-     ✅ 테스트 통과 (테스트 존재 시)
-     ⚠️ 런타임 동작 확인은 수동 테스트(PHASE 8)에서
+     타입체크:
+       cd frontend && npm run typecheck
+     린트:
+       npm run lint
+     단위 테스트:
+       npm run test
+     빌드:
+       npm run build
 
-7-5. 검증 결과 요약 출력
-     ┌──────────────────────────────────┐
-     │ 📊 자동 검증 결과                │
-     │ ✅ 통과: N개                     │
-     │ ⚠️ 수동 확인 필요: N개           │
-     │ ❌ 실패: N개                     │
-     └──────────────────────────────────┘
+     실패 시:
+     → 타입 오류, lint 오류는 직접 수정 후 재시도 (최대 2회)
+     → 구조적 문제면 [PAUSE]
 
-7-6. 실패 항목 있으면
+7-4. Playwright E2E 테스트 실행
+     → GOAL.md에 "E2E 테스트 시나리오" 섹션 있는 경우만 실행
+     → e2e/ 디렉토리 존재 확인
+
+     실행:
+       cd e2e && npx playwright test
+
+     실패 시:
+     → playwright-report/ 스크린샷 경로 출력
+     → 실패 시나리오 명시
+     → [PAUSE] "E2E 테스트 실패: {실패 케이스 목록}
+                스크린샷: e2e/playwright-report/
+                Implementer 재실행이 필요합니까? (예/아니오)"
+     → '예' → docs/STATUS.md PHASE=6 으로 리셋
+
+7-5. 자동 검증 항목:
+     ✅ Python 린트/타입체크 (ruff, mypy)
+     ✅ pytest 통과 (테스트 존재 시)
+     ✅ TypeScript 타입체크 통과
+     ✅ 프론트엔드 빌드 성공
+     ✅ Playwright E2E 통과 (e2e 존재 시)
+     ⚠️ 런타임 수동 확인은 PHASE 8에서
+
+7-6. 검증 결과 요약 출력
+     ┌──────────────────────────────────────────┐
+     │ 📊 자동 검증 결과                        │
+     │ ✅ 백엔드 (lint/mypy/pytest): 성공/실패  │
+     │ ✅ 프론트엔드 (tsc/lint/test): 성공/실패 │
+     │ ✅ E2E (Playwright): N개 통과            │
+     │ ⚠️ 수동 확인 필요: N개                  │
+     │ ❌ 실패: N개                             │
+     └──────────────────────────────────────────┘
+
+7-7. 실패 항목 있으면
      → 명백한 수정사항이면 직접 수정 후 재검증
      → 구조적 문제면 [PAUSE] "Implementer 재실행 필요"
        docs/STATUS.md PHASE=6 으로 리셋
 
-7-7. 전체 통과 → docs/STATUS.md PHASE=8 업데이트
+7-8. 전체 통과 → docs/STATUS.md PHASE=8 업데이트
 ```
 
 ---
@@ -120,7 +158,15 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      ## 생성/수정된 파일 목록
      (git diff --name-only 결과)
 
-     ## 추가된 API / 화면
+     ## 추가된 API 엔드포인트
+
+     ## DB 스키마 변경
+     (Alembic 마이그레이션 파일 목록)
+
+     ## 추가된 화면/경로
+
+     ## 테스트 커버리지
+     (pytest 통과 수, Vitest 통과 수, E2E 시나리오 수)
 
      ## Tech Debt
      (TODO 주석 목록, OUT_OF_SCOPE.md 내용)
