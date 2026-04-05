@@ -102,13 +102,38 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
 ### 기본 규칙
 ```
 ✅ GOAL.md에 명시된 것만 구현
-✅ CLAUDE.md의 코딩 원칙 준수
+✅ CLAUDE.md + .claude/rules/coding-principles.md 준수
 ✅ 임시 코드 사용 시 TODO 주석 필수
    // TODO: [tech-debt] 임시처리 - 이유
 
 ✅ 기능 하나 완료마다 GOAL.md 체크박스 업데이트
 ✅ 범위 외 발견사항은 구현하지 말고 메모
    → sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md 에 기록
+```
+
+### Java + Spring Boot 구현 순서 (기능당 권장 순서)
+```
+1. Entity / Domain 클래스 작성
+2. Repository 인터페이스 작성
+3. DTO (Request/Response) 작성
+4. Service 인터페이스 + 구현체 작성
+5. Controller 작성
+6. 단위 테스트 작성 (Service, Repository)
+7. Controller 슬라이스 테스트 작성 (@WebMvcTest)
+8. Playwright E2E 테스트 작성 (GOAL.md에 명시된 경우)
+9. DB 마이그레이션 파일 작성 (Flyway/Liquibase 사용 시)
+```
+
+### Spring Boot 체크리스트
+```
+✅ Entity에 @Data 사용하지 않음
+✅ Controller에 비즈니스 로직 없음
+✅ Service에 @Transactional 적용
+✅ 조회 메서드에 @Transactional(readOnly = true) 적용
+✅ 예외는 @ControllerAdvice에서 중앙 처리
+✅ 로거: @Slf4j + log.error()/log.info() 사용 (System.out.println 금지)
+✅ API 응답은 공통 래퍼(ApiResponse<T>) 사용
+✅ application.yml에 시크릿 하드코딩 없음
 ```
 
 ### 코딩 원칙

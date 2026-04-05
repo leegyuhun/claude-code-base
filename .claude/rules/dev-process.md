@@ -150,18 +150,21 @@ docs/PRD.md 작성
 
 ## 5. 검증 매트릭스
 
-| 검증 항목 | Sprint | Hotfix | Deploy |
+| 검증 항목 | Sprint | Hotfix | Deploy (CI/CD) |
 |-----------|--------|--------|--------|
-| 빌드 성공 | ✅ 자동 | ✅ 자동 | ✅ 자동 |
-| lint/타입체크 | ✅ 자동 | — | — |
-| 단위 테스트 | ✅ 자동 | ✅ 타겟 | ✅ 전체 |
-| API 엔드포인트 | ✅ 자동 | ✅ 타겟 | ✅ 전체 |
+| 빌드 성공 (`mvnw package`) | ✅ 자동 | ✅ 자동 | ✅ CI 자동 |
+| 단위 테스트 (`mvnw test`) | ✅ 자동 | ✅ 타겟 | ✅ CI 전체 |
+| 통합 테스트 (`mvnw verify`) | ✅ 자동 | — | ✅ CI 전체 |
+| Playwright E2E 테스트 | ✅ 자동 | — | ✅ CI 자동 |
+| API 엔드포인트 응답 | ✅ 자동 | ✅ 타겟 | ✅ CI 전체 |
 | 수동 UI 테스트 | ⚠️ 수동 | ⚠️ 타겟 | ⚠️ 수동 |
-| 헬스체크 | — | — | ✅ 자동 |
+| Docker 빌드/Push | — | — | ✅ CI 자동 |
+| Actuator 헬스체크 | — | — | ✅ 자동 |
 
 범례:
-- ✅ 자동: 에이전트가 자동 실행
+- ✅ 자동: 에이전트 또는 CI가 자동 실행
 - ✅ 타겟: 변경 관련만 자동 실행
+- ✅ CI 자동: GitHub Actions 파이프라인에서 자동 실행
 - ⚠️ 수동: 사용자가 직접 수행
 - —: 해당 없음
 
@@ -220,41 +223,74 @@ Hotfix: {브랜치명}
 ```
 프로젝트 루트/
 ├── docs/PRD.md                              ← 프로젝트 요구사항
-├── plan.md                             ← 기능 분석 결과 (Orchestrator 생성)
+├── plan.md                                  ← 기능 분석 결과 (Orchestrator 생성)
 ├── docs/STATUS.md                           ← 파이프라인 상태 (공유 상태 파일)
-├── CLAUDE.md                           ← 코딩 원칙, 빌드 명령 (claude /init)
+├── CLAUDE.md                                ← 코딩 원칙, 빌드 명령 (claude /init)
+├── CHANGELOG.md                             ← 전체 변경 이력
 ├── .gitignore
 │
+├── src/                                     ← Java + Spring Boot 소스
+│   ├── main/java/com/example/project/
+│   │   ├── config/
+│   │   ├── controller/
+│   │   ├── service/
+│   │   ├── repository/
+│   │   ├── domain/                          ← Entity 클래스
+│   │   ├── dto/                             ← Request/Response DTO
+│   │   ├── exception/
+│   │   └── security/
+│   ├── main/resources/
+│   │   ├── application.yml
+│   │   ├── application-local.yml
+│   │   ├── application-test.yml
+│   │   └── application-prod.yml
+│   └── test/java/                           ← 단위/통합 테스트
+│
+├── e2e/                                     ← Playwright E2E 테스트 (Node.js)
+│   ├── playwright.config.ts
+│   ├── package.json
+│   └── tests/
+│       └── *.spec.ts
+│
+├── Dockerfile                               ← 컨테이너 빌드
+├── docker-compose.yml                       ← 로컬 개발용
+├── pom.xml (or build.gradle)
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml                           ← CI/CD 파이프라인
+│
 ├── sprints/
-│   ├── ROADMAP.md                      ← 전체 스프린트 로드맵
-│   ├── TECH_DEBT.md                    ← 누적 기술 부채 중앙 관리
+│   ├── ROADMAP.md                           ← 전체 스프린트 로드맵
+│   ├── TECH_DEBT.md                         ← 누적 기술 부채 중앙 관리
 │   ├── sprint-01/
-│   │   ├── GOAL.md                     ← 구현 명세서 (Planner 생성)
-│   │   ├── DONE.md                     ← 완료 보고서 (Validator 생성)
-│   │   └── OUT_OF_SCOPE.md             ← 범위 외 발견사항
+│   │   ├── GOAL.md                          ← 구현 명세서 (Planner 생성)
+│   │   ├── DONE.md                          ← 완료 보고서 (Validator 생성)
+│   │   └── OUT_OF_SCOPE.md                  ← 범위 외 발견사항
 │   └── sprint-02/
 │       └── ...
 │
 └── .claude/
-    ├── settings.json                   ← 권한 설정
+    ├── settings.json                        ← 권한 설정
     ├── agents/
-    │   ├── orchestrator.md             ← PHASE 1~4.5
-    │   ├── planner.md                  ← PHASE 5
-    │   ├── implementer.md              ← PHASE 6
-    │   ├── validator.md                ← PHASE 7~10
-    │   ├── hotfix-close.md             ← 핫픽스 마무리
-    │   └── deploy-prod.md              ← 프로덕션 배포
+    │   ├── orchestrator.md                  ← PHASE 1~4.5
+    │   ├── planner.md                       ← PHASE 5
+    │   ├── implementer.md                   ← PHASE 6
+    │   ├── validator.md                     ← PHASE 7~10
+    │   ├── hotfix-close.md                  ← 핫픽스 마무리
+    │   └── deploy-prod.md                   ← 프로덕션 배포
     ├── commands/
-    │   ├── sprint-dev.md               ← Sprint 구현 오케스트레이터
-    │   ├── status.md                   ← /status — 현재 상태 요약
-    │   ├── next.md                     ← /next — 다음 에이전트 안내
-    │   ├── rollback.md                 ← /rollback — PHASE 롤백
-    │   ├── sprint-log.md               ← /sprint-log — 스프린트 종합 요약
-    │   └── debt.md                     ← /debt — Tech Debt 보고
+    │   ├── sprint-dev.md                    ← Sprint 구현 오케스트레이터
+    │   ├── status.md                        ← /status — 현재 상태 요약
+    │   ├── next.md                          ← /next — 다음 에이전트 안내
+    │   ├── rollback.md                      ← /rollback — PHASE 롤백
+    │   ├── sprint-log.md                    ← /sprint-log — 스프린트 종합 요약
+    │   └── debt.md                          ← /debt — Tech Debt 보고
     └── rules/
-        ├── sprint-workflow.md          ← Sprint/Hotfix 워크플로우 규칙
-        ├── coding-principles.md        ← 코딩 원칙 (paths 기반 자동 활성화)
-        └── dev-process.md              ← 개발 프로세스 정책 (이 문서)
+        ├── sprint-workflow.md               ← Sprint/Hotfix 워크플로우 규칙
+        ├── coding-principles.md             ← Java+Spring Boot 코딩 원칙
+        ├── cicd.md                          ← CI/CD 파이프라인 규칙
+        └── dev-process.md                   ← 개발 프로세스 정책 (이 문서)
 ```
 
 ---
@@ -315,9 +351,10 @@ Hotfix: {브랜치명}
 ```
 Sprint 완료 (PHASE 10)
   → deploy-prod 에이전트 실행
-    → 사전 점검 (빌드, 테스트, 완료된 스프린트 확인)
+    → 사전 점검 (빌드, 테스트, E2E, CI 파이프라인 상태 확인)
     → main PR 생성
-    → 배포 후 검증 가이드 제공
+    → CI/CD 파이프라인 자동 배포 (GitHub Actions)
+    → 배포 후 검증 가이드 제공 (Actuator 헬스체크 포함)
 ```
 
 ### Hotfix 배포
@@ -330,12 +367,23 @@ Hotfix 구현 완료
     → 머지 후 역머지 안내
 ```
 
+### CI/CD 파이프라인 (자동)
+
+```
+PR → main 머지
+  → GitHub Actions 트리거
+    → 빌드 → 테스트 → E2E → Docker 빌드/Push → 배포
+```
+
+→ 파이프라인 설정: `.claude/rules/cicd.md` 참조
+
 ### 롤백
 
 문제 발생 시:
 ```bash
 git revert {merge_commit_hash}
 git push origin main
+# CI/CD 파이프라인이 자동으로 이전 버전 배포
 ```
 
 ---
@@ -375,7 +423,11 @@ docs/STATUS.md를 읽고 현재 PHASE에 맞는 에이전트를 실행해줘.
 - [ ] Orchestrator 실행 (PHASE 1~4.5)
 - [ ] plan.md 확인 및 수정
 - [ ] ROADMAP.md 확인
-- [ ] 프로젝트 초기화 (PHASE 4.5)
+- [ ] Spring Boot 프로젝트 초기화 (Spring Initializr 또는 직접)
 - [ ] CLAUDE.md 생성 (`claude /init` 권장)
-- [ ] `.claude/rules/coding-principles.md`에 기술 스택 기입
+- [ ] `.claude/rules/coding-principles.md`에 기술 스택 기입 (Java 버전, Spring Boot 버전, 빌드 도구)
+- [ ] `e2e/` 디렉토리 생성 + Playwright 초기화 (`npm init playwright`)
+- [ ] `.github/workflows/ci.yml` 생성 (`.claude/rules/cicd.md` 템플릿 참조)
+- [ ] `Dockerfile` 생성 (`.claude/rules/cicd.md` 템플릿 참조)
+- [ ] `.gitignore`에 `.env`, `application-prod.yml` 등 시크릿 파일 추가
 - [ ] 첫 스프린트 시작 (Planner → Implementer → Validator)

@@ -69,30 +69,68 @@ memory: project
 - [ ] 기능 2 (예상 소요: Xh)
 
 ## 완료 조건
-- [ ] 조건 1 (✅ 자동 검증)
-- [ ] 조건 2 (⚠️ 수동 확인 필요)
+- [ ] 조건 1 (✅ 자동 검증 — 빌드/테스트)
+- [ ] 조건 2 (✅ E2E 자동 검증 — Playwright)
+- [ ] 조건 3 (⚠️ 수동 확인 필요)
 
 ## 예상 산출물
-### 생성될 파일
-- path/to/file.ts
-- path/to/file.py
+### 생성될 파일 (Java + Spring Boot 기준)
+```
+src/main/java/.../
+  controller/XxxController.java
+  service/XxxService.java
+  service/impl/XxxServiceImpl.java
+  repository/XxxRepository.java
+  domain/Xxx.java              ← Entity
+  dto/XxxRequest.java
+  dto/XxxResponse.java
+  exception/XxxException.java  ← 필요 시
+
+src/test/java/.../
+  controller/XxxControllerTest.java
+  service/XxxServiceTest.java
+  repository/XxxRepositoryTest.java  ← 필요 시
+
+src/main/resources/
+  db/migration/V{N}__{설명}.sql  ← Flyway/Liquibase 사용 시
+
+e2e/tests/
+  xxx.spec.ts                  ← Playwright E2E (핵심 시나리오만)
+```
 
 ### 추가될 API 엔드포인트
-- GET /api/...
-- POST /api/...
+- GET    /api/v1/...
+- POST   /api/v1/...
+- PUT    /api/v1/.../{id}
+- DELETE /api/v1/.../{id}
 
-### 추가될 화면/컴포넌트
-- 페이지명: /path
+### DB 스키마 변경
+- 테이블: (없으면 "없음")
+- 컬럼 추가/수정: (없으면 "없음")
+
+### 추가될 화면/경로 (Thymeleaf/프론트엔드 포함 시)
+- 경로: /path — 설명
 
 ## 기술 고려사항
-(구현 시 주의할 기술적 내용, 예외 처리 포인트 등)
+(구현 시 주의할 기술적 내용)
+- 트랜잭션 경계:
+- N+1 쿼리 방지:
+- 예외 처리 포인트:
+- 보안 고려사항:
 
 ## 수동 테스트 시나리오
 (PHASE 8에서 사용할 테스트 케이스 미리 작성)
 1. [기능명]
-   - 경로: http://localhost:PORT/...
+   - 경로: http://localhost:8080/...
    - 시나리오: ① → ② → ③
    - 예상 결과:
+
+## E2E 테스트 시나리오 (Playwright)
+(핵심 사용자 흐름만 — PHASE 7 자동 실행)
+1. [시나리오명]
+   - 파일: e2e/tests/xxx.spec.ts
+   - 흐름: ① → ② → ③
+   - 검증 포인트:
 ```
 
 ---
