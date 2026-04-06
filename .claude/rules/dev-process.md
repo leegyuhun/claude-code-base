@@ -291,7 +291,7 @@ Hotfix: {브랜치명}
 ### 9.1 계획 단계 (PHASE 1~5)
 
 1. **docs/PRD.md 작성** (사용자)
-   - 목적 & 배경, 핵심 기능, 기술 스택, MVP 기준, 제약 조건
+   - 목적 & 배경, 핵심 기능 및 요구사항, MVP 기준, 제약 조건
 
 2. **Orchestrator 실행** (PHASE 1~4.5)
    - PRD 분석 → plan.md 생성 → 사용자 확인 → ROADMAP.md 생성
@@ -426,11 +426,11 @@ CLAUDE.md에 아래 항목을 반드시 기입하세요:
 
 새 프로젝트를 시작할 때:
 
-- [ ] docs/PRD.md 작성 (목적, 기능, 기술 스택, MVP, 제약 조건)
+- [ ] docs/PRD.md 작성 (목적, 핵심 기능 및 요구사항, MVP, 제약 조건)
 - [ ] Orchestrator 실행 (PHASE 1~4.5)
 - [ ] plan.md 확인 및 수정
 - [ ] ROADMAP.md 확인
 - [ ] 프로젝트 초기화 (PHASE 4.5)
 - [ ] CLAUDE.md 생성 (`claude /init` 권장)
-- [ ] `.claude/rules/coding-principles.md`에 기술 스택 기입
+- [ ] `.claude/rules/coding-principles.md` 확인
 - [ ] 첫 스프린트 시작 (Planner → Implementer → Validator)
