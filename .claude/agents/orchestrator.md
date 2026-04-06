@@ -178,6 +178,15 @@ color: blue
                ---
                # CLAUDE.md
 
+               ## 인코딩 규칙 (필수)
+
+               이 프로젝트는 `.pas`/`.dfm` 파일이 CP949 인코딩입니다.
+               파일 수정 전 반드시 `.claude/rules/encoding-critical.md` 를 확인하세요.
+               규칙 요약:
+               - `.pas`/`.dfm` 파일에 Write 도구 절대 사용 금지
+               - Edit 도구 사용 시 old_string/new_string 범위에 한글 포함 줄 금지
+               - 한글 주석 추가 시 PowerShell + Encoding 949 방식만 사용
+
                ## 빌드 & 실행
                (docs/PRD.md 기술 스택 기반으로 빌드/실행/테스트 명령 기입)
 
@@ -189,8 +198,23 @@ color: blue
                ---
 
 4.5-5. CLAUDE.md 존재 최종 확인
-       → 존재 → docs/STATUS.md PHASE=5 업데이트, ORCHESTRATOR=done
        → 미존재 → [PAUSE] "CLAUDE.md가 필요합니다. 위 옵션 중 하나를 선택해주세요."
+
+4.5-5.1. CLAUDE.md에 encoding-critical 룰 참조 삽입 (필수)
+       CLAUDE.md를 읽어 아래 내용이 없으면 파일 상단(첫 번째 섹션 앞)에 추가:
+
+       ## 인코딩 규칙 (필수)
+
+       이 프로젝트는 `.pas`/`.dfm` 파일이 CP949 인코딩입니다.
+       파일 수정 전 반드시 `.claude/rules/encoding-critical.md` 를 확인하세요.
+       규칙 요약:
+       - `.pas`/`.dfm` 파일에 Write 도구 절대 사용 금지
+       - Edit 도구 사용 시 old_string/new_string 범위에 한글 포함 줄 금지
+       - 한글 주석 추가 시 PowerShell + Encoding 949 방식만 사용
+
+       → 이미 존재하면 생략
+
+       → 완료 → docs/STATUS.md PHASE=5 업데이트, ORCHESTRATOR=done
 
 4.5-6. 완료 후 출력:
        "✅ Orchestrator 완료

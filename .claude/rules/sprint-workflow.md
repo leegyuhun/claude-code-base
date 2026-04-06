@@ -28,15 +28,15 @@ paths:
 - 실패 시 Implementer로 롤백 가능
 
 ### 4. 종료 (Validator)
-- DONE.md 생성 + PR 생성
-- PR 머지 후 다음 스프린트 진행
+- DONE.md 생성 + push
+- GitLab에서 MR 생성 및 머지 (수동) 후 다음 스프린트 진행
 
 ## Hotfix 프로세스
 
 1. 현재 브랜치 기반 `{현재브랜치}_hotfix/{설명}` 브랜치 생성
    예: `main_delphi_hotfix/login-fix`
 2. 수정 후 hotfix-close 에이전트 실행
-3. 베이스 브랜치로 PR 생성 → 머지 후 진행 중인 스프린트 브랜치에 역머지
+3. push 후 GitLab에서 MR 생성 → 머지 후 진행 중인 스프린트 브랜치에 역머지
 
 ## Hotfix vs Sprint 판단 기준
 

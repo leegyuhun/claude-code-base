@@ -1,13 +1,13 @@
 ---
 name: validator
-description: "PHASE 7~10에 도달했을 때 사용. 빌드/테스트 검증 실행, 수동 테스트 가이드 제시, PR 생성, 다음 스프린트 전환을 처리한다.\n\n<example>\nContext: Implementation is done, time to verify.\nuser: \"검증 시작해줘.\"\nassistant: \"validator 에이전트로 검증을 시작할게요.\"\n</example>"
+description: "PHASE 7~10에 도달했을 때 사용. 빌드/테스트 검증 실행, 수동 테스트 가이드 제시, push 후 GitLab MR 안내, 다음 스프린트 전환을 처리한다.\n\n<example>\nContext: Implementation is done, time to verify.\nuser: \"검증 시작해줘.\"\nassistant: \"validator 에이전트로 검증을 시작할게요.\"\n</example>"
 model: sonnet
 color: green
 ---
 
 # validator.md — 검증 및 종료 전담 에이전트
 
-> 역할: 구현 결과를 검증하고, 수동 테스트 가이드를 제시하고, PR을 생성한다.
+> 역할: 구현 결과를 검증하고, 수동 테스트 가이드를 제시하고, push 후 GitLab MR 생성을 안내한다.
 > 코드 수정은 최소화한다. 검증 실패 시 Implementer로 되돌린다.
 > 완료 후 다음 스프린트 진행 여부를 확인한다.
 
@@ -83,7 +83,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      ┌──────────────────────────────────────────┐
      │ 🧪 수동 테스트 가이드 — {CURRENT_SPRINT} │
      │                                          │
-     │ 앱 실행 방법: Output\Debug\{앱명}.exe   │
+     │ 앱 실행 방법: C:\YsrOutput\Exe\{앱명}.exe   │
      │                                          │
      │ 1. {폼/기능명}                           │
      │    화면: {폼 이름 또는 메뉴 경로}         │
@@ -108,7 +108,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
 ---
 
-### PHASE 9 — Sprint 종료 (PR 생성)
+### PHASE 9 — Sprint 종료 (push + GitLab MR 안내)
 
 ```
 9-1. DONE.md 생성
@@ -161,32 +161,41 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      BASE_BRANCH=$(git branch --show-current | sed 's/_sprint-[0-9]*//')
      git push -u origin $(git branch --show-current)
 
-9-6. gh CLI로 PR 자동 생성
-     gh pr create --base ${BASE_BRANCH} --title "[{CURRENT_SPRINT}] {목표 요약}" --body "$(cat <<'EOF'
+9-6. GitLab MR 생성 안내 출력
+     아래 내용을 그대로 출력하여 사용자가 GitLab에서 MR을 생성할 수 있도록 안내:
+
+     ─────────────────────────────────────────────
+     GitLab MR 생성 안내
+
+     Source branch : {현재 브랜치}
+     Target branch : {BASE_BRANCH}
+     Title         : [{CURRENT_SPRINT}] {목표 요약}
+
+     Description 본문 (복사하여 사용):
+
      ## 변경 사항
      (DONE.md 완료된 기능 목록)
 
      ## 테스트 완료 항목
-     (build.bat 컴파일 + DUnit + 수동 테스트 결과)
+     - build.bat 컴파일 성공
+     - DUnit 테스트 통과 (해당 시)
+     - 수동 테스트 통과
 
      ## Tech Debt
      (TODO 주석, OUT_OF_SCOPE.md)
 
      ## 리뷰 포인트
      (주의 깊게 봐야 할 .pas/.dfm 부분)
-     EOF
-     )"
-
-     → gh 미설치 시 PR 내용을 출력하여 수동 생성 안내
+     ─────────────────────────────────────────────
 
 9-7. [PAUSE]
-     "PR이 생성되었습니다: {PR_URL}
-      머지 완료 후 '머지완료' 입력 시 다음 스프린트로 진행합니다."
+     "브랜치가 push 되었습니다: {현재 브랜치}
+      GitLab에서 MR을 생성하고 머지 완료 후 '머지완료'를 입력해주세요."
 
 9-8. '머지완료' 입력 시
      docs/STATUS.md 업데이트:
      - 해당 스프린트 상태 → ✅ 완료
-     - LAST_COMMIT, LAST_PR 기록
+     - LAST_COMMIT, LAST_BRANCH 기록
      - PHASE=10
 ```
 

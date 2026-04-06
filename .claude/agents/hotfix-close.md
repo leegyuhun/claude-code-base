@@ -1,13 +1,13 @@
 ---
 name: hotfix-close
-description: "핫픽스 구현이 완료되어 마무리가 필요할 때 사용. 핫픽스 종료 처리: main으로 PR, 경량 코드 리뷰, 핀포인트 검증, deploy.md 기록을 수행한다.\n\n<example>\nContext: The user has finished implementing a hotfix.\nuser: \"hotfix 구현 끝났어. 마무리해줘.\"\nassistant: \"hotfix-close 에이전트로 핫픽스 마무리 작업을 진행할게요.\"\n</example>"
+description: "핫픽스 구현이 완료되어 마무리가 필요할 때 사용. 핫픽스 종료 처리: push 후 GitLab MR 안내, 경량 코드 리뷰, 핀포인트 검증, deploy.md 기록을 수행한다.\n\n<example>\nContext: The user has finished implementing a hotfix.\nuser: \"hotfix 구현 끝났어. 마무리해줘.\"\nassistant: \"hotfix-close 에이전트로 핫픽스 마무리 작업을 진행할게요.\"\n</example>"
 model: sonnet
 color: red
 ---
 
 # hotfix-close.md — 핫픽스 마무리 에이전트
 
-> 역할: 핫픽스 구현 완료 후 경량 검증, PR 생성, 역머지 안내를 수행한다.
+> 역할: 핫픽스 구현 완료 후 경량 검증, push 후 GitLab MR 안내, 역머지 안내를 수행한다.
 > Sprint 프로세스(Planner/Implementer/Validator)를 거치지 않는 빠른 경로.
 
 ---
@@ -68,7 +68,7 @@ color: red
 3-3. 검증 결과 요약 출력
 ```
 
-### 4단계: PR 생성
+### 4단계: push 후 GitLab MR 안내
 
 ```
 4-1. 최종 커밋
@@ -85,10 +85,18 @@ color: red
      예: main_delphi_hotfix/login-fix → main_delphi
      BASE_BRANCH=$(git branch --show-current | sed 's/_hotfix\/.*//')
 
-4-4. gh CLI로 PR 생성
-     gh pr create --base ${BASE_BRANCH} \
-       --title "fix: {핫픽스 설명} (hotfix)" \
-       --body "$(cat <<'EOF'
+4-4. GitLab MR 생성 안내 출력
+     아래 내용을 그대로 출력하여 사용자가 GitLab에서 MR을 생성할 수 있도록 안내:
+
+     ─────────────────────────────────────────────
+     GitLab MR 생성 안내
+
+     Source branch : {현재 브랜치}
+     Target branch : {BASE_BRANCH}
+     Title         : fix: {핫픽스 설명} (hotfix)
+
+     Description 본문 (복사하여 사용):
+
      ## 문제 원인
      {원인 설명}
 
@@ -101,10 +109,7 @@ color: red
 
      ## 수동 확인 필요
      - {수동 검증 항목}
-     EOF
-     )"
-
-     → gh 미설치 시 PR 내용 출력하여 수동 생성 안내
+     ─────────────────────────────────────────────
 ```
 
 ### 5단계: 최종 보고
@@ -113,15 +118,15 @@ color: red
 5-1. 보고 출력:
      "✅ Hotfix 마무리 완료
 
-      PR: {PR_URL}
+      Branch: {현재 브랜치}
       리뷰 결과: {Critical/High/Medium 이슈 수}
       검증: {통과/실패 항목}
 
       📋 다음 단계:
-      1. PR 리뷰 후 main에 머지
+      1. GitLab에서 MR 생성 후 리뷰 및 {BASE_BRANCH}에 머지
       2. 머지 후 역머지 실행:
-         git checkout main && git pull
-         git checkout {개발 브랜치} && git merge main
+         git checkout {BASE_BRANCH} && git pull
+         git checkout {개발 브랜치} && git merge {BASE_BRANCH}
       3. 수동 검증 필요 항목: {목록}"
 ```
 

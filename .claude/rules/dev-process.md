@@ -24,7 +24,7 @@ docs/PRD.md 작성
   → Implementer (PHASE 6)
     → GOAL.md 기준 구현
   → Validator (PHASE 7~10)
-    → 검증 → 수동 테스트 → PR 생성 → 다음 스프린트
+    → 검증 → 수동 테스트 → push + GitLab MR 안내 → 다음 스프린트
   → deploy-prod
     → 프로덕션 배포
   → Orchestrator (PHASE 11) — MVP 이후 신규 요구사항
@@ -42,8 +42,8 @@ docs/PRD.md 작성
                                                                                    │
                                                                                    ▼
 ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│  배포   │ ←  │  다음   │ ←  │  PR     │ ←  │  수동    │ ←  │  자동    │ ←  │  구현    │
-│ deploy  │    │ Sprint  │    │  생성   │    │  테스트  │    │  검증    │    │  실행    │
+│  배포   │ ←  │  다음   │ ←  │ push+MR │ ←  │  수동    │ ←  │  자동    │ ←  │  구현    │
+│ deploy  │    │ Sprint  │    │  안내   │    │  테스트  │    │  검증    │    │  실행    │
 │         │    │ PHASE 10│    │ PHASE 9 │    │ PHASE 8  │    │ PHASE 7  │    │ PHASE 6  │
 └─────────┘    └─────────┘    └─────────┘    └──────────┘    └──────────┘    └──────────┘
                     │                                                               ▲
@@ -76,9 +76,9 @@ docs/PRD.md 작성
 2. 수정 구현 (sprint-planner 불필요)
 
 3. hotfix-close 에이전트 실행
-   → 경량 코드 리뷰 + 타겟 검증 + main PR 생성
+   → 경량 코드 리뷰 + 타겟 검증 + push + GitLab MR 안내
 
-4. main 머지 후 역머지
+4. GitLab MR 머지 후 역머지
    git checkout {개발 브랜치}
    git merge main
 ```
@@ -88,7 +88,7 @@ docs/PRD.md 작성
 ```
 1. Planner → GOAL.md 생성 (PHASE 5)
 2. Implementer → 구현 (PHASE 6)
-3. Validator → 검증 + PR (PHASE 7~10)
+3. Validator → 검증 + push + GitLab MR 안내 (PHASE 7~10)
 4. deploy-prod → 프로덕션 배포
 ```
 
@@ -99,13 +99,13 @@ docs/PRD.md 작성
 ### Sprint 흐름
 
 ```
-{현재브랜치}_{CURRENT_SPRINT}  →  PR to 베이스 브랜치  →  배포
+{현재브랜치}_{CURRENT_SPRINT}  →  push + GitLab MR  →  배포
 ```
 
 ### Hotfix 흐름
 
 ```
-{현재브랜치}_hotfix/{설명}  →  PR to 베이스 브랜치  →  배포  →  스프린트 브랜치에 역머지
+{현재브랜치}_hotfix/{설명}  →  push + GitLab MR  →  배포  →  스프린트 브랜치에 역머지
 ```
 
 ### 브랜치 명명 규칙
@@ -127,7 +127,7 @@ docs/PRD.md 작성
 | orchestrator | 1~4.5 | PRD 분석, plan.md, ROADMAP.md, 초기화 | opus |
 | planner | 5 | GOAL.md 작성 | opus |
 | implementer | 6 | 기능 구현 | opus |
-| validator | 7~10 | 검증, PR 생성, 스프린트 전환 | sonnet |
+| validator | 7~10 | 검증, push + GitLab MR 안내, 스프린트 전환 | sonnet |
 | hotfix-close | 독립 | 핫픽스 마무리 | sonnet |
 | deploy-prod | 독립 | 프로덕션 배포 | sonnet |
 
@@ -337,7 +337,7 @@ Hotfix: {브랜치명}
 
 ### 9.4 종료 단계 (PHASE 9~10)
 
-1. **DONE.md 생성 + PR 생성** (PHASE 9)
+1. **DONE.md 생성 + push + GitLab MR 안내** (PHASE 9)
 2. **다음 스프린트 전환** (PHASE 10)
    - CURRENT_SPRINT 업데이트 → PHASE 5로 복귀
 
@@ -351,7 +351,7 @@ Hotfix: {브랜치명}
 Sprint 완료 (PHASE 10)
   → deploy-prod 에이전트 실행
     → 사전 점검 (빌드, 테스트, 완료된 스프린트 확인)
-    → main PR 생성
+    → push + GitLab MR 생성 안내
     → 배포 후 검증 가이드 제공
 ```
 
@@ -361,7 +361,7 @@ Sprint 완료 (PHASE 10)
 Hotfix 구현 완료
   → hotfix-close 에이전트 실행
     → 경량 코드 리뷰 + 타겟 검증
-    → main PR 생성
+    → push + GitLab MR 생성 안내
     → 머지 후 역머지 안내
 ```
 

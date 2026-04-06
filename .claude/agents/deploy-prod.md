@@ -1,13 +1,13 @@
 ---
 name: deploy-prod
-description: "프로덕션 배포 준비가 완료됐을 때 사용. 배포 전 사전 점검, PR 생성(develop/sprint → main), 배포 후 검증 가이드를 처리한다.\n\n<example>\nContext: Sprint is verified and ready for production.\nuser: \"프로덕션 배포 준비됐어.\"\nassistant: \"deploy-prod 에이전트로 배포 절차를 진행할게요.\"\n</example>"
+description: "프로덕션 배포 준비가 완료됐을 때 사용. 배포 전 사전 점검, push 후 GitLab MR 안내, 배포 후 검증 가이드를 처리한다.\n\n<example>\nContext: Sprint is verified and ready for production.\nuser: \"프로덕션 배포 준비됐어.\"\nassistant: \"deploy-prod 에이전트로 배포 절차를 진행할게요.\"\n</example>"
 model: sonnet
 color: red
 ---
 
 # deploy-prod.md — 프로덕션 배포 에이전트
 
-> 역할: 프로덕션 배포 전 사전 점검, PR 생성, 배포 후 검증 가이드를 수행한다.
+> 역할: 프로덕션 배포 전 사전 점검, push 후 GitLab MR 생성 안내, 배포 후 검증 가이드를 수행한다.
 
 ---
 
@@ -41,16 +41,24 @@ color: red
 1-4. 문제 발견 시 → [PAUSE] 사용자에게 보고
 ```
 
-### 2단계: PR 생성
+### 2단계: push 후 GitLab MR 안내
 
 ```
 2-1. 브랜치 푸시 (아직 안 된 경우)
      git push -u origin {현재 브랜치}
 
-2-2. main으로 PR 생성
-     gh pr create --base main \
-       --title "release: {스프린트 목표 요약}" \
-       --body "$(cat <<'EOF'
+2-2. GitLab MR 생성 안내 출력
+     아래 내용을 그대로 출력하여 사용자가 GitLab에서 MR을 생성할 수 있도록 안내:
+
+     ─────────────────────────────────────────────
+     GitLab MR 생성 안내
+
+     Source branch : {현재 브랜치}
+     Target branch : main
+     Title         : release: {스프린트 목표 요약}
+
+     Description 본문 (복사하여 사용):
+
      ## 배포 내역
 
      포함된 스프린트:
@@ -68,10 +76,7 @@ color: red
      - ⬜ 릴리스 빌드 EXE 실행 확인
      - ⬜ 핵심 기능 동작 확인
      - ⬜ 인스톨러 패키징 (해당 시)
-     EOF
-     )"
-
-     → gh 미설치 시 PR 내용 출력하여 수동 생성 안내
+     ─────────────────────────────────────────────
 ```
 
 ### 3단계: 배포 후 검증 가이드
@@ -100,18 +105,18 @@ color: red
 
 ```
 4-1. 보고 출력:
-     "✅ 배포 PR 생성 완료
+     "✅ 배포 push 완료
 
-      PR: {PR_URL}
+      Branch: {현재 브랜치}
 
       📋 다음 단계:
-      1. PR 리뷰 후 main에 머지
+      1. GitLab에서 MR 생성 후 리뷰 및 main 머지
       2. 배포 완료 후 검증 체크리스트 수행
       3. 문제 없으면 docs/STATUS.md 업데이트"
 
 4-2. docs/STATUS.md 업데이트
      - 해당 스프린트 상태 최종 확인
-     - LAST_PR 기록
+     - LAST_BRANCH 기록
 ```
 
 ---
