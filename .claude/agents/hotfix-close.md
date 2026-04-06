@@ -27,12 +27,12 @@ color: red
 
 ```
 1-1. 현재 브랜치 확인
-     허용 형식: `hotfix/*` 또는 `{베이스브랜치}_hotfix/{설명}`
-     예: hotfix/login-fix, main_delphi_hotfix/login-fix
+     허용 형식: `{베이스브랜치}_hotfix_{설명}`
+     예: main_delphi_hotfix_login-fix
      → 위 형식이 아니면 [PAUSE]
        "hotfix 브랜치 형식이 아닙니다. 현재 브랜치: {브랜치명}
         hotfix 브랜치를 생성하려면:
-        git checkout -b {현재브랜치}_hotfix/{설명}"
+        git checkout -b {현재브랜치}_hotfix_{설명}"
 
 1-2. 변경 범위 확인
      git diff main...HEAD --stat
@@ -81,9 +81,9 @@ color: red
      git push -u origin {현재 브랜치}
 
 4-3. 베이스 브랜치 결정
-     현재 브랜치에서 _hotfix/... suffix 제거 → BASE_BRANCH
-     예: main_delphi_hotfix/login-fix → main_delphi
-     BASE_BRANCH=$(git branch --show-current | sed 's/_hotfix\/.*//')
+     현재 브랜치에서 _hotfix_... suffix 제거 → BASE_BRANCH
+     예: main_delphi_hotfix_login-fix → main_delphi
+     BASE_BRANCH=$(git branch --show-current | sed 's/_hotfix_.*//')
 
 4-4. GitLab MR 생성 안내 출력
      아래 내용을 그대로 출력하여 사용자가 GitLab에서 MR을 생성할 수 있도록 안내:

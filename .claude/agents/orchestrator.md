@@ -185,7 +185,7 @@ color: blue
                규칙 요약:
                - `.pas`/`.dfm` 파일에 Write 도구 절대 사용 금지
                - Edit 도구 사용 시 old_string/new_string 범위에 한글 포함 줄 금지
-               - 한글 주석 추가 시 PowerShell + Encoding 949 방식만 사용
+               - 한글 주석 추가 시 Python encoding='cp949' 방식만 사용
 
                ## 빌드 & 실행
                (docs/PRD.md 기술 스택 기반으로 빌드/실행/테스트 명령 기입)
@@ -210,7 +210,7 @@ color: blue
        규칙 요약:
        - `.pas`/`.dfm` 파일에 Write 도구 절대 사용 금지
        - Edit 도구 사용 시 old_string/new_string 범위에 한글 포함 줄 금지
-       - 한글 주석 추가 시 PowerShell + Encoding 949 방식만 사용
+       - 한글 주석 추가 시 Python encoding='cp949' 방식만 사용
 
        → 이미 존재하면 생략
 

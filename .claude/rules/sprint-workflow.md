@@ -17,7 +17,7 @@ paths:
 ### 2. 구현 (Implementer)
 - `{현재 브랜치명}_{CURRENT_SPRINT}` 브랜치 생성 (예: `main_delphi_sprint-01`)
 - GOAL.md 체크리스트 순서대로 구현
-- 기능 단위로 중간 커밋: `wip: [{CURRENT_SPRINT}] {기능명}`
+- 커밋하지 않는다. push 시점에 Validator가 최종 커밋한다.
 - 완료마다 GOAL.md `[ ]` → `[x]` 업데이트
 - GOAL.md 범위 밖 발견사항 → `sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md`에 기록
 - coding-principles.md 준수 (단순함 우선, 수술적 변경)
@@ -33,8 +33,8 @@ paths:
 
 ## Hotfix 프로세스
 
-1. 현재 브랜치 기반 `{현재브랜치}_hotfix/{설명}` 브랜치 생성
-   예: `main_delphi_hotfix/login-fix`
+1. 현재 브랜치 기반 `{현재브랜치}_hotfix_{설명}` 브랜치 생성
+   예: `main_delphi_hotfix_login-fix`
 2. 수정 후 hotfix-close 에이전트 실행
 3. push 후 GitLab에서 MR 생성 → 머지 후 진행 중인 스프린트 브랜치에 역머지
 

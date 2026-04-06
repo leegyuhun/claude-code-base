@@ -146,7 +146,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
        | ...  | {CURRENT_SPRINT} | P1/P2 | -      |
      - 이미 처리된 항목은 ✅ 표시 후 행 유지
 
-9-4. 최종 커밋 (Implementer의 중간 커밋을 스쿼시)
+9-4. 최종 커밋
      git add .
      git commit -m "feat: [{CURRENT_SPRINT}] {목표 요약}
 

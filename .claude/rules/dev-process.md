@@ -68,10 +68,8 @@ docs/PRD.md 작성
 ### Hotfix 프로세스
 
 ```
-1. main 기반 hotfix/{설명} 브랜치 생성
-   git checkout main
-   git pull origin main
-   git checkout -b hotfix/{설명}
+1. 현재 브랜치 기반 {현재브랜치}_hotfix_{설명} 브랜치 생성
+   git checkout -b {현재브랜치}_hotfix_{설명}
 
 2. 수정 구현 (sprint-planner 불필요)
 
@@ -105,7 +103,7 @@ docs/PRD.md 작성
 ### Hotfix 흐름
 
 ```
-{현재브랜치}_hotfix/{설명}  →  push + GitLab MR  →  배포  →  스프린트 브랜치에 역머지
+{현재브랜치}_hotfix_{설명}  →  push + GitLab MR  →  배포  →  스프린트 브랜치에 역머지
 ```
 
 ### 브랜치 명명 규칙
@@ -113,7 +111,7 @@ docs/PRD.md 작성
 | 용도 | 패턴 | 예시 |
 |------|------|------|
 | 스프린트 | `{현재브랜치}_{CURRENT_SPRINT}` | `main_delphi_sprint-01` |
-| 핫픽스 | `{현재브랜치}_hotfix/{설명}` | `main_delphi_hotfix/login-fix` |
+| 핫픽스 | `{현재브랜치}_hotfix_{설명}` | `main_delphi_hotfix_login-fix` |
 | 메인 | `main` | — |
 
 ---
@@ -200,13 +198,13 @@ docs/PRD.md 작성
 > **[필수]** 커밋은 푸쉬 시점에 한 번만 한다. 작업 중간에 커밋하지 않는다.
 
 > **[필수]** 커밋 메시지의 제목 요약과 본문(설명, 목록 등)은 반드시 **한글**로 작성한다.
-> type prefix(`feat:`, `fix:`, `wip:` 등), 브랜치명·스프린트명, 코드 식별자(함수명·변수명)는 영문 유지.
+> type prefix(`feat:`, `fix:` 등), 브랜치명·스프린트명, 코드 식별자(함수명·변수명)는 영문 유지.
 > **영문 설명은 허용하지 않는다.**
 
 ### 올바른 예
 
 ```
-wip: [sprint-02] F8 WmGetMinMaxInfo / SetFixForm floating 제약
+feat: [sprint-02] F8 WmGetMinMaxInfo / SetFixForm floating 제약
 
 - floating 상태에서 최소 크기를 300x200으로 설정하여 사용 가능한 창 크기 보장
 - SetFixForm에서 floating 상태 시 Constraints를 초기화하여 자유 크기 조절 허용
@@ -216,16 +214,10 @@ wip: [sprint-02] F8 WmGetMinMaxInfo / SetFixForm floating 제약
 ### 잘못된 예 (금지)
 
 ```
-wip: [sprint-02] F8 WmGetMinMaxInfo / SetFixForm floating constraints
+feat: [sprint-02] F8 WmGetMinMaxInfo / SetFixForm floating constraints
 
 - Floating state uses 300x200 min size for usable window   ← 영문 금지
 - SetFixForm clears Constraints in floating state           ← 영문 금지
-```
-
-### Sprint 중간 커밋
-
-```
-wip: [{sprint-name}] {기능명}
 ```
 
 ### Sprint 최종 커밋 (Validator)
@@ -316,8 +308,7 @@ Hotfix: {브랜치명}
   1. GOAL.md 체크리스트에서 다음 기능 확인
   2. 구현
   3. GOAL.md [ ] → [x] 업데이트
-  4. 중간 커밋: wip: [{sprint}] {기능명}
-  5. 반복
+  4. 반복 (커밋하지 않음 — push 시점에 Validator가 최종 커밋)
 ```
 
 규칙:

@@ -5,7 +5,6 @@
       "Bash(gh *)",
       "Bash(build.bat*)",
       "Bash(run_tests.bat*)",
-      "Bash(dcc32*)",
       "Bash(msbuild*)",
       "Bash(cmd /c *)",
       "Bash(mkdir *)",

@@ -68,8 +68,7 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
      규칙:
      - GOAL.md 체크리스트 순서대로
      - 기능 하나 완료마다 GOAL.md [ ] → [x] 업데이트
-     - 기능 단위로 중간 커밋 (git add + commit)
-       → 커밋 메시지: "wip: [{CURRENT_SPRINT}] {유닛/폼명}"
+     - 커밋하지 않는다. push 시점에 Validator가 최종 커밋한다.
      - docs/STATUS.md PROGRESS 업데이트
      - GOAL.md 범위 밖 기능 발견 시 → 메모만 하고 건너뜀
      - .pas 파일 수정 시 해당 .dfm 파일과 싱크 유지
