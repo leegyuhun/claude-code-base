@@ -36,17 +36,19 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      - sprints/{CURRENT_SPRINT}/GOAL.md
      - CLAUDE.md (빌드 명령 확인용)
 
-7-2. 빌드 실행 (CLAUDE.md에서 빌드 명령 참조)
+7-2. 빌드 실행 (CLAUDE.md 참조, 기본: `dotnet build`)
      → 빌드 성공 여부 확인
 
      실패 시:
-     → 오류 메시지 분석 후 명백한 오류(타입 오류, import 누락 등)는 직접 수정
+     → 오류 메시지 분석 후 명백한 오류(타입 오류, using 누락 등)는 직접 수정
      → 재시도 최대 3회
      → 3회 실패 시 [PAUSE] "빌드 실패, 확인 필요합니다"
 
-7-3. 테스트 실행
-     → CLAUDE.md에서 테스트 명령 참조
-     → 테스트 파일 있는 경우만
+7-2-1. 코드 포맷 검증 (CLAUDE.md 참조, 기본: `dotnet format --verify-no-changes`)
+     → 포맷 불일치 시 `dotnet format` 실행
+
+7-3. 테스트 실행 (CLAUDE.md 참조, 기본: `dotnet test`)
+     → 테스트 프로젝트 있는 경우만
 
 7-4. 자동 검증 항목:
      ✅ 빌드 성공

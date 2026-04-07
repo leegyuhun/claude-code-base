@@ -74,15 +74,16 @@ memory: project
 
 ## 예상 산출물
 ### 생성될 파일
-- path/to/file.ts
-- path/to/file.py
+- src/Controllers/FooController.cs
+- src/Services/FooService.cs
+- src/Models/Foo.cs
 
 ### 추가될 API 엔드포인트
 - GET /api/...
 - POST /api/...
 
 ### 추가될 화면/컴포넌트
-- 페이지명: /path
+- (해당 시 기입)
 
 ## 기술 고려사항
 (구현 시 주의할 기술적 내용, 예외 처리 포인트 등)

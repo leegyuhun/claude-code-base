@@ -1,17 +1,16 @@
 ---
 paths:
+  - "**/*.cs"
+  - "**/*.csproj"
+  - "**/*.sln"
   - "src/**"
-  - "backend/**"
-  - "frontend/**"
-  - "app/**"
-  - "lib/**"
 ---
 
 # 코딩 원칙
 
 ## 기술 스택
 # TODO: 프로젝트 초기화(PHASE 4.5) 후 기술 스택을 기입하세요
-# 예: Python 3.12, FastAPI, SQLAlchemy / Next.js, TypeScript, TailwindCSS
+# 예: .NET 8, ASP.NET Core, Entity Framework Core, xUnit
 
 ## 핵심 규칙
 
@@ -30,19 +29,27 @@ paths:
 - 요청과 관련된 코드만 건드려라.
 - 주변 코드, 주석, 포맷을 "개선"하지 마라.
 - 기존 스타일을 따라라.
-- 내 변경으로 인해 안 쓰게 된 import/변수/함수만 제거하라.
+- 내 변경으로 인해 안 쓰게 된 using/변수/메서드만 제거하라.
 
 ### 4. 목표 기반 실행
 - 작업을 검증 가능한 목표로 변환하라.
 - 다단계 작업은 계획을 먼저 밝혀라.
 
 ## 보안
-- 시크릿/API 키는 `.env`에서 관리 (코드에 하드코딩 금지)
-- 인증 토큰은 안전한 방식으로 관리
-- SQL injection, XSS 등 OWASP Top 10 방지
+- 시크릿/API 키는 `appsettings.json` 또는 `IConfiguration`으로 관리 (코드에 하드코딩 금지)
+- `dotnet user-secrets` 또는 환경 변수를 통한 민감 정보 관리
+- SQL injection 방지: `SqlParameter` 또는 EF Core parameterized query 사용
+- XSS 등 OWASP Top 10 방지
+
+## C# 코딩 컨벤션
+- 클래스/메서드/프로퍼티: PascalCase
+- 지역 변수/매개변수: camelCase
+- private 필드: `_camelCase`
+- 네임스페이스는 프로젝트 폴더 구조와 일치
+- 비동기 메서드명에 `Async` 접미사 필수
 
 ## 임시 코드
 - 임시 코드 사용 시 TODO 주석 필수
-  ```
+  ```csharp
   // TODO: [tech-debt] 임시처리 - 이유
   ```

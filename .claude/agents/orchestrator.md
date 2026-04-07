@@ -143,7 +143,7 @@ memory: project
        아래 질문에 답해주세요:
 
        1. 프로젝트 초기화가 이미 되어 있나요?
-          (예: package.json, pyproject.toml, .dpr 등 프로젝트 파일 존재 여부)
+          (예: .csproj, .sln 등 프로젝트 파일 존재 여부)
           → '예' / '아니오'
 
        2. '아니오'라면, 어떤 방식으로 초기화할까요?
@@ -153,7 +153,8 @@ memory: project
 4.5-2. 사용자 응답에 따라 분기
        - '예' → 4.5-3으로 진행
        - '아니오' + 구체적 명령 → 해당 안내 제공 후 4.5-3으로 진행
-       - '아니오' + '알아서 해줘' → docs/PRD.md 기술 스택 기반으로 최소 프로젝트 구조 스캐폴딩
+       - '아니오' + '알아서 해줘' → `dotnet new` 기반으로 최소 프로젝트 구조 스캐폴딩
+         (예: `dotnet new sln`, `dotnet new webapi`, `dotnet new classlib` 등 PRD 기술 스택에 맞게 선택)
 
 4.5-3. CLAUDE.md 생성 질의
 
@@ -180,13 +181,18 @@ memory: project
                # CLAUDE.md
 
                ## 빌드 & 실행
-               (docs/PRD.md 기술 스택 기반으로 빌드/실행/테스트 명령 기입)
+               ```bash
+               dotnet build          # 빌드
+               dotnet run            # 실행
+               dotnet test           # 테스트
+               dotnet format         # 코드 포맷
+               ```
 
                ## 프로젝트 구조
                (docs/PRD.md 기반으로 주요 폴더 구조 기입)
 
                ## 코딩 원칙
-               (docs/PRD.md 기반으로 언어/프레임워크 코딩 원칙 기입)
+               - .claude/rules/coding-principles.md 참조
                ---
 
 4.5-5. CLAUDE.md 존재 최종 확인

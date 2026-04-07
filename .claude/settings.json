@@ -3,11 +3,8 @@
     "allow": [
       "Bash(git *)",
       "Bash(gh *)",
-      "Bash(npm *)",
-      "Bash(npx *)",
-      "Bash(pip *)",
-      "Bash(python *)",
-      "Bash(node *)",
+      "Bash(dotnet *)",
+      "Bash(nuget *)",
       "Bash(docker compose *)",
       "Bash(curl *)",
       "Bash(mkdir *)",

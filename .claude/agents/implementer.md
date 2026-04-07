@@ -113,6 +113,7 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
 
 ### 코딩 원칙
 → `.claude/rules/coding-principles.md` 자동 적용됨 (별도 참조 불필요)
+→ C# 컨벤션: PascalCase(클래스/메서드), camelCase(지역변수), _camelCase(private 필드), Async 접미사(비동기)
 
 ---
 
