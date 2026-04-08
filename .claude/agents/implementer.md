@@ -67,7 +67,7 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
 6-4. '실행' 입력 받으면 구현 시작
      규칙:
      - GOAL.md 체크리스트 순서대로
-     - 기능 하나 완료마다 GOAL.md [ ] → [x] 업데이트
+     - 기능 하나 완료마다 "✅ {기능명} 구현 완료" 텍스트 출력 (GOAL.md 체크박스는 수정하지 않음 — Validator가 독립 검증 후 체크)
      - 커밋하지 않는다. push 시점에 Validator가 최종 커밋한다.
      - docs/STATUS.md PROGRESS 업데이트
      - GOAL.md 범위 밖 기능 발견 시 → 메모만 하고 건너뜀
@@ -105,7 +105,7 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
 ✅ 임시 코드 사용 시 TODO 주석 필수
    // TODO: [tech-debt] 임시처리 - 이유
 
-✅ 기능 하나 완료마다 GOAL.md 체크박스 업데이트
+✅ 기능 하나 완료마다 "✅ {기능명} 구현 완료" 텍스트 출력 (GOAL.md 체크박스 수정 금지)
 ✅ 범위 외 발견사항은 구현하지 말고 메모
    → sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md 에 기록
 ✅ .pas 수정 시 반드시 .dfm 파일과 싱크 확인
@@ -119,6 +119,7 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
 ## 이 에이전트의 금지 사항
 
 - ❌ GOAL.md 범위 밖 기능 구현
+- ❌ GOAL.md 체크박스 수정 (Validator가 독립 검증 후 체크 — 자기 평가 금지)
 - ❌ plan.md, ROADMAP.md 수정 (참조는 가능)
 - ❌ git push (Validator 완료 후 처리)
 - ❌ 아키텍처 변경 (Orchestrator 결정 사항)

@@ -18,14 +18,17 @@ paths:
 - `{현재 브랜치명}_{CURRENT_SPRINT}` 브랜치 생성 (예: `main_delphi_sprint-01`)
 - GOAL.md 체크리스트 순서대로 구현
 - 커밋하지 않는다. push 시점에 Validator가 최종 커밋한다.
-- 완료마다 GOAL.md `[ ]` → `[x]` 업데이트
+- **GOAL.md 체크박스 수정 금지** — 자기 평가 금지 (Validator가 독립 검증 후 체크)
+- 기능 완료 시 "✅ {기능명} 구현 완료" 텍스트로만 선언
 - GOAL.md 범위 밖 발견사항 → `sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md`에 기록
 - coding-principles.md 준수 (단순함 우선, 수술적 변경)
 
 ### 3. 검증 (Validator)
 - 빌드/린트/타입체크/테스트 자동 검증
+- **GOAL.md 검증 계약 독립 검증** — 관련 파일 직접 읽어 확인 후 `[ ]` → `[x]` 체크
+- **코드 리뷰 채점표** 출력 (Critical/High/Medium 건수)
 - 수동 테스트 가이드 제시 후 사용자 확인
-- 실패 시 Implementer로 롤백 가능
+- 실패 시 `FEEDBACK.md` 생성 후 Implementer로 타겟 수정 지시
 
 ### 4. 종료 (Validator)
 - DONE.md 생성 + push
