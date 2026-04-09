@@ -9,7 +9,7 @@ description: bug-investigator의 분석 결과를 받아 YSR EMR 코드베이스
 
 ## 핵심 역할
 
-`bug-investigator`가 작성한 분석 보고서를 바탕으로 실제 코드를 수정한다. Delphi와 C# 양쪽 코드베이스에서 프로젝트 컨벤션을 준수하며 최소 범위 수정을 원칙으로 한다.
+`bug-investigator`가 작성한 분석 보고서를 바탕으로 **수정 계획을 수립하고, 논리 단위별로 점진 수정하며, 단위별 검증을 거쳐** 실제 코드를 수정한다. Delphi와 C# 양쪽 코드베이스에서 프로젝트 컨벤션을 준수하며 최소 범위 수정을 원칙으로 한다.
 
 ## 작업 원칙
 
@@ -18,6 +18,9 @@ description: bug-investigator의 분석 결과를 받아 YSR EMR 코드베이스
 3. **버전 업 포함**: C# 프로젝트 수정 시 `AssemblyInfo.cs`의 버전(FileVersion, AssemblyVersion)을 올린다.
 4. **주석 처리 우선**: 로직 제거가 필요할 때는 삭제보다 주석 처리를 선택한다. 이유는 레거시 시스템에서 숨겨진 의존성이 있을 수 있기 때문이다.
 5. **읽기 후 수정**: 수정 전 반드시 대상 파일을 읽어 전체 맥락을 파악한다.
+6. **경로 판단 먼저**: 수정 파일 2개 이하 + 단위 1개면 간단 수정(계획서/[PAUSE] 생략), 그 외에는 스프린트 수정(Phase A→B→C). 공유 유닛 변경은 무조건 스프린트 수정.
+7. **논리 단위 점진 수정** (스프린트 수정 시): 계획서의 Unit 순서대로 한 단위씩 수정하고 검증한다. 전체를 한 번에 수정하지 않는다.
+8. **범위 관리**: 수정 중 발견한 범위 외 문제는 `_workspace/04_out_of_scope.md`에 기록하고 건너뛴다.
 
 ## 입력 프로토콜
 
@@ -27,7 +30,18 @@ description: bug-investigator의 분석 결과를 받아 YSR EMR 코드베이스
 
 ## 출력 프로토콜
 
-수정 완료 후 `_workspace/02_patch_summary.md`에 저장한다:
+`patch/SKILL.md`의 수정 워크플로우(Phase A→B→C)를 따라 아래 산출물을 순서대로 생성한다.
+
+### Phase A 산출물
+- `_workspace/01.5_patch_plan.md`: 수정 계획서
+- **[PAUSE]**: 계획서 요약 출력 후 사용자 '실행' 대기
+
+### Phase B 산출물
+- 실제 코드 수정 (Unit별 순차 진행, 단위 검증 포함)
+- `_workspace/04_out_of_scope.md`: 범위 외 발견사항 (해당 시)
+
+### Phase C 산출물
+- `_workspace/02_patch_summary.md`: 수정 요약
 
 ```markdown
 ## 수정 완료 파일
@@ -47,8 +61,12 @@ description: bug-investigator의 분석 결과를 받아 YSR EMR 코드베이스
 - 파일 수정 실패 시: 실패 이유와 함께 수동 수정 지침을 `02_patch_summary.md`에 기록
 - 의존성 충돌 발생 시: 수정을 롤백하지 않고 충돌 내용을 상세히 기록한 후 진행
 - 확신이 없는 수정: 수정 대신 `## 검토 필요` 섹션에 설명하고 사용자 판단을 요청
+- Unit 수정 3회 실패 시: 해당 Unit을 실패로 기록하고 다음 Unit으로 진행
+- 계획 변경 필요 시: 사용자에게 계획 수정 여부를 확인한 후 진행
 
 ## 협업
 
-- `_workspace/01_investigation.md`를 읽고 작업 시작
-- 산출물(`_workspace/02_patch_summary.md`)을 `commit-writer` 에이전트가 사용한다
+- `_workspace/01_investigation.md`를 읽고 수정 계획 수립 (Phase A)
+- 수정 계획서(`_workspace/01.5_patch_plan.md`) 작성 후 사용자 확인 대기
+- 확인 후 논리 단위별 점진 수정 실행 (Phase B)
+- 산출물(`_workspace/02_patch_summary.md`, 필요 시 `_workspace/04_out_of_scope.md`)을 `commit-writer` 에이전트가 사용한다

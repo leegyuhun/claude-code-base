@@ -12,3 +12,4 @@
 | 2026-04-09 | 초기 구성 | 전체 | 유지보수 위주 하네스 신규 구축 |
 | 2026-04-09 | Redmine 연동 스킬 추가 | skills/redmine, skills/investigate, agents/bug-investigator | 이슈 실시간 조회 요청 |
 | 2026-04-09 | 재현 가이드 기능 추가 | skills/investigate, agents/bug-investigator | 환경/데이터/시퀀스 의존 버그의 재현 방법을 코드 분석으로 도출 |
+| 2026-04-09 | 스프린트 방식 패턴 적용 | skills/patch, agents/patch-author, skills/ysr-maintenance | Phase A(계획)/B(점진수정)/C(검증) + [PAUSE] 체크포인트 + 상태 조회 기능 추가 |
