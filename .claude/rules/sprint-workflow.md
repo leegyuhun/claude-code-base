@@ -4,56 +4,15 @@ paths:
   - "docs/STATUS.md"
 ---
 
-# Sprint/Hotfix 워크플로우 규칙
+# Sprint/Hotfix 워크플로우 보완 규칙
 
-## Sprint 프로세스
+> Sprint/Hotfix 기본 프로세스, 에이전트 역할, 커밋 형식은 `dev-process.md`를 참조하세요.
+> 이 문서는 `dev-process.md`에 없는 고유 규칙만 포함합니다.
 
-### 1. 계획 (Orchestrator → Planner)
-- Orchestrator: PRD 분석 → plan.md → ROADMAP.md → 프로젝트 초기화
-- Planner: ROADMAP.md 기준으로 `sprints/{CURRENT_SPRINT}/GOAL.md` 생성
-- GOAL.md는 **실행 명세서**: 기능 체크리스트, 완료 조건, 예상 산출물 포함
-- 사용자가 검토/승인한 후 구현 단계로 진행
+## GOAL.md 체크박스 관리
 
-### 2. 구현 (Implementer)
-- `{현재 브랜치명}_{CURRENT_SPRINT}` 브랜치 생성 (예: `main_delphi_sprint-01`)
-- GOAL.md 체크리스트 순서대로 구현
-- 커밋하지 않는다. push 시점에 Validator가 최종 커밋한다.
-- **GOAL.md 체크박스 수정 금지** — 자기 평가 금지 (Validator가 독립 검증 후 체크)
-- 기능 완료 시 "✅ {기능명} 구현 완료" 텍스트로만 선언
-- GOAL.md 범위 밖 발견사항 → `sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md`에 기록
-- coding-principles.md 준수 (단순함 우선, 수술적 변경)
-
-### 3. 검증 (Validator)
-- 빌드/린트/타입체크/테스트 자동 검증
-- **GOAL.md 검증 계약 독립 검증** — 관련 파일 직접 읽어 확인 후 `[ ]` → `[x]` 체크
-- **코드 리뷰 채점표** 출력 (Critical/High/Medium 건수)
-- 수동 테스트 가이드 제시 후 사용자 확인
-- 실패 시 `FEEDBACK.md` 생성 후 Implementer로 타겟 수정 지시
-
-### 4. 종료 (Validator)
-- DONE.md 생성 + push
-- GitLab에서 MR 생성 및 머지 (수동) 후 다음 스프린트 진행
-
-## Hotfix 프로세스
-
-1. 현재 브랜치 기반 `{현재브랜치}_hotfix_{설명}` 브랜치 생성
-   예: `main_delphi_hotfix_login-fix`
-2. 수정 후 hotfix-close 에이전트 실행
-3. push 후 GitLab에서 MR 생성 → 머지 후 진행 중인 스프린트 브랜치에 역머지
-
-## Hotfix vs Sprint 판단 기준
-
-**Hotfix** (모두 충족 시):
-- 프로덕션 장애/버그이거나 긴급 수정
-- 변경 파일 3개 이하, 코드 50줄 이하
-- DB 스키마 변경 없음
-- 새 의존성 추가 없음
-
-**Sprint** (하나라도 해당 시):
-- 새 기능 추가 또는 여러 모듈에 걸친 작업
-- DB 스키마 변경 필요
-- 새 의존성 추가 필요
-- 파일 4개 이상 또는 코드 50줄 초과
+- **Implementer**: GOAL.md 체크박스 수정 금지. 기능 완료 시 `"✅ {기능명} 구현 완료"` 텍스트만 출력.
+- **Validator**: 코드를 독립 검증한 뒤 `[ ]` → `[x]` 체크. 검증 실패 시 `FEEDBACK.md` 생성 후 Implementer로 타겟 수정 지시.
 
 ## 스프린트 진행 중 요구사항 변경
 
@@ -94,12 +53,6 @@ paths:
 - 처리 완료 시 ✅ 표시 (삭제하지 않고 이력 유지)
 
 ## 체크리스트 형식
+
 - 완료: `[x]` 또는 `✅`
 - 미완료: `[ ]` 또는 `⬜`
-
-## 문서 구조
-- 스프린트 계획: `sprints/{CURRENT_SPRINT}/GOAL.md`
-- 스프린트 완료 보고: `sprints/{CURRENT_SPRINT}/DONE.md`
-- 범위 외 사항: `sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md`
-- 누적 기술 부채: `sprints/TECH_DEBT.md`
-- 전체 변경 이력: `CHANGELOG.md`

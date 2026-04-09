@@ -173,3 +173,8 @@ end;
 - 폼 컴포넌트 추가/삭제 시 반드시 .dfm도 함께 커밋
 - 텍스트 .dfm 형식 권장 (IDE: Edit → Form as Text)
 
+## 구현 패턴 레퍼런스
+
+구체적인 구현 패턴(재진입 가드, TDataSet, TThread, SQL 패턴 등 코드 예시)은 `.claude/rules/delphi2007-patterns.md`를 참조하세요.
+이 파일은 자동 로드되지 않으므로 필요 시 명시적으로 읽어야 합니다: `Read .claude/rules/delphi2007-patterns.md`
+

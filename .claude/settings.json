@@ -15,7 +15,9 @@
       "Bash(git commit *)",
       "Bash(git * main)",
       "Bash(* --version)",
-      "Bash(* --help *)"
+      "Bash(* --help *)",
+      "Bash(python *)",
+      "Bash(python3 *)"
     ]
   },
   "hooks": {
@@ -27,6 +29,16 @@
             "type": "command",
             "command": "python3 -c \"import sys,json; d=json.load(sys.stdin); f=d.get('tool_input',{}).get('file_path',''); blocked=f.endswith(('.pas','.dfm')); print('[CP949] Write tool blocked on .pas/.dfm - use Edit tool or Python cp949 method') if blocked else None; sys.exit(2 if blocked else 0)\"",
             "statusMessage": "CP949 파일 보호 검사 중..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import sys,json; d=json.load(sys.stdin); f=d.get('tool_input',{}).get('file_path',''); warn=f.endswith(('.pas','.dfm')); print('[CP949 WARNING] Edit on .pas/.dfm detected. Ensure old_string/new_string boundaries do NOT include Korean characters. Use Python cp949 method for Korean comments.') if warn else None; sys.exit(0)\"",
+            "statusMessage": "CP949 Edit 경고 검사 중..."
           }
         ]
       }
