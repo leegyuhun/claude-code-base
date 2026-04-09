@@ -55,6 +55,7 @@ Agent(
     .env 위치: E:/Source/ysr/.env
     
     분석 결과를 _workspace/01_investigation.md에 저장하세요.
+    재현이 어려운 버그라면 재현 가이드도 포함하세요.
     프로젝트 루트: E:/Source/ysr/trunk/
     """
 )
@@ -144,6 +145,7 @@ _workspace/03_commit_message.md ← Phase 3 산출물
 2. 수정된 파일 목록
 3. 커밋 메시지 전문
 4. `git` 명령어 (브랜치 생성 → 스테이징 → 커밋)
+5. 재현 가이드 (환경/데이터/시퀀스 의존 버그일 경우)
 
 ## 테스트 시나리오
 
