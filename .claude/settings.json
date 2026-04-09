@@ -7,5 +7,18 @@
       "Bash(mkdir *)",
       "Bash(ls *)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -c \"\nimport sys, json\ntry:\n    d = json.load(sys.stdin)\n    p = d.get('tool_input', d).get('file_path', '')\nexcept:\n    sys.exit(0)\nif p.endswith(('.pas', '.dfm')):\n    print(f'[CP949 보호] {p}', file=sys.stderr)\n    print('Edit/Write 도구는 .pas/.dfm 파일에 사용 금지입니다.', file=sys.stderr)\n    print('Python 스크립트 방식을 사용하세요: Bash(python ...)', file=sys.stderr)\n    sys.exit(2)\n\""
+          }
+        ]
+      }
+    ]
   }
 }
