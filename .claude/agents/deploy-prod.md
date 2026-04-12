@@ -115,8 +115,9 @@ color: red
       3. 문제 없으면 docs/STATUS.md 업데이트"
 
 4-2. docs/STATUS.md 업데이트
-     - 해당 스프린트 상태 최종 확인
      - LAST_BRANCH 기록
+     - DEPLOY_STATUS=done 추가
+     - PHASE는 변경하지 않음 (Validator가 이미 처리)
 ```
 
 ---

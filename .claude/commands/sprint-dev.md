@@ -94,5 +94,4 @@ GOAL.md에 따라 스프린트를 구현하는 오케스트레이터.
 
 - **GOAL.md가 Single Source of Truth**: 문서에 명시되지 않은 작업은 하지 않는다.
 - **계획과 다른 결정이 필요하면 사용자에게 확인**한다.
-- **karpathy-guidelines 준수**: 단순함 우선, 수술적 변경, 추측성 기능 금지
 - **CLAUDE.md의 코딩 원칙 준수**

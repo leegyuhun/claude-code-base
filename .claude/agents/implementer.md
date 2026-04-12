@@ -45,7 +45,8 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
 
 6-2. 브랜치 생성
      CURRENT_BRANCH=$(git branch --show-current)
-     git checkout -b {CURRENT_BRANCH}_{CURRENT_SPRINT}
+     현재 브랜치가 이미 {CURRENT_BRANCH}_{CURRENT_SPRINT}이면 → 그대로 진행
+     아니면 → git checkout -b {CURRENT_BRANCH}_{CURRENT_SPRINT}
      # 예: main_delphi_sprint-01
 
 6-3. 구현 Plan 작성 후 [PAUSE]

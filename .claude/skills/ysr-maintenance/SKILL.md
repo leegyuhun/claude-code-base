@@ -18,6 +18,7 @@ description: YSR EMR 시스템의 유지보수 워크플로우를 총괄한다. 
     │     ├── Phase 2A: 수정 계획 → [PAUSE] 사용자 확인
     │     ├── Phase 2B: 논리 단위별 점진 수정
     │     └── Phase 2C: 최종 확인
+    ├── Phase 2.5: 빌드 검증 (build.bat debug)
     ├── ── [PAUSE] ── 수정 결과 확인 → 커밋/여기까지
     └── Phase 3: 커밋 메시지 작성 (commit-writer 서브 에이전트)
 ```
@@ -70,7 +71,7 @@ description: YSR EMR 시스템의 유지보수 워크플로우를 총괄한다. 
 
 ```
 _workspace/ 존재 + 부분 수정 요청 → 부분 재실행 (해당 Phase만)
-_workspace/ 존재 + 새 이슈 입력  → 새 실행 (_workspace를 _workspace_prev/로 이동)
+_workspace/ 존재 + 새 이슈 입력  → 새 실행 (_workspace를 _workspace_prev/로 이동, 기존 _workspace_prev/ 있으면 먼저 삭제)
 _workspace/ 미존재               → 초기 실행
 ```
 
@@ -87,7 +88,7 @@ _workspace/ 미존재               → 초기 실행
 
 ```python
 Agent(
-    subagent_type="Explore",
+    subagent_type="general-purpose",
     model="opus",
     description="YSR 버그 조사",
     prompt=f"""
@@ -168,6 +169,18 @@ Agent(
 
 산출물: `_workspace/01.5_patch_plan.md`, `_workspace/02_patch_summary.md`, `_workspace/04_out_of_scope.md` (해당 시)
 
+### Phase 2.5: 빌드 검증
+
+patch-author 수정 완료 후 빌드를 실행하여 컴파일 오류가 없는지 확인한다.
+
+```bash
+build.bat debug
+```
+
+- **성공**: Phase 2 [PAUSE]로 진행
+- **실패**: 오류 메시지 분석 후 명백한 구문 오류(.pas 문법, uses 누락 등)면 오케스트레이터가 직접 수정 후 재시도 (최대 2회)
+- **2회 실패**: [PAUSE] "빌드 실패 — 수동 확인 필요" 경고 후 사용자 판단 요청
+
 ### Phase 2 완료 후 [PAUSE]
 
 수정 결과 요약을 출력하고 다음 단계를 확인한다:
@@ -176,6 +189,7 @@ Agent(
 ┌─────────────────────────────────────────┐
 │ 수정 완료 — #{이슈번호}                  │
 │                                         │
+│ 빌드: ✅ 성공 / ❌ 실패                  │
 │ 수정 파일: N개 (성공: X, 실패: Y)        │
 │ 범위 외 발견: Z건                        │
 │                                         │
@@ -219,6 +233,7 @@ Agent(
 | 이슈 번호 없음 | 사용자에게 확인 요청 후 대기 |
 | Phase 1 실패 | 실패 이유 보고, Phase 2 건너뜀 |
 | Phase 2 실패 | 실패 이유 보고, Phase 3는 조사 결과만으로 진행 |
+| 빌드 실패 2회 연속 | [PAUSE] 경고 후 사용자 판단 요청, 커밋 진행 여부 확인 |
 | 파일 탐색 결과 없음 | 탐색 범위 확장 후 재시도 1회, 그래도 없으면 "미발견" 보고 |
 
 ## 데이터 흐름
@@ -232,6 +247,7 @@ _workspace/01.5_patch_plan.md    ← Phase 2A 산출물 (수정 계획서)
     ↓ [PAUSE: 계획 확인 → '실행']
 _workspace/02_patch_summary.md   ← Phase 2C 산출물
 _workspace/04_out_of_scope.md    ← Phase 2B 산출물 (해당 시)
+    ↓ [Phase 2.5: build.bat debug 빌드 검증]
     ↓ [PAUSE: 커밋 진행 여부]
 _workspace/03_commit_message.md  ← Phase 3 산출물
     ↓
@@ -262,6 +278,7 @@ _workspace/03_commit_message.md  ← Phase 3 산출물
   → '실행' 입력
   → Phase 2B (점진 수정) → Unit별 수정+검증
   → Phase 2C (최종 확인) → 산출물: 02_patch_summary.md
+  → Phase 2.5 (빌드 검증) → build.bat debug 실행
   → [PAUSE] "수정 완료. 커밋 진행할까요?"
   → '커밋' 입력
   → Phase 3 (커밋) → 산출물: 03_commit_message.md

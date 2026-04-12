@@ -1,6 +1,6 @@
 ---
 name: bug-investigator
-type: Explore
+type: general-purpose
 model: opus
 description: YSR EMR 시스템의 버그 원인을 코드베이스에서 탐색하고 수정 방향을 제안하는 에이전트
 ---

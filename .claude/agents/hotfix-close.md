@@ -1,6 +1,6 @@
 ---
 name: hotfix-close
-description: "핫픽스 구현이 완료되어 마무리가 필요할 때 사용. 핫픽스 종료 처리: push 후 GitLab MR 안내, 경량 코드 리뷰, 핀포인트 검증, deploy.md 기록을 수행한다.\n\n<example>\nContext: The user has finished implementing a hotfix.\nuser: \"hotfix 구현 끝났어. 마무리해줘.\"\nassistant: \"hotfix-close 에이전트로 핫픽스 마무리 작업을 진행할게요.\"\n</example>"
+description: "핫픽스 구현이 완료되어 마무리가 필요할 때 사용. 핫픽스 종료 처리: push 후 GitLab MR 안내, 경량 코드 리뷰, 핀포인트 검증을 수행한다.\n\n<example>\nContext: The user has finished implementing a hotfix.\nuser: \"hotfix 구현 끝났어. 마무리해줘.\"\nassistant: \"hotfix-close 에이전트로 핫픽스 마무리 작업을 진행할게요.\"\n</example>"
 model: sonnet
 color: red
 ---
@@ -71,11 +71,23 @@ color: red
 ### 4단계: push 후 GitLab MR 안내
 
 ```
-4-1. 최종 커밋
-     git add .
-     git commit -m "fix: {핫픽스 설명}
+4-1. commit-writer로 YSR 형식 커밋 메시지 작성
 
-     Hotfix: {브랜치명}"
+     Agent({
+       subagent_type: "commit-writer",
+       prompt: """
+       .claude/agents/commit-writer.md와 .claude/skills/commit-format/SKILL.md를 읽고
+       아래 정보로 YSR 형식 커밋 메시지를 작성하세요. (파일 저장 없이 출력만)
+
+       mode: maintenance (hotfix)
+       핫픽스 설명: {핫픽스 설명}
+       변경 파일: {git diff HEAD --name-only 결과}
+       변경 요약: {git diff HEAD --stat 결과}
+       """
+     })
+
+     git add .
+     git commit -m "{commit-writer가 출력한 커밋 메시지}"
 
 4-2. 브랜치 푸시
      git push -u origin {현재 브랜치}

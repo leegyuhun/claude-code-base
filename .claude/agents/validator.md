@@ -172,14 +172,22 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
        | ...  | {CURRENT_SPRINT} | P1/P2 | -      |
      - 이미 처리된 항목은 ✅ 표시 후 행 유지
 
-9-4. 최종 커밋
+9-4. 커밋 메시지 생성 (commit-writer 호출)
+     commit-writer를 스프린트 모드로 호출:
+
+     Agent({
+       subagent_type: "commit-writer",
+       prompt: ".claude/agents/commit-writer.md와 .claude/skills/commit-format/SKILL.md를 읽고
+                스프린트 모드로 커밋 메시지를 작성해줘.
+                mode: sprint
+                sprint_name: {CURRENT_SPRINT}
+                GOAL.md: sprints/{CURRENT_SPRINT}/GOAL.md
+                DONE.md: sprints/{CURRENT_SPRINT}/DONE.md"
+     })
+
+     commit-writer가 sprints/{CURRENT_SPRINT}/COMMIT_MESSAGE.md에 저장한 메시지로 커밋:
      git add .
-     git commit -m "feat: [{CURRENT_SPRINT}] {목표 요약}
-
-     - 구현 기능 1 (.pas/.dfm)
-     - 구현 기능 2 (.pas/.dfm)
-
-     Sprint: {CURRENT_SPRINT}"
+     git commit -m "$(COMMIT_MESSAGE.md의 '## 커밋 메시지' 섹션)"
 
 9-5. 브랜치 푸시 및 base 브랜치 결정
      현재 브랜치에서 _{CURRENT_SPRINT} suffix 제거 → BASE_BRANCH
@@ -239,6 +247,9 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
 10-3. 남은 스프린트 없으면
       "🎉 모든 스프린트 완료! MVP 달성" 출력 후 종료
+
+      신규 요구사항이 생기면:
+      명령어: '.claude/agents/orchestrator.md와 docs/STATUS.md 읽고 PHASE 11 실행해줘'
 
 10-4. 다음 스프린트 있으면
       docs/STATUS.md 업데이트:
