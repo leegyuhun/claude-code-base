@@ -11,7 +11,18 @@
       "Bash(docker compose *)",
       "Bash(curl *)",
       "Bash(mkdir *)",
-      "Bash(ls *)"
+      "Bash(ls *)",
+      "Bash(uvicorn *)",
+      "Bash(alembic *)",
+      "Bash(pytest *)",
+      "Bash(ruff *)",
+      "Bash(mypy *)",
+      "Bash(uv *)",
+      "Bash(poetry *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(cat *)",
+      "Bash(touch *)"
     ]
   }
 }

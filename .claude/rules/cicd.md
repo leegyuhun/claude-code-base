@@ -255,6 +255,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --chown=appuser:appuser . .
 
 EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
@@ -271,6 +273,8 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD curl -f http://localhost/ || exit 1
 CMD ["nginx", "-g", "daemon off;"]
 ```
 

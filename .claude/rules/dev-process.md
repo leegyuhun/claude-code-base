@@ -420,6 +420,7 @@ docs/STATUS.md를 읽고 현재 PHASE에 맞는 에이전트를 실행해줘.
 | `/rollback` | 특정 PHASE로 되돌리기 | 계획/구현을 다시 하고 싶을 때 |
 | `/sprint-log` | 현재 스프린트 종합 요약 | 스프린트 상태 파악 시 |
 | `/debt` | Tech Debt 종합 보고 | 기술 부채 점검 시 |
+| `/review` | PR 코드 리뷰 | PR 생성 전, 코드 점검 시 |
 
 ---
 

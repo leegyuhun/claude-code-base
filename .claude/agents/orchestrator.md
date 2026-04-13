@@ -143,10 +143,15 @@ memory: project
        아래 질문에 답해주세요:
 
        1. 프로젝트 초기화가 이미 되어 있나요?
-          (예: package.json, pyproject.toml, .dpr 등 프로젝트 파일 존재 여부)
+          (예: package.json, pyproject.toml 등 프로젝트 파일 존재 여부)
           → '예' / '아니오'
 
-       2. '아니오'라면, 어떤 방식으로 초기화할까요?
+       2. Python 패키지 관리자는 무엇을 사용할까요?
+          → uv     (권장: 빠름, pyproject.toml 기반, Rust로 작성)
+          → poetry (pyproject.toml 기반, 의존성 잠금 파일)
+          → pip    (requirements.txt 기반, 전통적)
+
+       3. '아니오'라면, 어떤 방식으로 초기화할까요?
           → 구체적 명령을 알려주거나 '알아서 해줘' 입력
           → '알아서 해줘' 시 docs/PRD.md 기술 스택 기반으로 최소 프로젝트 구조 생성"
 
@@ -154,6 +159,10 @@ memory: project
        - '예' → 4.5-3으로 진행
        - '아니오' + 구체적 명령 → 해당 안내 제공 후 4.5-3으로 진행
        - '아니오' + '알아서 해줘' → docs/PRD.md 기술 스택 기반으로 최소 프로젝트 구조 스캐폴딩
+       - 패키지 관리자 선택에 따라 이후 빌드/테스트 명령 안내:
+         uv:     uv sync / uv run pytest / uv run ruff check .
+         poetry: poetry install / poetry run pytest / poetry run ruff check .
+         pip:    pip install -r requirements.txt / pytest / ruff check .
 
 4.5-3. CLAUDE.md 생성 질의
 

@@ -39,8 +39,12 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 7-2. 백엔드 검증 (Python/FastAPI)
      → CLAUDE.md에서 명령 참조
 
-     린트/타입체크:
-       cd backend && ruff check . && mypy app/
+     린트:
+       cd backend && ruff check .
+     포맷 검사:
+       ruff format --check .
+     타입체크:
+       mypy app/
      테스트 실행:
        pytest --tb=short
      → 테스트 파일 있는 경우만 실행
@@ -82,7 +86,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      → '예' → docs/STATUS.md PHASE=6 으로 리셋
 
 7-5. 자동 검증 항목:
-     ✅ Python 린트/타입체크 (ruff, mypy)
+     ✅ Python 린트/포맷/타입체크 (ruff check, ruff format --check, mypy)
      ✅ pytest 통과 (테스트 존재 시)
      ✅ TypeScript 타입체크 통과
      ✅ 프론트엔드 빌드 성공
@@ -92,7 +96,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 7-6. 검증 결과 요약 출력
      ┌──────────────────────────────────────────┐
      │ 📊 자동 검증 결과                        │
-     │ ✅ 백엔드 (lint/mypy/pytest): 성공/실패  │
+     │ ✅ 백엔드 (ruff/format/mypy/pytest): 성공/실패  │
      │ ✅ 프론트엔드 (tsc/lint/test): 성공/실패 │
      │ ✅ E2E (Playwright): N개 통과            │
      │ ⚠️ 수동 확인 필요: N개                  │

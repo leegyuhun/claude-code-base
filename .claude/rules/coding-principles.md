@@ -197,10 +197,27 @@ E2E 테스트           : Playwright — 핵심 사용자 시나리오 (e2e/ 디
 ```bash
 # 백엔드 (Python/FastAPI)
 cd backend
-pip install -r requirements.txt   # 또는 poetry install / uv sync
-uvicorn app.main:app --reload      # 로컬 실행
-pytest                             # 테스트
-alembic upgrade head               # DB 마이그레이션 적용
+
+# uv 사용 시 (권장)
+uv sync                               # 의존성 설치
+uv run uvicorn app.main:app --reload  # 로컬 실행
+uv run pytest                         # 테스트
+uv run alembic upgrade head           # DB 마이그레이션
+uv run ruff check .                   # 린트
+uv run ruff format --check .          # 포맷 검사
+uv run mypy app/                      # 타입체크
+
+# poetry 사용 시
+poetry install
+poetry run uvicorn app.main:app --reload
+poetry run pytest
+poetry run alembic upgrade head
+
+# pip 사용 시 (전통적)
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+pytest
+alembic upgrade head
 
 # 프론트엔드 (React + TypeScript)
 cd frontend
@@ -209,6 +226,7 @@ npm run dev                        # 로컬 실행 (Vite)
 npm run build                      # 프로덕션 빌드
 npm run test                       # Vitest 단위 테스트
 npm run typecheck                  # tsc --noEmit
+npm run lint                       # ESLint
 
 # E2E (Playwright)
 cd e2e
