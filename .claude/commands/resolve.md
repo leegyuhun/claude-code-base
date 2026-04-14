@@ -38,6 +38,55 @@ Redmine 이슈 #{이슈번호}를 다음 내용으로 업데이트합니다.
 
 '아니오' → 종료
 
+## Step 3.5 — 댓글 작성 인터뷰 [PAUSE]
+
+git diff를 읽어 현재 변경 내용을 파악한 뒤, 기획자·QA가 참고할 만한 내용이 있는지 판단한다.
+
+**판단 기준 (하나라도 해당하면 인터뷰 진행):**
+- UI/화면 동작이 변경됨
+- 테스트가 필요한 특정 조건이 있음
+- 수정 경위나 주의사항이 있음
+- DB 데이터나 설정 변경이 수반됨
+
+해당 없으면 이 단계를 건너뛴다.
+
+**해당 있을 때** 아래 질문을 한 번에 출력하고 응답을 기다린다:
+
+```
+📝 Redmine 댓글 초안을 작성할게요. (빈칸은 생략됩니다)
+
+1. 수정/구현 내용 한 줄 요약
+   (예: "환자 조회 시 삭제된 항목이 노출되던 문제 수정")
+
+2. 확인 방법 / 테스트 시나리오
+   (예: "OO 화면 → OO 조건으로 조회 → 결과 확인")
+
+3. 주의사항 또는 특이사항
+   (예: "기존 데이터 중 XX 케이스는 수동 확인 필요")
+```
+
+응답을 받으면 아래 형식으로 댓글 초안을 구성하여 출력한다:
+
+```
+─────────────────────────────────────
+📋 댓글 초안
+
+[수정 내용]
+{1번 답변}
+
+[확인 방법]
+{2번 답변}
+
+{3번 답변이 있으면:}
+[주의사항]
+{3번 답변}
+─────────────────────────────────────
+댓글을 추가할까요? '예' / '아니오'
+```
+
+- '예' → {NOTES} 에 초안 내용 저장 후 Step 4로 진행
+- '아니오' → {NOTES} 비움, Step 4로 진행
+
 ## Step 4 — Redmine API 업데이트
 
 워크플로우: New(1) → Confirmed(11) → Assigned(10) → InProgress(2) → Resolved(3)
@@ -70,16 +119,20 @@ Redmine 이슈 #{이슈번호}를 다음 내용으로 업데이트합니다.
    MCP: update_issue(issue_id={이슈번호}, status_id={다음상태})
    폴백: Body: {"issue": {"status_id": {다음상태}}}
 
-4. 마지막으로 Resolved(3) + done_ratio/날짜 한 번에 전환
+4. 마지막으로 Resolved(3) + done_ratio/날짜 + 댓글 한 번에 전환
+   ({NOTES}가 있으면 notes 필드 포함, 없으면 생략)
+
    MCP: update_issue(issue_id={이슈번호}, status_id=3, done_ratio=100,
-                     start_date="{start_date}", due_date="{due_date}")
+                     start_date="{start_date}", due_date="{due_date}",
+                     notes="{NOTES}")
    폴백: PUT https://redmine.ubware.com/issues/{이슈번호}.json
          Body: {
            "issue": {
              "status_id": 3,
              "done_ratio": 100,
              "start_date": "{start_date}",
-             "due_date": "{due_date}"
+             "due_date": "{due_date}",
+             "notes": "{NOTES}"
            }
          }
 ```
