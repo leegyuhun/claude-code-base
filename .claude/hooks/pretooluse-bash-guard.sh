@@ -62,13 +62,12 @@ fi
 if echo "$COMMAND" | grep -qE 'git (checkout -b|switch -c)\s+'; then
   BRANCH=$(echo "$COMMAND" | grep -oE '(checkout -b|switch -c)\s+\S+' | awk '{print $NF}' | head -1)
   if [ -n "$BRANCH" ]; then
-    # 허용 패턴: 2026_{분류}_{#이슈번호}, main, main_delphi 등 베이스 브랜치
-    if ! echo "$BRANCH" | grep -qE '^(2026_[^_]+_#[0-9]+|main(_[a-z]+)*)$'; then
+    # 허용 패턴: 2026_{분류}_{#이슈번호}
+    if ! echo "$BRANCH" | grep -qE '^2026_[^_]+_#[0-9]+$'; then
       block "브랜치 명명 규칙 위반: '$BRANCH'
   허용 패턴:
     ✓ 2026_{분류}_{#이슈번호}  예: 2026_정기5차_#207500
                                예: 2026_hotfix_#208000
-    ✓ main, main_delphi 등 베이스 브랜치
   허용되지 않는 패턴:
     ✗ 이슈번호 없는 브랜치, 임의 이름"
     fi
