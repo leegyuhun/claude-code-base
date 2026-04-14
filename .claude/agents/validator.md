@@ -35,6 +35,27 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      - sprints/{CURRENT_SPRINT}/GOAL.md
      - CLAUDE.md (빌드 명령 확인용)
 
+7-1.5. 사전 자동 검사 (빌드 전)
+
+       [1] 신규 .pas 파일 .dpr 등록 확인
+           BASE=$(git branch --show-current | sed 's/_sprint-[0-9]*//' | sed 's/_hotfix_.*//')
+           git diff $BASE...HEAD --name-only --diff-filter=A | grep "\.pas$"
+           → 신규 추가된 .pas 파일 목록 추출
+           → 프로젝트 루트의 .dpr 파일에서 각 유닛명이 uses 절 또는 contains 절에 있는지 확인
+           → 미등록 파일 발견 시:
+             ⚠️ .dpr 미등록 유닛 발견 — 빌드 시 "Unit not found" 오류 발생 가능
+               {파일명} — .dpr의 uses/contains 절에 추가 필요
+             자동 수정 여부를 사용자에게 물어보고 승인 시 .dpr 수정
+           → 신규 파일 없거나 모두 등록됨 → "✅ .dpr 등록: 확인 완료"
+
+       [2] 날짜 하드코딩 검사
+           BASE=$(git branch --show-current | sed 's/_sprint-[0-9]*//' | sed 's/_hotfix_.*//')
+           git diff $BASE...HEAD -- "*.pas" | grep -E "^\+.*StrToDate\('20|^\+.*EncodeDate\(20|^\+.*StrToDateTime\('20"
+           → 발견 시:
+             ⚠️ 날짜 하드코딩 발견 — 상수 또는 파라미터 사용 권장
+               {파일명}:{줄} : {코드}
+           → 없으면 "✅ 날짜 하드코딩: 없음"
+
 7-2. 빌드 실행 (Delphi 2007)
      build.bat debug
      → msbuild 컴파일 성공 여부 확인
@@ -91,8 +112,14 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
        ## 통과 항목 (재검증 불필요)
        - {통과된 항목 목록}
 
-       이후 [PAUSE] "Implementer 재실행 필요 — FEEDBACK.md 확인 후 타겟 수정"
        docs/STATUS.md PHASE=6 으로 리셋
+       [PAUSE]
+       "Implementer 재실행 필요 — FEEDBACK.md 확인 후 타겟 수정
+        아래 명령어를 실행하세요:
+
+        .claude/agents/implementer.md와 docs/STATUS.md를 읽고
+        sprints/{CURRENT_SPRINT}/FEEDBACK.md 기준으로 타겟 수정해줘.
+        FEEDBACK.md에 없는 항목은 수정하지 마."
 
 7-8. 전체 통과 → docs/STATUS.md PHASE=8 업데이트
 ```

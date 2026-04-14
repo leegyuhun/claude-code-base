@@ -39,6 +39,13 @@ color: blue
      - sprints/{PREV_SPRINT}/OUT_OF_SCOPE.md (직전 스프린트 범위 외 사항)
      - sprints/{CURRENT_SPRINT}/GOAL.md (존재하면 → 완료 출력 후 종료)
 
+5-2.1. Redmine 이슈 조회 (선택)
+     ROADMAP.md 또는 plan.md에 #이슈번호 패턴이 있거나
+     사용자 요청에 이슈 번호가 포함된 경우 → redmine 스킬로 조회
+     → 조회된 요구사항 설명·버전·카테고리를 GOAL.md의 "기술 고려사항" 및
+       "구현 기능 체크리스트" 작성에 반영
+     → 조회 실패 시 기존 문서 정보로 대체, 계속 진행
+
 5-3. 선행 스프린트 완료 여부 확인
      → ROADMAP.md에서 현재 스프린트의 의존성 확인
      → docs/STATUS.md 스프린트 진행 현황에서 선행 스프린트가 ✅ 완료인지 검증

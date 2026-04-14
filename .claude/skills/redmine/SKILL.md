@@ -1,29 +1,23 @@
 ---
 name: redmine
-description: Redmine 이슈를 실시간으로 조회한다. 이슈 번호를 받아 제목, 현상 설명, 담당자, 우선순위, 첨부 정보를 가져온다. bug-investigator 에이전트가 코드 탐색 전 이슈 컨텍스트를 파악할 때 사용한다.
+description: Redmine 이슈를 실시간으로 조회한다. 이슈 번호를 받아 제목, 요구사항 설명, 담당자, 우선순위, 버전 정보를 가져온다. #이슈번호가 언급되면 반드시 이 스킬을 사용하라. orchestrator(PRD 분석·기능 목록 도출), planner(스프린트 계획·GOAL.md 작성), 기타 요구사항 파악이 필요한 모든 신규개발 단계에서 사용한다.
+model: opus
 ---
 
 # Redmine 이슈 조회 스킬
 
-## API 정보
+## 조회 방법
 
-- **베이스 URL**: `https://redmine.ubware.com`
-- **이슈 조회**: `GET /issues/{id}.json`
-- **인증**: `X-Redmine-API-Key` 헤더
-
-## API 키 로드
-
-`.env` 파일에서 읽는다 (프로젝트 루트: `E:/Source/ysr/.env`):
+**MCP 우선**: `.mcp.json`에 redmine MCP 서버가 설정된 경우 MCP 도구를 사용한다.
 
 ```
-REDMINE_API_KEY=xxxxxxxxxxxxxxxx
+MCP 도구: get_issue
+파라미터: issue_id = {이슈번호}
 ```
 
-파일을 Read 도구로 읽고 `REDMINE_API_KEY=` 뒤의 값을 추출한다.
+**MCP 없을 때 폴백**: WebFetch로 직접 호출.
 
-## 이슈 조회 방법
-
-WebFetch 도구로 호출:
+`.env` 파일에서 `REDMINE_API_KEY`를 읽어 (프로젝트 루트 기준, 없으면 상위 탐색):
 
 ```
 URL: https://redmine.ubware.com/issues/{이슈번호}.json
@@ -47,8 +41,8 @@ Headers:
 
 | 상황 | 처리 |
 |------|------|
-| `.env` 파일 없음 | "`.env` 파일이 없습니다. `.env.example`을 참고해 API 키를 설정하세요." 출력 후 중단 |
-| API 키 없음/빈 값 | 동일 |
+| MCP 도구 없음 | WebFetch 폴백으로 자동 전환 |
+| `.env` 파일 없음 (폴백 시) | "`.env` 파일이 없습니다. `.mcp.json` 또는 `.env`에 API 키를 설정하세요." 출력 후 중단 |
 | 401 Unauthorized | "API 키가 유효하지 않습니다. Redmine 계정의 API 키를 확인하세요." |
 | 404 Not Found | "이슈 #{번호}를 찾을 수 없습니다. 이슈 번호를 확인하세요." |
 | 네트워크 오류 | "Redmine 서버에 연결할 수 없습니다. 이슈 내용을 직접 붙여넣어 주세요." 출력 후, 코드 탐색만으로 진행 |

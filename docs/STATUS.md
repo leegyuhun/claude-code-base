@@ -33,9 +33,6 @@ UPDATED_AT:       -
 10   = 다음 Sprint 진행              (Validator)    ← 스프린트마다 반복
 11   = 신규 요구사항 반영 (Re-plan)  (Orchestrator) ← MVP 완료 후 신규 요구사항 시
 
---- Hotfix 프로세스 (독립 경로) ---
-H    = hotfix-close 에이전트 사용 (STATUS.md PHASE와 독립)
-
 --- 배포 프로세스 (Sprint 완료 후) ---
 D    = deploy-prod 에이전트 사용 (Sprint 검증 완료 후)
 ```
@@ -49,7 +46,6 @@ ORCHESTRATOR:   pending   (PHASE 1~4.5)
 PLANNER:        pending   (PHASE 5)
 IMPLEMENTER:    pending   (PHASE 6)
 VALIDATOR:      pending   (PHASE 7~10)
-HOTFIX-CLOSE:   -         (독립 경로)
 DEPLOY-PROD:    -         (배포 시 사용)
 ```
 
@@ -80,21 +76,21 @@ ITEMS:
 
 ### Orchestrator (PHASE 1~4.5)
 ```
-.claude/agents/orchestrator.md와 STATUS.md를 읽고 현재 PHASE부터 실행해줘.
+.claude/agents/orchestrator.md와 docs/STATUS.md를 읽고 현재 PHASE부터 실행해줘.
 [PAUSE] 지점에서 멈추고 내 확인을 기다려.
 코드 구현은 하지 마. 계획 문서 작성만 해.
 ```
 
 ### Planner (PHASE 5)
 ```
-.claude/agents/planner.md와 STATUS.md를 읽고 현재 스프린트 GOAL.md를 작성해줘.
+.claude/agents/planner.md와 docs/STATUS.md를 읽고 현재 스프린트 GOAL.md를 작성해줘.
 코드 구현은 하지 마. GOAL.md 작성만 해.
 완료되면 다음 에이전트 실행 방법을 알려줘.
 ```
 
 ### Implementer (PHASE 6)
 ```
-.claude/agents/implementer.md와 STATUS.md를 읽고
+.claude/agents/implementer.md와 docs/STATUS.md를 읽고
 sprints/{CURRENT_SPRINT}/GOAL.md 기준으로 구현 시작해줘.
 [PAUSE] 지점에서 멈추고 내 확인을 기다려.
 GOAL.md 범위 밖의 기능은 구현하지 마.
@@ -102,27 +98,21 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
 
 ### Validator (PHASE 7~10)
 ```
-.claude/agents/validator.md와 STATUS.md를 읽고
+.claude/agents/validator.md와 docs/STATUS.md를 읽고
 sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 [PAUSE] 지점에서 멈추고 내 확인을 기다려.
 ```
 
 ### Orchestrator Re-plan (PHASE 11 — 신규 요구사항)
 ```
-.claude/agents/orchestrator.md와 STATUS.md를 읽고 PHASE 11을 실행해줘.
+.claude/agents/orchestrator.md와 docs/STATUS.md를 읽고 PHASE 11을 실행해줘.
 [PAUSE] 지점에서 멈추고 내 확인을 기다려.
 코드 구현은 하지 마. plan.md와 ROADMAP.md 업데이트만 해.
 ```
 
-### Hotfix-Close (독립 경로)
-```
-.claude/agents/hotfix-close.md와 STATUS.md를 읽고
-현재 hotfix 브랜치의 마무리 작업을 진행해줘.
-```
-
 ### Deploy-Prod (배포)
 ```
-.claude/agents/deploy-prod.md와 STATUS.md를 읽고
+.claude/agents/deploy-prod.md와 docs/STATUS.md를 읽고
 프로덕션 배포를 진행해줘.
 ```
 

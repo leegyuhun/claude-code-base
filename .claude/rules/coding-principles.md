@@ -37,6 +37,7 @@ paths:
 - 폼: TfrmLogin, TfrmMain
 - 데이터모듈: TdmMain
 - 변수: 지역변수 AVarName, 멤버변수 FVarName, 전역변수 GVarName, 매개변수 MParam
+  - **주의**: 매개변수는 반드시 M 접두사 (MParam). A는 지역변수 전용. AParam 금지.
 - 상수: S_CONST_NAME
 - 프로시저: DoSomething, HandleClick
 

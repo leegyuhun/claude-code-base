@@ -21,6 +21,12 @@ docs/STATUS.md를 읽고 현재 상태를 보여준 뒤, 롤백 옵션을 질의
        → sprints/{CURRENT_SPRINT}/GOAL.md 삭제
    [5] PHASE 6 — 현재 스프린트 구현 다시
        → GOAL.md 체크박스 초기화, 구현 코드는 유지
+   [6] PHASE 7 — 자동 검증 다시 실행
+       → GOAL.md 체크박스 [x] → [ ] 초기화
+   [7] PHASE 8 — 수동 테스트 안내 다시 출력
+       → 상태만 리셋, 코드/파일 변경 없음
+   [8] PHASE 9 — push + MR 안내 다시
+       → DONE.md/COMMIT_MESSAGE.md 재생성 후 push
 
    번호를 입력하세요 (또는 '취소'):
    ```

@@ -73,8 +73,8 @@ docs/PRD.md 작성
 
 2. 수정 구현 (sprint-planner 불필요)
 
-3. hotfix-close 에이전트 실행
-   → 경량 코드 리뷰 + 타겟 검증 + push + GitLab MR 안내
+3. deploy-prod 에이전트로 push + GitLab MR 안내
+   (또는 직접 git push 후 MR 생성)
 
 4. GitLab MR 머지 후 역머지
    git checkout {개발 브랜치}
@@ -126,11 +126,8 @@ docs/PRD.md 작성
 | planner | 5 | GOAL.md 작성 | opus |
 | implementer | 6 | 기능 구현 | opus |
 | validator | 7~10 | 검증, push + GitLab MR 안내, 스프린트 전환 | sonnet |
-| hotfix-close | 독립 | 핫픽스 마무리 | sonnet |
 | deploy-prod | 독립 | 프로덕션 배포 | sonnet |
-| bug-investigator | 독립 | 버그 원인 탐색 (유지보수) | opus |
-| patch-author | 독립 | 코드 수정 적용 (유지보수) | opus |
-| commit-writer | 독립 | 커밋 메시지 작성 (유지보수) | opus |
+| commit-writer | 독립 | 커밋 메시지 작성 (Validator PHASE 9에서 호출) | opus |
 
 ### 에이전트 호출 방법
 
@@ -198,16 +195,20 @@ docs/PRD.md 작성
 
 ## 7. 커밋 메시지 규칙
 
+### 커밋 메시지 자동 검증 (commit-msg hook)
+
+`.githooks/commit-msg` 가 커밋 시 형식을 자동 검사합니다.
+처음 한 번만 git hook 경로를 설정하세요:
+```bash
+git config core.hooksPath .githooks
+```
+
 ### 워크플로우별 적용 기준
 
 | 워크플로우 | 커밋 형식 | 예시 |
 |------------|-----------|------|
 | Sprint (Validator 커밋) | Conventional Commit (`feat:`, `fix:`) | `feat: [sprint-02] 기능 제목` |
-| Hotfix (hotfix-close 커밋) | Conventional Commit (`fix:`) | `fix: 핫픽스 설명` |
-| 유지보수 (commit-writer 커밋) | YSR 고유 형식 (`fix #이슈번호`) | `fix #207231 [다빈도프린터] 출력 지연` |
-
-- **Sprint/Hotfix**: 아래 형식을 따른다.
-- **유지보수**: `.claude/skills/commit-format/SKILL.md`의 형식을 따른다.
+| Hotfix | Conventional Commit (`fix:`) | `fix: 핫픽스 설명` |
 
 > **[필수]** 커밋은 푸쉬 시점에 한 번만 한다. 작업 중간에 커밋하지 않는다.
 
@@ -282,11 +283,8 @@ Hotfix: {브랜치명}
     │   ├── planner.md                  ← PHASE 5
     │   ├── implementer.md              ← PHASE 6
     │   ├── validator.md                ← PHASE 7~10
-    │   ├── hotfix-close.md             ← 핫픽스 마무리
     │   ├── deploy-prod.md              ← 프로덕션 배포
-    │   ├── bug-investigator.md         ← 버그 원인 탐색 (유지보수)
-    │   ├── patch-author.md             ← 코드 수정 적용 (유지보수)
-    │   └── commit-writer.md            ← 커밋 메시지 작성 (유지보수)
+    │   └── commit-writer.md            ← 커밋 메시지 작성 (Validator가 호출)
     ├── commands/
     │   ├── sprint-dev.md               ← Sprint 구현 오케스트레이터
     │   ├── status.md                   ← /status — 현재 상태 요약
@@ -295,11 +293,8 @@ Hotfix: {브랜치명}
     │   ├── sprint-log.md               ← /sprint-log — 스프린트 종합 요약
     │   └── debt.md                     ← /debt — Tech Debt 보고
     ├── skills/
-    │   ├── ysr-maintenance/SKILL.md    ← 유지보수 오케스트레이터 스킬
-    │   ├── redmine/SKILL.md            ← Redmine 이슈 조회
-    │   ├── investigate/SKILL.md        ← 버그 탐색 전략
-    │   ├── patch/SKILL.md              ← 코드 패치 워크플로우
-    │   └── commit-format/SKILL.md      ← YSR 커밋 메시지 형식
+    │   ├── redmine/SKILL.md            ← Redmine 이슈 조회 (orchestrator/planner에서 사용)
+    │   └── commit-format/SKILL.md      ← YSR 커밋 메시지 형식 (commit-writer가 사용)
     └── rules/
         ├── sprint-workflow.md          ← Sprint/Hotfix 워크플로우 보완 규칙
         ├── coding-principles.md        ← 코딩 원칙 (paths 기반 자동 활성화)
@@ -356,54 +351,6 @@ Hotfix: {브랜치명}
 2. **다음 스프린트 전환** (PHASE 10)
    - CURRENT_SPRINT 업데이트 → PHASE 5로 복귀
 
-### 9.5 유지보수 워크플로우 (Sprint 외)
-
-> Sprint 기반 개발과 별도로, 프로덕션 버그 수정/이슈 처리를 위한 워크플로우입니다.
-> `/ysr-maintenance` 스킬이 전체 흐름을 오케스트레이션합니다.
-
-#### 프로세스 흐름
-
-```
-사용자 요청 (이슈 #번호)
-  → Phase 0: 컨텍스트 확인 (신규/재실행/상태조회)
-  → Phase 1: 버그 조사 (bug-investigator 에이전트)
-  → [PAUSE] 조사 결과 확인
-  → Phase 2: 코드 수정 (patch-author 에이전트) — 선택적
-  → [PAUSE] 수정 결과 확인
-  → Phase 3: 커밋 메시지 (commit-writer 에이전트) — 선택적
-```
-
-#### 에이전트 파이프라인
-
-| Phase | 에이전트 | 산출물 |
-|-------|----------|--------|
-| 1 | bug-investigator | `_workspace/01_investigation.md` |
-| 2 | patch-author | `_workspace/01.5_patch_plan.md`, `_workspace/02_patch_summary.md` |
-| 3 | commit-writer | `_workspace/03_commit_message.md` |
-
-#### Sprint과의 차이점
-
-| 항목 | Sprint | 유지보수 |
-|------|--------|---------|
-| 명세서 | GOAL.md | Redmine 이슈 + 코드 분석 |
-| 커밋 형식 | Conventional (`feat:`, `fix:`) | YSR 고유 (`fix #이슈번호`) |
-| 브랜치 | `{현재브랜치}_{sprint}` | `[연도]_정기5차_#[이슈번호]` |
-| 산출물 | sprints/ 디렉토리 | _workspace/ 디렉토리 |
-| 오케스트레이터 | /sprint-dev 커맨드 | /ysr-maintenance 스킬 |
-
-#### 사용법
-
-```
-# 전체 워크플로우 실행
-/ysr-maintenance 이슈 #207500 프린터 포트 갱신 안 되는 버그
-
-# 상태 확인
-/ysr-maintenance 상태
-
-# 부분 재실행
-/ysr-maintenance 커밋 메시지만 다시 만들어줘
-```
-
 ---
 
 ## 10. 배포 프로세스
@@ -422,8 +369,7 @@ Sprint 완료 (PHASE 10)
 
 ```
 Hotfix 구현 완료
-  → hotfix-close 에이전트 실행
-    → 경량 코드 리뷰 + 타겟 검증
+  → deploy-prod 에이전트 실행 (또는 직접 git push + GitLab MR)
     → push + GitLab MR 생성 안내
     → 머지 후 역머지 안내
 ```
@@ -462,11 +408,10 @@ docs/STATUS.md를 읽고 현재 PHASE에 맞는 에이전트를 실행해줘.
 | `/rollback` | 특정 PHASE로 되돌리기 | 계획/구현을 다시 하고 싶을 때 |
 | `/sprint-log` | 현재 스프린트 종합 요약 | 스프린트 상태 파악 시 |
 | `/debt` | Tech Debt 종합 보고 | 기술 부채 점검 시 |
-| `/ysr-maintenance` | 유지보수 전체 워크플로우 | 버그 수정, 이슈 처리, 코드 분석 시 |
-| `/redmine` | Redmine 이슈 조회 | 이슈 컨텍스트 파악 시 |
-| `/investigate` | 버그 원인 탐색 | 코드베이스 탐색만 필요할 때 |
-| `/patch` | 코드 수정 적용 | 수정 계획 수립/실행 시 |
-| `/commit-format` | YSR 커밋 메시지 생성 | 유지보수 커밋 작성 시 |
+| `/prd #{이슈번호}` | Redmine 이슈 → PRD 생성 → 브랜치 → 개발 착수 | 새 이슈 작업 시작 시 |
+| `/resolve {이슈번호}` | Redmine 이슈 Resolved 처리 | 스프린트/핫픽스 완료 후 |
+| `redmine` 스킬 | Redmine 이슈 조회 | #이슈번호가 주어질 때 (orchestrator/planner 자동 사용) |
+| `commit-format` 스킬 | YSR 커밋 메시지 형식 | commit-writer가 자동 사용 |
 
 ---
 

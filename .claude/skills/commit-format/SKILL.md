@@ -49,19 +49,18 @@ Merge branch '2026_정기5차_#207500' into '2026_정기5차'
 ```
 fix #207231 [다빈도프린터] 김화내과 출력 지연현상
 
-　# 변경 내용
+　# 변경내용
 　　- Spooler 재시작 로직 주석처리
 　　　: Spooler가 정상적인 상황임에도, 비정상으로 인식하여 재시작하는 케이스가 확인됨
 　　　: 명확한 사유가 확인되지 않아, 우선 주석처리
 　# 관련파일
 　　- PrinterUtil.cs(Spooler 재시작 로직 주석처리)
-</pre>
 ```
 
 ## 작성 절차
 
-1. `_workspace/01_investigation.md`에서 이슈 번호, 현상 파악 → 카테고리와 제목 결정
-2. `_workspace/02_patch_summary.md`에서 변경 내용 → `<pre>` 블록 작성
-3. 수정 파일 목록 → `+ 관련파일` 섹션 작성 (C# 수정이면 AssemblyInfo.cs 먼저)
+1. 이슈 번호 파악 → Redmine 조회 또는 GOAL.md / 사용자 요청에서 확인, 카테고리와 제목 결정
+2. `git diff`로 변경 내용 파악 `# 변경내용 블록 작성
+3. 수정 파일 목록 → `# 관련파일` 섹션 작성
 4. 전각 공백 들여쓰기 확인
-5. `_workspace/03_commit_message.md`에 최종 결과 저장
+5. `sprints/{sprint}/COMMIT_MESSAGE.md`에 최종 결과 저장 (스프린트 워크플로우 시)
