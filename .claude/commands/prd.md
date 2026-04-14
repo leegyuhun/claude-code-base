@@ -405,7 +405,6 @@ PRD.md 저장 후 아래 형식을 **그대로** 출력한다.
 ```
 ✅ PRD 생성 완료
    경로: {PROJECT_PATH}/docs/{PRD_FILENAME}
-   브랜치: {생성된 브랜치명 또는 현재 브랜치}
 
 📋 요약:
    P0 기능: N개 — {기능명 목록}
@@ -419,33 +418,61 @@ PRD.md 저장 후 아래 형식을 **그대로** 출력한다.
 **핫픽스 판정 시:**
 ```
 ──────────────────────────────────────────
-다음 단계: 직접 구현
-   docs/{PRD_FILENAME}와 .claude/rules/coding-principles.md를 읽고
-   PRD 기준으로 .pas/.dfm 수정을 시작해줘. 커밋은 하지 마.
-
-   완료 후:
-   - push + GitLab MR → .claude/agents/deploy-prod.md 실행
-   - Redmine Resolved → /resolve {이슈번호}
+✅ PRD 생성 완료: docs/{PRD_FILENAME}
+   브랜치: {생성된 브랜치명 또는 현재 브랜치}
 ──────────────────────────────────────────
+```
+
+[PAUSE]
+```
+지금 바로 구현을 시작할까요?
+  [1] 예 — PRD 기준으로 .pas/.dfm 수정 시작 (커밋은 하지 않음)
+  [2] 아니오 — 여기서 종료
+```
+
+[1] 선택 시:
+`docs/{PRD_FILENAME}`와 `.claude/rules/coding-principles.md`를 읽고 PRD 기준으로 구현을 시작한다. 커밋은 하지 않는다.
+
+[2] 선택 시:
+```
+구현 준비가 되면 아래 명령어를 실행하세요:
+
+docs/{PRD_FILENAME}와 .claude/rules/coding-principles.md를 읽고
+PRD 기준으로 .pas/.dfm 수정을 시작해줘. 커밋은 하지 마.
 ```
 
 **스프린트 판정 시:**
 ```
 ──────────────────────────────────────────
-다음 단계 (1/2): docs/STATUS.md 생성 확인
-   STATUS.md가 없으면 아래 내용으로 {PROJECT_PATH}/docs/STATUS.md 를 생성해줘:
-
-   PHASE=1
-   CURRENT_SPRINT=
-   ORCHESTRATOR=pending
-   PRD=done
-
-다음 단계 (2/2): Orchestrator 실행
-   아래 명령어를 복사해서 실행하세요:
-
-   .claude/agents/orchestrator.md와 docs/STATUS.md를 읽고 현재 PHASE부터 실행해줘.
-   [PAUSE] 지점에서 멈추고 내 확인을 기다려. 코드 구현은 하지 마.
+✅ PRD 생성 완료: docs/{PRD_FILENAME}
+   브랜치: {생성된 브랜치명 또는 현재 브랜치}
 ──────────────────────────────────────────
+```
+
+docs/STATUS.md가 없으면 먼저 생성한다:
+```
+PHASE=1
+CURRENT_SPRINT=
+ORCHESTRATOR=pending
+PRD=done
+```
+
+[PAUSE]
+```
+지금 바로 Orchestrator를 실행할까요?
+  [1] 예 — PHASE 1부터 바로 시작 (각 [PAUSE] 지점에서 확인 대기)
+  [2] 아니오 — 여기서 종료
+```
+
+[1] 선택 시:
+`.claude/agents/orchestrator.md`와 `docs/STATUS.md`를 읽고 현재 PHASE부터 실행한다. [PAUSE] 지점에서 멈추고 확인을 기다린다. 코드 구현은 하지 않는다.
+
+[2] 선택 시:
+```
+준비가 되면 아래 명령어를 실행하세요:
+
+.claude/agents/orchestrator.md와 docs/STATUS.md를 읽고 현재 PHASE부터 실행해줘.
+[PAUSE] 지점에서 멈추고 내 확인을 기다려. 코드 구현은 하지 마.
 ```
 
 **STATUS.md 자동 생성 규칙:**
