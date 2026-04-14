@@ -40,28 +40,48 @@ Redmine 이슈 #{이슈번호}를 다음 내용으로 업데이트합니다.
 
 ## Step 4 — Redmine API 업데이트
 
-MCP 우선, 없으면 WebFetch 폴백:
+워크플로우: New(1) → Confirmed(11) → Assigned(10) → InProgress(2) → Resolved(3)
+단계를 건너뛸 수 없으므로 현재 상태부터 순차 전환한다.
 
 ```
-MCP 도구: update_issue
-파라미터:
-  issue_id  = {이슈번호}
-  status_id = 3
-  done_ratio = 100
-  start_date = {start_date}
-  due_date   = {due_date}
+전환 순서 맵: 1→11→10→2→3
+목표 상태: Resolved (status_id=3)
 
-폴백(WebFetch):
-  URL: https://redmine.ubware.com/issues/{이슈번호}.json
-  Method: PUT / X-Redmine-API-Key: {.env의 REDMINE_API_KEY}
-  Body: {
-    "issue": {
-      "status_id": 3,
-      "done_ratio": 100,
-      "start_date": "{start_date}",
-      "due_date": "{due_date}"
-    }
-  }
+1. 현재 사용자 ID 조회 (Assigned 단계에 필요)
+   MCP: 없음 → WebFetch GET https://redmine.ubware.com/users/current.json
+   → user.id 추출하여 {MY_USER_ID} 로 저장
+
+2. 현재 상태 조회
+   MCP: get_issue(issue_id={이슈번호})
+   폴백: GET https://redmine.ubware.com/issues/{이슈번호}.json
+
+3. 현재 status_id에서 2(InProgress)까지 순서대로 전환
+   - 현재=1:  → 11(Confirmed) → 10(Assigned) → 2(InProgress)
+   - 현재=11: → 10(Assigned)  → 2(InProgress)
+   - 현재=10: → 2(InProgress)
+   - 현재=2:  생략
+   - 현재=3:  이미 완료, 종료
+
+   ※ status_id=10(Assigned) 전환 시 assigned_to_id 필수:
+   MCP: update_issue(issue_id={이슈번호}, status_id=10, assigned_to_id={MY_USER_ID})
+   폴백: Body: {"issue": {"status_id": 10, "assigned_to_id": {MY_USER_ID}}}
+
+   그 외 단계는 status_id만:
+   MCP: update_issue(issue_id={이슈번호}, status_id={다음상태})
+   폴백: Body: {"issue": {"status_id": {다음상태}}}
+
+4. 마지막으로 Resolved(3) + done_ratio/날짜 한 번에 전환
+   MCP: update_issue(issue_id={이슈번호}, status_id=3, done_ratio=100,
+                     start_date="{start_date}", due_date="{due_date}")
+   폴백: PUT https://redmine.ubware.com/issues/{이슈번호}.json
+         Body: {
+           "issue": {
+             "status_id": 3,
+             "done_ratio": 100,
+             "start_date": "{start_date}",
+             "due_date": "{due_date}"
+           }
+         }
 ```
 
 성공 시:

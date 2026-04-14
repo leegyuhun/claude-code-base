@@ -363,16 +363,34 @@ PRD 생성 후 브랜치를 생성한다.
 
 **4-3. Redmine 상태 업데이트 (ISSUE_NUMBERS 있을 때만)**
 
-MCP 우선, 없으면 WebFetch 폴백:
+워크플로우: New(1) → Confirmed(11) → Assigned(10) → InProgress(2)
+단계를 건너뛸 수 없으므로 현재 상태부터 순차 전환한다.
 
 ```
-MCP 도구: update_issue
-파라미터: issue_id={이슈번호}, status_id=2
+전환 순서 맵: 1→11→10→2
+목표 상태: InProgress (status_id=2)
 
-폴백(WebFetch):
-  URL: https://redmine.ubware.com/issues/{이슈번호}.json
-  Method: PUT / X-Redmine-API-Key: {.env의 REDMINE_API_KEY}
-  Body: {"issue": {"status_id": 2}}
+1. 현재 사용자 ID 조회 (Assigned 단계에 필요)
+   MCP: 없음 → WebFetch GET https://redmine.ubware.com/users/current.json
+   → user.id 추출하여 {MY_USER_ID} 로 저장
+
+2. 현재 상태 조회
+   MCP: get_issue(issue_id={이슈번호})
+   폴백: GET https://redmine.ubware.com/issues/{이슈번호}.json
+
+3. 현재 status_id에서 2까지 순서대로 호출
+   - 현재=1:  → 11(Confirmed) → 10(Assigned) → 2(InProgress)
+   - 현재=11: → 10(Assigned)  → 2(InProgress)
+   - 현재=10: → 2(InProgress)
+   - 현재=2:  생략
+
+   ※ status_id=10(Assigned) 전환 시 assigned_to_id 필수:
+   MCP: update_issue(issue_id={이슈번호}, status_id=10, assigned_to_id={MY_USER_ID})
+   폴백: Body: {"issue": {"status_id": 10, "assigned_to_id": {MY_USER_ID}}}
+
+   그 외 단계는 status_id만:
+   MCP: update_issue(issue_id={이슈번호}, status_id={다음상태})
+   폴백: Body: {"issue": {"status_id": {다음상태}}}
 ```
 
 성공: `✅ Redmine #{이슈번호} → 진행 중`
