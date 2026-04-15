@@ -4,9 +4,9 @@ paths:
   - "docs/STATUS.md"
 ---
 
-# Sprint/Hotfix 워크플로우 보완 규칙
+# Sprint 워크플로우 보완 규칙
 
-> Sprint/Hotfix 기본 프로세스, 에이전트 역할, 커밋 형식은 `dev-process.md`를 참조하세요.
+> Sprint 기본 프로세스, 에이전트 역할, 커밋 형식은 `dev-process.md`를 참조하세요.
 > 이 문서는 `dev-process.md`에 없는 고유 규칙만 포함합니다.
 
 ## GOAL.md 체크박스 관리
@@ -41,7 +41,7 @@ paths:
 ## 신규 요구사항 (MVP 완료 후)
 
 모든 스프린트 완료 후 새 요구사항이 생기면:
-- 규모 판단: Hotfix 기준 이하 → Hotfix 프로세스 / 이상 → Re-plan
+- 규모 판단: 신규 스프린트 추가 → Orchestrator PHASE 11 (Re-plan)
 - Re-plan: Orchestrator PHASE 11 진입
   명령어: `.claude/agents/orchestrator.md와 docs/STATUS.md 읽고 PHASE 11 실행해줘`
 

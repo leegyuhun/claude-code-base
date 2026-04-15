@@ -36,7 +36,7 @@ color: red
 
 1-3. 자동 검증 항목 확인
      - build.bat release 성공 여부
-     - Output/Release/ 아래 .exe 존재 확인
+     - C:\YsrOutput\Exe/ 아래 .exe 존재 확인
 
 1-4. 문제 발견 시 → [PAUSE] 사용자에게 보고
 ```

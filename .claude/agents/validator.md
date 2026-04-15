@@ -1,13 +1,13 @@
 ---
 name: validator
-description: "PHASE 7~10에 도달했을 때 사용. 빌드/테스트 검증 실행, 수동 테스트 가이드 제시, push 후 GitLab MR 안내, 다음 스프린트 전환을 처리한다.\n\n<example>\nContext: Implementation is done, time to verify.\nuser: \"검증 시작해줘.\"\nassistant: \"validator 에이전트로 검증을 시작할게요.\"\n</example>"
+description: "PHASE 7~10에 도달했을 때 사용. 빌드/테스트 검증 실행, 수동 테스트 가이드 제시, push 후 GitLab MR 자동 생성(glab/GitLab API), 다음 스프린트 전환을 처리한다.\n\n<example>\nContext: Implementation is done, time to verify.\nuser: \"검증 시작해줘.\"\nassistant: \"validator 에이전트로 검증을 시작할게요.\"\n</example>"
 model: sonnet
 color: green
 ---
 
 # validator.md — 검증 및 종료 전담 에이전트
 
-> 역할: 구현 결과를 검증하고, 수동 테스트 가이드를 제시하고, push 후 GitLab MR 생성을 안내한다.
+> 역할: 구현 결과를 검증하고, 수동 테스트 가이드를 제시하고, push 후 GitLab MR을 자동 생성한다 (glab → GitLab API → 수동 안내 폴백).
 > 코드 수정은 최소화한다. 검증 실패 시 Implementer로 되돌린다.
 > 완료 후 다음 스프린트 진행 여부를 확인한다.
 
@@ -38,7 +38,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 7-1.5. 사전 자동 검사 (빌드 전)
 
        [1] 신규 .pas 파일 .dpr 등록 확인
-           BASE=$(git branch --show-current | sed 's/_sprint-[0-9]*//' | sed 's/_hotfix_.*//')
+           BASE=$(git branch --show-current | sed 's/_sprint-[0-9]*//')
            git diff $BASE...HEAD --name-only --diff-filter=A | grep "\.pas$"
            → 신규 추가된 .pas 파일 목록 추출
            → 프로젝트 루트의 .dpr 파일에서 각 유닛명이 uses 절 또는 contains 절에 있는지 확인
@@ -49,7 +49,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
            → 신규 파일 없거나 모두 등록됨 → "✅ .dpr 등록: 확인 완료"
 
        [2] 날짜 하드코딩 검사
-           BASE=$(git branch --show-current | sed 's/_sprint-[0-9]*//' | sed 's/_hotfix_.*//')
+           BASE=$(git branch --show-current | sed 's/_sprint-[0-9]*//')
            git diff $BASE...HEAD -- "*.pas" | grep -E "^\+.*StrToDate\('20|^\+.*EncodeDate\(20|^\+.*StrToDateTime\('20"
            → 발견 시:
              ⚠️ 날짜 하드코딩 발견 — 상수 또는 파라미터 사용 권장
@@ -219,7 +219,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 9-5. 브랜치 푸시 및 base 브랜치 결정
      현재 브랜치에서 _{CURRENT_SPRINT} suffix 제거 → BASE_BRANCH
      예: main_delphi_sprint-01 → main_delphi
-     BASE_BRANCH=$(git branch --show-current | sed 's/_sprint-[0-9]*//' | sed 's/_hotfix_.*//')
+     BASE_BRANCH=$(git branch --show-current | sed 's/_sprint-[0-9]*//')
      git push -u origin $(git branch --show-current)
 
 9-6. GitLab MR 자동 생성
