@@ -3,6 +3,7 @@
     "allow": [
       "Bash(git *)",
       "Bash(gh *)",
+      "Bash(glab *)",
       "Bash(build.bat*)",
       "Bash(run_tests.bat*)",
       "Bash(msbuild*)",
@@ -17,7 +18,13 @@
       "Bash(* --version)",
       "Bash(* --help *)",
       "Bash(python *)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+	  "Read",
+      "Search",
+      "Bash(grep *)",
+      "Bash(findstr *)",
+      "WebSearch",
+      "WebFetch"
     ]
   },
   "hooks": {

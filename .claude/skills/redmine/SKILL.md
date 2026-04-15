@@ -15,14 +15,15 @@ MCP 도구: get_issue
 파라미터: issue_id = {이슈번호}
 ```
 
-**MCP 없을 때 폴백**: WebFetch로 직접 호출.
+**MCP 없을 때 폴백**: curl로 직접 호출.
 
-`.env` 파일에서 `REDMINE_API_KEY`를 읽어 (프로젝트 루트 기준, 없으면 상위 탐색):
+API 키 우선순위:
+1. 환경변수 `$REDMINE_API_KEY` (settings.json `env` 섹션에 설정됨)
+2. `.env` 파일 (프로젝트 루트 기준, 없으면 상위 탐색)
 
-```
-URL: https://redmine.ubware.com/issues/{이슈번호}.json
-Headers:
-  X-Redmine-API-Key: {API_KEY}
+```bash
+curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" \
+  "$REDMINE_URL/issues/{이슈번호}.json"
 ```
 
 ## 응답에서 추출할 정보
@@ -42,7 +43,7 @@ Headers:
 | 상황 | 처리 |
 |------|------|
 | MCP 도구 없음 | WebFetch 폴백으로 자동 전환 |
-| `.env` 파일 없음 (폴백 시) | "`.env` 파일이 없습니다. `.mcp.json` 또는 `.env`에 API 키를 설정하세요." 출력 후 중단 |
+| API 키 없음 (폴백 시) | "`$REDMINE_API_KEY` 환경변수 또는 `.env` 파일이 없습니다. settings.json `env` 섹션에 `REDMINE_API_KEY`를 설정하세요." 출력 후 중단 |
 | 401 Unauthorized | "API 키가 유효하지 않습니다. Redmine 계정의 API 키를 확인하세요." |
 | 404 Not Found | "이슈 #{번호}를 찾을 수 없습니다. 이슈 번호를 확인하세요." |
 | 네트워크 오류 | "Redmine 서버에 연결할 수 없습니다. 이슈 내용을 직접 붙여넣어 주세요." 출력 후, 코드 탐색만으로 진행 |

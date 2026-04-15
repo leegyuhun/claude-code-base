@@ -1,0 +1,11 @@
+{
+  "env": {
+    "GITLAB_TOKEN": "<GITLAB_TOKEN>",
+    "REDMINE_URL": "https://redmine.ubware.com",
+    "REDMINE_API_KEY": "<REDMINE_API_KEY>"
+  },
+  "enabledMcpjsonServers": [
+    "gitlab",
+    "redmine"
+  ]
+}

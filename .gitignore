@@ -29,6 +29,9 @@ Thumbs.db
 # MCP 설정 (토큰 포함 — .mcp.json.example 참고)
 .mcp.json
 
+# Claude Code 로컬 설정 (토큰 포함 — .claude/settings.local.json.sample 참고)
+.claude/settings.local.json
+
 # 유지보수 워크플로우 임시 작업 디렉토리
 _workspace/
 _workspace_prev/

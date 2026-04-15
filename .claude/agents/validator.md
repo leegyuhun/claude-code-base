@@ -219,45 +219,102 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 9-5. 브랜치 푸시 및 base 브랜치 결정
      현재 브랜치에서 _{CURRENT_SPRINT} suffix 제거 → BASE_BRANCH
      예: main_delphi_sprint-01 → main_delphi
-     BASE_BRANCH=$(git branch --show-current | sed 's/_sprint-[0-9]*//')
+     BASE_BRANCH=$(git branch --show-current | sed 's/_sprint-[0-9]*//' | sed 's/_hotfix_.*//')
      git push -u origin $(git branch --show-current)
 
-9-6. GitLab MR 생성 안내 출력
-     아래 내용을 그대로 출력하여 사용자가 GitLab에서 MR을 생성할 수 있도록 안내:
+9-6. GitLab MR 자동 생성
+     다음 변수를 먼저 준비:
+       CURRENT_BRANCH=$(git branch --show-current)
+       BASE_BRANCH 는 9-5에서 결정된 값
+       MR_TITLE="[{CURRENT_SPRINT}] {GOAL.md 첫 번째 목표 줄 요약}"
+       MR_DESC (DONE.md 완료된 기능 목록 기반 Markdown)
+       REMOTE_URL=$(git remote get-url origin)
+       GITLAB_HOST=$(echo $REMOTE_URL | sed 's|https://||' | cut -d'/' -f1)
+       PROJECT_PATH=$(echo $REMOTE_URL | sed 's|https://[^/]*/||' | sed 's|\.git$||' | python3 -c "import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip(), safe=''))")
 
-     ─────────────────────────────────────────────
-     GitLab MR 생성 안내
+     [방법 1] glab CLI 사용 (설치된 경우 우선 실행):
+       which glab > /dev/null 2>&1 && \
+       glab mr create \
+         --title "$MR_TITLE" \
+         --target-branch "$BASE_BRANCH" \
+         --description "$MR_DESC" \
+         --no-editor && \
+       echo "MR_CREATED_GLAB"
 
-     Source branch : {현재 브랜치}
-     Target branch : {BASE_BRANCH}
-     Title         : [{CURRENT_SPRINT}] {목표 요약}
+     [방법 2] curl + GitLab API (GITLAB_TOKEN 환경변수 있는 경우):
+       [ -n "$GITLAB_TOKEN" ] && \
+       MR_RESPONSE=$(curl --silent --fail --request POST \
+         --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+         --header "Content-Type: application/json" \
+         --url "https://$GITLAB_HOST/api/v4/projects/$PROJECT_PATH/merge_requests" \
+         --data "{
+           \"source_branch\": \"$CURRENT_BRANCH\",
+           \"target_branch\": \"$BASE_BRANCH\",
+           \"title\": \"$MR_TITLE\",
+           \"description\": \"$MR_DESC\",
+           \"remove_source_branch\": false
+         }") && \
+       MR_URL=$(echo $MR_RESPONSE | python3 -c "import sys,json; print(json.load(sys.stdin).get('web_url',''))") && \
+       echo "MR_CREATED: $MR_URL"
 
-     Description 본문 (복사하여 사용):
+     [방법 3] 두 방법 모두 실패 시 → 안내 출력:
+       ─────────────────────────────────────────────
+       GitLab MR 생성 안내
 
-     ## 변경 사항
-     (DONE.md 완료된 기능 목록)
+       Source branch : {CURRENT_BRANCH}
+       Target branch : {BASE_BRANCH}
+       Title         : {MR_TITLE}
 
-     ## 테스트 완료 항목
-     - build.bat 컴파일 성공
-     - DUnit 테스트 통과 (해당 시)
-     - 수동 테스트 통과
+       Description 본문 (복사하여 사용):
 
-     ## Tech Debt
-     (TODO 주석, OUT_OF_SCOPE.md)
+       ## 변경 사항
+       (DONE.md 완료된 기능 목록)
 
-     ## 리뷰 포인트
-     (주의 깊게 봐야 할 .pas/.dfm 부분)
-     ─────────────────────────────────────────────
+       ## 테스트 완료 항목
+       - build.bat 컴파일 성공
+       - DUnit 테스트 통과 (해당 시)
+       - 수동 테스트 통과
+
+       ## Tech Debt
+       (TODO 주석, OUT_OF_SCOPE.md)
+
+       ## 리뷰 포인트
+       (주의 깊게 봐야 할 .pas/.dfm 부분)
+       ─────────────────────────────────────────────
+
+       ℹ️  자동 MR 생성을 원하면:
+         - glab 설치: https://gitlab.com/gitlab-org/cli/-/releases
+         - 또는 환경변수 설정: export GITLAB_TOKEN=<your-token>
+         - settings.json에 추가: "env": { "GITLAB_TOKEN": "<token>" }
 
 9-7. [PAUSE]
+     MR 자동 생성 성공 시:
+     "브랜치 push 및 MR 생성 완료!
+      MR URL: {MR_URL}
+      머지 완료 후 '머지완료'를 입력해주세요."
+
+     MR 자동 생성 실패 시:
      "브랜치가 push 되었습니다: {현재 브랜치}
-      GitLab에서 MR을 생성하고 머지 완료 후 '머지완료'를 입력해주세요."
+      위 안내에 따라 GitLab에서 MR을 생성하고
+      머지 완료 후 '머지완료'를 입력해주세요."
 
 9-8. '머지완료' 입력 시
      docs/STATUS.md 업데이트:
      - 해당 스프린트 상태 → ✅ 완료
      - LAST_COMMIT, LAST_BRANCH 기록
      - PHASE=10
+
+9-8.5. Redmine 이슈 Resolved 안내
+     GOAL.md 또는 sprints/{CURRENT_SPRINT}/COMMIT_MESSAGE.md에서
+     이슈 번호(#NNNNN 패턴) 추출 시도.
+
+     이슈 번호 발견 시:
+     "📋 Redmine 이슈를 Resolved 처리하시겠습니까?
+      감지된 이슈: #{이슈번호}
+        → /resolve #{이슈번호}"
+
+     이슈 번호 미발견 시:
+     "ℹ️  Redmine 이슈가 있다면 /resolve {이슈번호} 로 Resolved 처리하세요."
 ```
 
 ---

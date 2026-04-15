@@ -33,7 +33,10 @@ GOAL.md 범위 밖의 기능은 구현하지 마.
 ```
 6-1. 읽을 파일
      필수:
-     - CLAUDE.md              ← 기술스택, 코딩 원칙
+     - CLAUDE.md              ← 기술스택, 코딩 원칙 (없으면 경고 후 계속 진행)
+       ※ CLAUDE.md가 없으면:
+         "⚠️ CLAUDE.md가 없습니다. Orchestrator PHASE 4.5에서 생성되어야 합니다.
+          코딩 원칙은 .claude/rules/coding-principles.md 를 참조합니다."
      - docs/STATUS.md              ← 현재 스프린트 확인
      - sprints/{CURRENT_SPRINT}/GOAL.md  ← 구현 명세
      참조 가능 (수정 금지):
