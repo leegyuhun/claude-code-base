@@ -1,3 +1,8 @@
+### 적용방법
+ 1. setup_claude.bat을 실행해주세요.
+ 2. .claude\settings.local.json 파일을 열어 <GITLAB_TOKEN>, <REDMINE_API_KEY> 에 개인 api-key값을 넣어주세요.
+ 3. 클로드코드를 재실행합니다.
+
 ### GitLab
 
 GitLab Personal Access Token을 채워야 합니다.
