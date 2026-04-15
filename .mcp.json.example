@@ -1,8 +1,9 @@
 {
   "mcpServers": {
     "gitlab": {
-      "command": "npx",
+      "command": "cmd",
       "args": [
+        "/c", "npx",
         "-y",
         "@modelcontextprotocol/server-gitlab",
         "--gitlab-url", "https://gitlab.ubware.com"
@@ -12,8 +13,8 @@
       }
     },
     "redmine": {
-      "command": "npx",
-      "args": ["-y", "@onozaty/redmine-mcp-server"],
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@onozaty/redmine-mcp-server"],
       "env": {
         "REDMINE_URL": "https://redmine.ubware.com",
         "REDMINE_API_KEY": "YOUR_REDMINE_API_KEY"

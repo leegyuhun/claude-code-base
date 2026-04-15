@@ -1,6 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 chcp 65001 > nul
+cd /d "%~dp0"
 
 echo.
 echo ============================================================
@@ -85,10 +86,10 @@ if exist ".mcp.json" (
 node --version > nul 2>&1
 if !errorlevel! equ 0 (
     for /f "tokens=*" %%v in ('node --version 2^>nul') do set NODE_VER=%%v
-    echo   [Node.js  ] OK - !NODE_VER! (MCP npx 실행 가능)
+    echo   [Node.js  ] OK - !NODE_VER! (MCP npx available)
 ) else (
-    echo   [Node.js  ] NOT INSTALLED - MCP 서버를 실행하려면 Node.js가 필요합니다
-    echo               https://nodejs.org 에서 설치하세요
+    echo   [Node.js  ] NOT INSTALLED - Node.js is required to run MCP servers
+    echo               Install from https://nodejs.org
 )
 
 if exist ".claude\settings.local.json" (
@@ -96,15 +97,15 @@ if exist ".claude\settings.local.json" (
     if !errorlevel! equ 0 (
         echo.
         echo ============================================================
-        echo   [필수] .claude\settings.local.json 키값 입력 필요
+        echo   [REQUIRED] .claude\settings.local.json credentials not filled in
         echo ============================================================
         echo.
-        echo   아래 항목을 실제 값으로 교체하세요:
+        echo   Replace the following with actual values:
         echo.
         echo     GITLAB_TOKEN   : GitLab Personal Access Token
         echo     REDMINE_API_KEY: Redmine API Key
         echo.
-        echo   파일 위치: .claude\settings.local.json
+        echo   File location: .claude\settings.local.json
         echo ============================================================
     )
 )
