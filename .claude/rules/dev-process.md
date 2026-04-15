@@ -24,7 +24,7 @@ docs/PRD.md 작성
   → Implementer (PHASE 6)
     → GOAL.md 기준 구현
   → Validator (PHASE 7~10)
-    → 검증 → 수동 테스트 → push + GitLab MR 안내 → 다음 스프린트
+    → 검증 → 수동 테스트 → push + GitLab MR 자동 생성 → 다음 스프린트
   → deploy-prod
     → 프로덕션 배포
   → Orchestrator (PHASE 11) — MVP 이후 신규 요구사항
@@ -52,41 +52,14 @@ docs/PRD.md 작성
 
 ---
 
-## 2. Hotfix vs Sprint 의사결정
+## 2. Sprint 프로세스
 
-수정사항이 발생하면 **반드시 Hotfix vs Sprint 판단을 먼저** 수행합니다.
-
-### 판단 기준
-
-| 기준 | Hotfix | Sprint |
-|------|--------|--------|
-| 긴급도 | 프로덕션 장애/버그 | 새 기능, 개선 |
-| 변경 범위 | 파일 3개 이하, 코드 50줄 이하 | 파일 4개 이상 또는 50줄 초과 |
-| DB 변경 | 없음 | 있을 수 있음 |
-| 새 의존성 | 없음 | 있을 수 있음 |
-
-### Hotfix 프로세스
-
-```
-1. 현재 브랜치 기반 {현재브랜치}_hotfix_{설명} 브랜치 생성
-   git checkout -b {현재브랜치}_hotfix_{설명}
-
-2. 수정 구현 (sprint-planner 불필요)
-
-3. deploy-prod 에이전트로 push + GitLab MR 안내
-   (또는 직접 git push 후 MR 생성)
-
-4. GitLab MR 머지 후 역머지
-   git checkout {개발 브랜치}
-   git merge main
-```
-
-### Sprint 프로세스
+모든 작업(버그 수정, 기능 추가, 개선)은 Sprint 프로세스로 처리합니다.
 
 ```
 1. Planner → GOAL.md 생성 (PHASE 5)
 2. Implementer → 구현 (PHASE 6)
-3. Validator → 검증 + push + GitLab MR 안내 (PHASE 7~10)
+3. Validator → 검증 + push + GitLab MR 자동 생성 (PHASE 7~10)
 4. deploy-prod → 프로덕션 배포
 ```
 
@@ -100,18 +73,13 @@ docs/PRD.md 작성
 {현재브랜치}_{CURRENT_SPRINT}  →  push + GitLab MR  →  배포
 ```
 
-### Hotfix 흐름
-
-```
-{현재브랜치}_hotfix_{설명}  →  push + GitLab MR  →  배포  →  스프린트 브랜치에 역머지
-```
-
 ### 브랜치 명명 규칙
 
 | 용도 | 패턴 | 예시 |
 |------|------|------|
-| 스프린트 | `{현재브랜치}_{CURRENT_SPRINT}` | `main_delphi_sprint-01` |
-| 핫픽스 | `{현재브랜치}_hotfix_{설명}` | `main_delphi_hotfix_login-fix` |
+| 이슈 베이스 | `{현재브랜치}_#{이슈번호}` | `main_delphi_#1234` |
+| 스프린트 (이슈 있음) | `{현재브랜치}_#{이슈번호}_{CURRENT_SPRINT}` | `main_delphi_#1234_sprint-01` |
+| 스프린트 (이슈 없음) | `{현재브랜치}_{CURRENT_SPRINT}` | `main_delphi_sprint-01` |
 | 메인 | `main` | — |
 
 ---
@@ -125,7 +93,7 @@ docs/PRD.md 작성
 | orchestrator | 1~4.5 | PRD 분석, plan.md, ROADMAP.md, 초기화 | opus |
 | planner | 5 | GOAL.md 작성 | opus |
 | implementer | 6 | 기능 구현 | opus |
-| validator | 7~10 | 검증, push + GitLab MR 안내, 스프린트 전환 | sonnet |
+| validator | 7~10 | 검증, push + GitLab MR 자동 생성, 스프린트 전환 | sonnet |
 | deploy-prod | 독립 | 프로덕션 배포 | sonnet |
 | commit-writer | 독립 | 커밋 메시지 작성 (Validator PHASE 9에서 호출) | opus |
 
@@ -152,14 +120,14 @@ docs/PRD.md 작성
 
 ## 5. 검증 매트릭스
 
-| 검증 항목 | Sprint | Hotfix | Deploy |
-|-----------|--------|--------|--------|
-| 빌드 성공 | ✅ 자동 | ✅ 자동 | ✅ 자동 |
-| lint/타입체크 | ✅ 자동 | — | — |
-| 단위 테스트 | ✅ 자동 | ✅ 타겟 | ✅ 전체 |
-| API 엔드포인트 | ✅ 자동 | ✅ 타겟 | ✅ 전체 |
-| 수동 UI 테스트 | ⚠️ 수동 | ⚠️ 타겟 | ⚠️ 수동 |
-| 헬스체크 | — | — | ✅ 자동 |
+| 검증 항목 | Sprint | Deploy |
+|-----------|--------|--------|
+| 빌드 성공 | ✅ 자동 | ✅ 자동 |
+| lint/타입체크 | ✅ 자동 | — |
+| 단위 테스트 | ✅ 자동 | ✅ 전체 |
+| API 엔드포인트 | ✅ 자동 | ✅ 전체 |
+| 수동 UI 테스트 | ⚠️ 수동 | ⚠️ 수동 |
+| 헬스체크 | — | ✅ 자동 |
 
 범례:
 - ✅ 자동: 에이전트가 자동 실행
@@ -208,7 +176,6 @@ git config core.hooksPath .githooks
 | 워크플로우 | 커밋 형식 | 예시 |
 |------------|-----------|------|
 | Sprint (Validator 커밋) | Conventional Commit (`feat:`, `fix:`) | `feat: [sprint-02] 기능 제목` |
-| Hotfix | Conventional Commit (`fix:`) | `fix: 핫픽스 설명` |
 
 > **[필수]** 커밋은 푸쉬 시점에 한 번만 한다. 작업 중간에 커밋하지 않는다.
 
@@ -246,14 +213,6 @@ feat: [{sprint-name}] {목표 요약}
 Sprint: {sprint-name}
 ```
 
-### Hotfix 커밋
-
-```
-fix: {핫픽스 설명}
-
-Hotfix: {브랜치명}
-```
-
 ---
 
 ## 8. 문서 구조
@@ -264,10 +223,17 @@ Hotfix: {브랜치명}
 ├── plan.md                             ← 기능 분석 결과 (Orchestrator 생성)
 ├── docs/STATUS.md                           ← 파이프라인 상태 (공유 상태 파일)
 ├── CLAUDE.md                           ← 코딩 원칙, 빌드 명령 (claude /init)
+├── CHANGELOG.md                        ← 전체 변경 이력 (Validator가 스프린트 종료 시 자동 업데이트)
 ├── .gitignore
+├── build.bat                           ← 빌드 스크립트 (debug/release)
+├── run_tests.bat                       ← DUnit 테스트 실행 스크립트
+│
+├── Tests/
+│   └── Source/                         ← 테스트 유닛 (.pas)
 │
 ├── sprints/
 │   ├── ROADMAP.md                      ← 전체 스프린트 로드맵
+│   ├── TECH_DEBT.md                    ← 누적 기술 부채 (Validator가 자동 집계)
 │   ├── sprint-01/
 │   │   ├── GOAL.md                     ← 구현 명세서 (Planner 생성)
 │   │   ├── DONE.md                     ← 완료 보고서 (Validator 생성)
@@ -275,9 +241,13 @@ Hotfix: {브랜치명}
 │   └── sprint-02/
 │       └── ...
 │
-├── CHANGELOG.md                        ← 전체 변경 이력 (Validator가 스프린트 종료 시 자동 업데이트)
+├── .githooks/
+│   └── commit-msg                      ← 커밋 메시지 형식 검증 hook
+│
 └── .claude/
     ├── settings.json                   ← 권한 설정
+    ├── hooks/
+    │   └── pretooluse-bash-guard.sh    ← bash 명령 가드 훅
     ├── agents/
     │   ├── orchestrator.md             ← PHASE 1~4.5
     │   ├── planner.md                  ← PHASE 5
@@ -286,17 +256,20 @@ Hotfix: {브랜치명}
     │   ├── deploy-prod.md              ← 프로덕션 배포
     │   └── commit-writer.md            ← 커밋 메시지 작성 (Validator가 호출)
     ├── commands/
-    │   ├── sprint-dev.md               ← Sprint 구현 오케스트레이터
-    │   ├── status.md                   ← /status — 현재 상태 요약
+    │   ├── prd.md                      ← /prd — PRD.md 생성
+    │   ├── sprint-dev.md               ← /sprint-dev — Sprint 구현 오케스트레이터
     │   ├── next.md                     ← /next — 다음 에이전트 안내
+    │   ├── status.md                   ← /status — 현재 상태 요약
     │   ├── rollback.md                 ← /rollback — PHASE 롤백
     │   ├── sprint-log.md               ← /sprint-log — 스프린트 종합 요약
-    │   └── debt.md                     ← /debt — Tech Debt 보고
+    │   ├── debt.md                     ← /debt — Tech Debt 보고
+    │   ├── branch.md                   ← /branch — 브랜치 생성
+    │   └── resolve.md                  ← /resolve — Redmine 이슈 Resolved 처리
     ├── skills/
     │   ├── redmine/SKILL.md            ← Redmine 이슈 조회 (orchestrator/planner에서 사용)
     │   └── commit-format/SKILL.md      ← YSR 커밋 메시지 형식 (commit-writer가 사용)
     └── rules/
-        ├── sprint-workflow.md          ← Sprint/Hotfix 워크플로우 보완 규칙
+        ├── sprint-workflow.md          ← Sprint 워크플로우 보완 규칙
         ├── coding-principles.md        ← 코딩 원칙 (paths 기반 자동 활성화)
         ├── delphi2007-patterns.md      ← Delphi 2007 구현 패턴 레퍼런스 (명시적 Read 필요)
         ├── encoding-critical.md        ← CP949 인코딩 보호 규칙 (항상 활성화)
@@ -347,7 +320,7 @@ Hotfix: {브랜치명}
 
 ### 9.4 종료 단계 (PHASE 9~10)
 
-1. **DONE.md 생성 + push + GitLab MR 안내** (PHASE 9)
+1. **DONE.md 생성 + push + GitLab MR 자동 생성** (PHASE 9)
 2. **다음 스프린트 전환** (PHASE 10)
    - CURRENT_SPRINT 업데이트 → PHASE 5로 복귀
 
@@ -363,15 +336,6 @@ Sprint 완료 (PHASE 10)
     → 사전 점검 (빌드, 테스트, 완료된 스프린트 확인)
     → push + GitLab MR 생성 안내
     → 배포 후 검증 가이드 제공
-```
-
-### Hotfix 배포
-
-```
-Hotfix 구현 완료
-  → deploy-prod 에이전트 실행 (또는 직접 git push + GitLab MR)
-    → push + GitLab MR 생성 안내
-    → 머지 후 역머지 안내
 ```
 
 ### 롤백
@@ -409,7 +373,7 @@ docs/STATUS.md를 읽고 현재 PHASE에 맞는 에이전트를 실행해줘.
 | `/sprint-log` | 현재 스프린트 종합 요약 | 스프린트 상태 파악 시 |
 | `/debt` | Tech Debt 종합 보고 | 기술 부채 점검 시 |
 | `/prd #{이슈번호}` | Redmine 이슈 → PRD 생성 → 브랜치 → 개발 착수 | 새 이슈 작업 시작 시 |
-| `/resolve {이슈번호}` | Redmine 이슈 Resolved 처리 | 스프린트/핫픽스 완료 후 |
+| `/resolve {이슈번호}` | Redmine 이슈 Resolved 처리 | 스프린트 완료 후 |
 | `redmine` 스킬 | Redmine 이슈 조회 | #이슈번호가 주어질 때 (orchestrator/planner 자동 사용) |
 | `commit-format` 스킬 | YSR 커밋 메시지 형식 | commit-writer가 자동 사용 |
 

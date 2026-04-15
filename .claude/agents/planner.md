@@ -116,9 +116,8 @@ color: blue
       - 수동 확인: N개
       - 예상 소요: 약 Nh
 
-      다음 단계: .claude/agents/implementer.md 실행
-      명령어: '.claude/agents/implementer.md와 docs/STATUS.md 읽고
-               sprints/{CURRENT_SPRINT}/GOAL.md 기준으로 구현 시작해줘'"
+      다음 단계: /sprint-dev 실행
+      명령어: '/sprint-dev'"
 
 5-7. docs/STATUS.md PHASE=6 업데이트
 ```
