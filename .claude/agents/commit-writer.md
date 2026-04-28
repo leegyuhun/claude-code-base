@@ -1,8 +1,8 @@
 ---
 name: commit-writer
-type: general-purpose
-model: opus
-description: YSR 프로젝트 스타일의 한국어 커밋 메시지를 작성하는 에이전트. Validator PHASE 9(스프린트 종료)에서 호출되며, commit-format 스킬 형식으로 커밋 메시지와 브랜치명을 생성한다.
+description: "YSR 프로젝트 스타일의 한국어 커밋 메시지를 작성하는 에이전트. Validator PHASE 9(스프린트 종료)에서 호출되며, commit-format 스킬 형식으로 커밋 메시지와 브랜치명을 생성한다.\n\n<example>\nContext: Validator가 스프린트 종료 시점에 호출.\nuser: (Validator 내부에서 subagent 호출)\nassistant: \"commit-writer 에이전트로 COMMIT_MESSAGE.md를 생성할게요.\"\n</example>"
+model: sonnet
+color: yellow
 ---
 
 # Commit Writer

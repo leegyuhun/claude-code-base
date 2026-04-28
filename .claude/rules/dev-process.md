@@ -95,7 +95,7 @@ docs/PRD.md 작성
 | implementer | 6 | 기능 구현 | opus |
 | validator | 7~10 | 검증, push + GitLab MR 자동 생성, 스프린트 전환 | sonnet |
 | deploy-prod | 독립 | 프로덕션 배포 | sonnet |
-| commit-writer | 독립 | 커밋 메시지 작성 (Validator PHASE 9에서 호출) | opus |
+| commit-writer | 독립 | 커밋 메시지 작성 (Validator PHASE 9에서 호출) | sonnet |
 
 ### 에이전트 호출 방법
 
@@ -237,7 +237,9 @@ Sprint: {sprint-name}
 │   ├── sprint-01/
 │   │   ├── GOAL.md                     ← 구현 명세서 (Planner 생성)
 │   │   ├── DONE.md                     ← 완료 보고서 (Validator 생성)
-│   │   └── OUT_OF_SCOPE.md             ← 범위 외 발견사항
+│   │   ├── OUT_OF_SCOPE.md             ← 범위 외 발견사항
+│   │   ├── FEEDBACK.md                 ← 검증 실패 시 수정 지시 (Validator 생성, 선택적)
+│   │   └── COMMIT_MESSAGE.md           ← 커밋 메시지 (commit-writer 생성)
 │   └── sprint-02/
 │       └── ...
 │

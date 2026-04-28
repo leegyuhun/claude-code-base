@@ -4,6 +4,8 @@ model: opus
 
 # /prd — PRD.md 생성
 
+<!-- model: opus — Redmine 이슈 분석(Phase 1 경로 A)의 요약·GAP 추론 품질을 보장하기 위해 opus 모델을 사용한다. 이 프론트매터는 변경하지 말 것. -->
+
 > orchestrator(PHASE 1)가 검증 없이 바로 통과할 수 있는 완성도 높은 PRD.md를 목표로 한다.
 > 구조화된 인터뷰 → GAP 분석 → 문서 생성 3단계로 진행한다.
 
@@ -44,6 +46,18 @@ model: opus
 ```
 
 ---
+
+## Phase 사전 검증
+
+```
+docs/STATUS.md가 존재하면 PHASE 값을 확인한다.
+PHASE가 5~10 (스프린트 진행 중)이면:
+  ⚠️ "현재 스프린트가 진행 중입니다 (PHASE={N}).
+   /prd 실행 시 새 PRD가 생성되어 기존 파이프라인과 충돌할 수 있습니다.
+   계속하시겠습니까? (예/아니오)"
+  → '아니오' → 종료
+  → '예' → 계속 진행 (기존 STATUS.md는 건드리지 않음)
+```
 
 ## Phase 0: 시작 안내
 
@@ -88,21 +102,64 @@ ISSUE_NUMBERS가 없으면:
 
 ### 경로 A — Redmine 이슈 기반 (ISSUE_NUMBERS 있을 때)
 
+> **모델:** 이 경로의 이슈 요약·GAP 추론·기술 분석은 opus 모델로 수행한다.
+> (커맨드 frontmatter `model: opus` 선언에 의해 자동 적용 — 임의 변경 금지)
+
 **1-A-1. 이슈 즉시 조회 (인터뷰 전)**
 
 `ISSUE_NUMBERS`가 있으면 인터뷰를 시작하기 전에 `redmine` 스킬로 전부 조회한다.
 여러 이슈면 공통 맥락을 추출한다.
 
-조회 후 분석 결과를 출력한다:
+조회 결과를 **원본 형식 그대로** 출력한다 (redmine 스킬 출력 형식 사용):
 
 ```
-📥 Redmine 이슈 분석 결과
+## Redmine 이슈 #{번호}
+
+**제목:** {subject}
+**상태:** {status} | **우선순위:** {priority}
+**담당자:** {assigned_to} | **버전:** {fixed_version}
+**카테고리:** {category}
+
+### 설명
+{description 전문}
+```
+
+---
+
+**1-A-2. 이슈 내용 확인 및 보완 [PAUSE]**
+
+이슈 원본을 출력한 직후 사용자에게 보완 기회를 준다:
+
+```
+─────────────────────────────────────────────
+위 이슈 내용에 추가하거나 수정할 내용이 있나요?
+  예) 누락된 배경·제약·완료 기준
+      이슈 설명의 오류·오해 정정
+      관련 화면·인접 기능 등 참고 정보
+
+→ 보완 내용을 입력하거나, 없으면 '없음' 입력
+─────────────────────────────────────────────
+```
+
+- 입력값을 `ADDITIONAL_CONTEXT`로 저장한다.
+- '없음' 입력 시 `ADDITIONAL_CONTEXT = ""` 로 두고 다음 단계로 진행한다.
+
+---
+
+**1-A-3. 자동 추출 및 기술 분석**
+
+자동 추출 대상 텍스트 = **이슈 description + ADDITIONAL_CONTEXT** 통합본.
+
+분석 결과를 출력한다:
+
+```
+📥 Redmine 이슈 분석 결과 {ADDITIONAL_CONTEXT가 있을 때: (※ 사용자 보완 메모 반영됨)}
 
 이슈: #{번호} — {제목}
 카테고리: {category} | 우선순위: {priority}
 
 자동 추출된 PRD 항목:
-  ✅ 핵심 문제: {이슈 설명에서 추출}
+  ✅ 핵심 문제: {이슈 설명 + ADDITIONAL_CONTEXT에서 추출}
   ✅ 대상 사용자: {담당자·카테고리 기반 추정}
   ✅ 핵심 기능: {설명에서 추출된 기능 목록}
   ⬜ 완료 기준: (이슈에서 확인 불가 — 확인 필요)
@@ -110,9 +167,7 @@ ISSUE_NUMBERS가 없으면:
   ⬜ 제외 범위: (명시 없음)
 ```
 
-**1-A-2. 기술 분석**
-
-이슈 내용 기반으로 Delphi/VCL 관점에서 분석한다:
+이어서 Delphi/VCL 관점으로 기술 분석한다:
 - 변경 예상 파일 목록 (.pas / .dfm)
 - 공유 유닛(`ComUnit/`, `Common/`, `CommonBL/`, `CommonV7/`) 변경 여부
 - DB 스키마 변경 여부
@@ -133,10 +188,12 @@ DB 변경: 있음 / 없음
 | {항목} | {내용} |
 ```
 
-**1-A-3. GAP만 질문**
+---
+
+**1-A-4. GAP만 질문**
 
 ✅ 항목은 건너뛰고, ⬜ 항목만 질문한다.
-(이슈 설명이 충분하면 완료 기준도 자동 추출 시도)
+(이슈 설명이 충분하거나 ADDITIONAL_CONTEXT로 보완된 항목도 ✅ 처리하여 생략)
 
 ```
 📋 추가 확인 (이슈에서 파악되지 않은 항목만)
@@ -227,103 +284,10 @@ GAP이 있으면:
 
 ## Phase 3: PRD.md 생성
 
-수집된 정보를 아래 템플릿으로 변환하여 `{PROJECT_PATH}/docs/{PRD_FILENAME}`에 저장한다.
+수집된 정보를 템플릿으로 변환하여 `{PROJECT_PATH}/docs/{PRD_FILENAME}`에 저장한다.
 
-**템플릿 작성 원칙:**
-- 각 섹션은 구체적이고 검증 가능하게 작성
-- "완료 기준 (MVP)"는 Validator의 검증 계약과 연결될 수 있도록 측정 가능하게
-- 우선순위(P0/P1/P2)는 orchestrator의 plan.md 기능 목록과 직결되므로 반드시 분류
-- 사용자가 "모른다"고 한 항목은 "[확인 필요]"로 표기
-
-```markdown
-# PRD: {PROJECT_NAME}
-
-> 작성일: {YYYY-MM-DD}
-> 범위: {PROJECT_PATH | "전체 프로젝트"}
-{Redmine 이슈가 있으면: > 관련 이슈: #{이슈번호} — {이슈 제목}}
-
----
-
-## 목적 & 배경
-
-{핵심 문제와 배경 설명 — 2~4문장}
-
----
-
-## 대상 사용자
-
-| 사용자 | 역할/특성 | 주요 니즈 |
-|--------|----------|----------|
-| {역할1} | {설명} | {니즈} |
-
----
-
-## 핵심 기능 및 요구사항
-
-### P0 — MVP 필수 (없으면 출시 불가)
-
-- **{기능명}**: {한 줄 설명}
-  - 상세: {구체적인 동작 기준}
-
-### P1 — 중요 (MVP 직후 추가)
-
-- **{기능명}**: {한 줄 설명}
-
-### P2 — 있으면 좋음 (여유 시 추가)
-
-- **{기능명}**: {한 줄 설명}
-
----
-
-## 완료 기준 (MVP)
-
-> 아래 기준을 모두 충족하면 MVP 완료로 간주한다.
-> Validator가 이 기준을 검증 계약으로 사용한다.
-
-- [ ] {측정 가능한 완료 기준 1} — (✅ 자동 / ⚠️ 수동)
-- [ ] {측정 가능한 완료 기준 2} — (✅ 자동 / ⚠️ 수동)
-
----
-
-## 성공 지표
-
-| 지표 | 현재 | 목표 | 측정 방법 |
-|------|------|------|----------|
-| {지표명} | {현재값} | {목표값} | {측정 방법} |
-
----
-
-## 제약 조건
-
-- **기술**: {기술 스택, 호환성, 버전 제약}
-- **일정**: {마감, 배포 주기}
-- **연동**: {외부 시스템, API, DB 제약}
-- **기타**: {권한, 보안, 규정 등}
-
----
-
-## 제외 범위 (v2 이후)
-
-> 이번 작업에서 **의도적으로 제외**하는 항목.
-
-- {제외 항목 1}: {이유}
-- {제외 항목 2}: {이유}
-
----
-
-## 기술 고려사항
-
-{CLAUDE.md 기반 또는 사용자 제공 기술 맥락}
-
-- 기술 스택: {언어, 프레임워크}
-- 주의사항: {레거시 코드, 공유 유닛, 인코딩 등}
-
----
-
-## 관련 레퍼런스
-
-{Redmine 이슈, 기존 유사 기능, 참고 화면 등}
-```
+**템플릿:** `.claude/templates/prd-format.md`를 읽어 섹션 구조와 작성 원칙을 따른다.
+수집된 정보로 `{...}` 자리표시자를 치환하여 최종 PRD.md를 생성한다.
 
 ---
 
@@ -357,14 +321,14 @@ ISSUE_NUMBERS 없을 때:
 
 **4-3. Redmine 상태 업데이트 (ISSUE_NUMBERS 있을 때만)**
 
-워크플로우: New(1) → Confirmed(11) → Assigned(10) → InProgress(2)
+워크플로우: New(1) → Confirmed(11)
 단계를 건너뛸 수 없으므로 현재 상태부터 순차 전환한다.
 
 ```
-전환 순서 맵: 1→11→10→2
-목표 상태: InProgress (status_id=2)
+전환 순서 맵: 1→11
+목표 상태: Confirmed (status_id=11)
 
-1. 현재 사용자 ID 조회 (Assigned 단계에 필요)
+1. 현재 사용자 ID 조회 (assigned_to_id 설정에 필요)
    MCP: 없음 → WebFetch GET https://redmine.ubware.com/users/current.json
    → user.id 추출하여 {MY_USER_ID} 로 저장
 
@@ -372,22 +336,16 @@ ISSUE_NUMBERS 없을 때:
    MCP: get_issue(issue_id={이슈번호})
    폴백: GET https://redmine.ubware.com/issues/{이슈번호}.json
 
-3. 현재 status_id에서 2까지 순서대로 호출
-   - 현재=1:  → 11(Confirmed) → 10(Assigned) → 2(InProgress)
-   - 현재=11: → 10(Assigned)  → 2(InProgress)
-   - 현재=10: → 2(InProgress)
-   - 현재=2:  생략
+3. 현재 status_id에서 11까지 순서대로 호출
+   - 현재=1:  → 11(Confirmed) with assigned_to_id
+   - 현재=11: 생략
 
-   ※ status_id=10(Assigned) 전환 시 assigned_to_id 필수:
-   MCP: update_issue(issue_id={이슈번호}, status_id=10, assigned_to_id={MY_USER_ID})
-   폴백: Body: {"issue": {"status_id": 10, "assigned_to_id": {MY_USER_ID}}}
-
-   그 외 단계는 status_id만:
-   MCP: update_issue(issue_id={이슈번호}, status_id={다음상태})
-   폴백: Body: {"issue": {"status_id": {다음상태}}}
+   ※ status_id=11(Confirmed) 전환 시 assigned_to_id 필수:
+   MCP: update_issue(issue_id={이슈번호}, status_id=11, assigned_to_id={MY_USER_ID})
+   폴백: Body: {"issue": {"status_id": 11, "assigned_to_id": {MY_USER_ID}}}
 ```
 
-성공: `✅ Redmine #{이슈번호} → 진행 중`
+성공: `✅ Redmine #{이슈번호} → 확인됨`
 실패: 무시하고 계속 진행
 
 ---

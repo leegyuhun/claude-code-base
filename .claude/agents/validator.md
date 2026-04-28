@@ -57,7 +57,26 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
            → 없으면 "✅ 날짜 하드코딩: 없음"
 
 7-2. 빌드 실행 (Delphi 2007)
-     build.bat debug
+
+     [빌드 대상 결정 — 아래 순서로 시도]
+
+     1) CLAUDE.md의 "## 빌드 & 실행" 섹션에 빌드 명령이 명시된 경우 → 해당 명령 그대로 사용
+
+     2) CLAUDE.md에 빌드 명령이 없으면 → 변경 파일 기반으로 .dproj 탐지:
+        BASE=$(git branch --show-current | sed 's/_sprint-[0-9]*//')
+        git diff $BASE...HEAD --name-only | head -1
+        → 변경된 .pas 파일이 속한 디렉토리에서 상위로 올라가며 .dproj 탐색
+        → 발견된 .dproj 경로를 DPROJ_PATH 로 저장
+
+     3) .dproj 탐지 실패 시 → [PAUSE]
+        "빌드 대상 .dproj를 찾지 못했습니다.
+         CLAUDE.md의 '## 빌드 & 실행' 섹션에 빌드 명령을 추가하거나
+         빌드할 .dproj 경로를 알려주세요."
+
+     [빌드 실행]
+     - CLAUDE.md 명령 사용 시: 해당 명령 실행
+     - .dproj 탐지 성공 시: build.bat debug (build.bat 내 DPROJ 환경변수 오버라이드)
+       set DPROJ={DPROJ_PATH} && build.bat debug
      → msbuild 컴파일 성공 여부 확인
      → 컴파일 에러: [Error] UnitName.pas(line): error message 형식 확인
 
@@ -66,12 +85,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      → 재시도 최대 3회
      → 3회 실패 시 [PAUSE] "빌드 실패, 확인 필요합니다"
 
-7-3. DUnit 테스트 실행
-     run_tests.bat
-     → Tests/Source/ 아래 테스트 유닛 있는 경우만
-     → 없으면 건너뜀
-
-7-4. GOAL.md 검증 계약 독립 검증
+7-3. GOAL.md 검증 계약 독립 검증
      GOAL.md의 "## 검증 계약" 항목을 읽고 Validator가 직접 판정:
      - 빌드 성공 여부 (자동 확인)
      - 각 기능별 완료 여부 → 관련 .pas/.dfm 파일 직접 읽어 확인
@@ -156,7 +170,18 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
       - '수정 필요: {내용}' → 해당 내용 수정 후 재검증"
 
 8-5. '통과' → docs/STATUS.md PHASE=9 업데이트
-8-6. '수정 필요' → 직접 수정 후 PHASE 7부터 재시도
+8-6. '수정 필요'
+     경미한 수정 → 직접 수정 후 docs/STATUS.md PHASE=7 업데이트 → PHASE 7부터 재시도
+     대규모 수정 (기능 누락, 구조 변경 필요) → FEEDBACK.md 생성 후 Implementer로 에스컬레이션:
+       sprints/{CURRENT_SPRINT}/FEEDBACK.md 생성 (7-7과 동일 형식)
+       docs/STATUS.md PHASE=6 으로 리셋
+       [PAUSE]
+       "대규모 수정 필요 — Implementer 재실행이 필요합니다.
+        아래 명령어를 실행하세요:
+
+        .claude/agents/implementer.md와 docs/STATUS.md를 읽고
+        sprints/{CURRENT_SPRINT}/FEEDBACK.md 기준으로 타겟 수정해줘.
+        FEEDBACK.md에 없는 항목은 수정하지 마."
 ```
 
 ---
@@ -232,16 +257,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
        GITLAB_HOST=$(echo $REMOTE_URL | sed 's|https://||' | cut -d'/' -f1)
        PROJECT_PATH=$(echo $REMOTE_URL | sed 's|https://[^/]*/||' | sed 's|\.git$||' | python3 -c "import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip(), safe=''))")
 
-     [방법 1] glab CLI 사용 (설치된 경우 우선 실행):
-       which glab > /dev/null 2>&1 && \
-       glab mr create \
-         --title "$MR_TITLE" \
-         --target-branch "$BASE_BRANCH" \
-         --description "$MR_DESC" \
-         --no-editor && \
-       echo "MR_CREATED_GLAB"
-
-     [방법 2] curl + GitLab API (GITLAB_TOKEN 환경변수 있는 경우):
+     [방법 1] curl + GitLab API (GITLAB_TOKEN 환경변수 있는 경우):
        [ -n "$GITLAB_TOKEN" ] && \
        MR_RESPONSE=$(curl --silent --fail --request POST \
          --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
@@ -256,6 +272,15 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
          }") && \
        MR_URL=$(echo $MR_RESPONSE | python3 -c "import sys,json; print(json.load(sys.stdin).get('web_url',''))") && \
        echo "MR_CREATED: $MR_URL"
+	   
+	 [방법 2] glab CLI 사용 :
+       which glab > /dev/null 2>&1 && \
+       glab mr create \
+         --title "$MR_TITLE" \
+         --target-branch "$BASE_BRANCH" \
+         --description "$MR_DESC" \
+         --no-editor && \
+       echo "MR_CREATED_GLAB"
 
      [방법 3] 두 방법 모두 실패 시 → 안내 출력:
        ─────────────────────────────────────────────

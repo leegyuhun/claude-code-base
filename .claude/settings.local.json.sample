@@ -20,6 +20,16 @@
             "statusMessage": "CP949 Edit 경고 검사 중..."
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pretooluse-bash-guard.sh",
+            "statusMessage": "Bash 위험 명령 검사 중..."
+          }
+        ]
       }
     ]
   },

@@ -1,7 +1,6 @@
 ---
 name: redmine
 description: Redmine 이슈를 실시간으로 조회한다. 이슈 번호를 받아 제목, 요구사항 설명, 담당자, 우선순위, 버전 정보를 가져온다. #이슈번호가 언급되면 반드시 이 스킬을 사용하라. orchestrator(PRD 분석·기능 목록 도출), planner(스프린트 계획·GOAL.md 작성), 기타 요구사항 파악이 필요한 모든 신규개발 단계에서 사용한다.
-model: opus
 ---
 
 # Redmine 이슈 조회 스킬
@@ -18,8 +17,8 @@ MCP 도구: get_issue
 **MCP 없을 때 폴백**: curl로 직접 호출.
 
 API 키 우선순위:
-1. 환경변수 `$REDMINE_API_KEY` (settings.json `env` 섹션에 설정됨)
-2. `.env` 파일 (프로젝트 루트 기준, 없으면 상위 탐색)
+1. 환경변수 `$REDMINE_API_KEY` (settings.local.json `env` 섹션에 설정됨)
+2. `.mcp.json` 파일 (프로젝트 루트 기준, 없으면 상위 탐색)
 
 ```bash
 curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" \
@@ -43,7 +42,7 @@ curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" \
 | 상황 | 처리 |
 |------|------|
 | MCP 도구 없음 | WebFetch 폴백으로 자동 전환 |
-| API 키 없음 (폴백 시) | "`$REDMINE_API_KEY` 환경변수 또는 `.env` 파일이 없습니다. settings.json `env` 섹션에 `REDMINE_API_KEY`를 설정하세요." 출력 후 중단 |
+| API 키 없음 (폴백 시) | "`$REDMINE_API_KEY` 환경변수 또는 `.mcp.json` 파일이 없습니다. settings.local.json `env` 섹션에 `REDMINE_API_KEY`를 설정하세요." 출력 후 중단 |
 | 401 Unauthorized | "API 키가 유효하지 않습니다. Redmine 계정의 API 키를 확인하세요." |
 | 404 Not Found | "이슈 #{번호}를 찾을 수 없습니다. 이슈 번호를 확인하세요." |
 | 네트워크 오류 | "Redmine 서버에 연결할 수 없습니다. 이슈 내용을 직접 붙여넣어 주세요." 출력 후, 코드 탐색만으로 진행 |

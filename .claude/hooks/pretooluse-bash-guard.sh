@@ -64,8 +64,8 @@ if echo "$COMMAND" | grep -qE 'git (checkout -b|switch -c)\s+'; then
   if [ -n "$BRANCH" ]; then
     # 허용 패턴 (하나라도 매칭 시 통과)
     ALLOWED=0
-    # 패턴 1: Redmine 이슈 — {연도}_{분류}_#{이슈번호}
-    echo "$BRANCH" | grep -qE '^[0-9]{4}_[^_]+_#[0-9]+$' && ALLOWED=1
+    # 패턴 1: Redmine 이슈 — {base}_#{이슈번호}  (예: main_delphi_#1234, 2026_정기5차_#207500)
+    echo "$BRANCH" | grep -qE '_#[0-9]+$' && ALLOWED=1
     # 패턴 2: Sprint — {base}_sprint-{NN}
     echo "$BRANCH" | grep -qE '_sprint-[0-9]+$' && ALLOWED=1
     # 패턴 3: Hotfix — {base}_hotfix_{영문소문자-숫자-하이픈}
@@ -74,7 +74,7 @@ if echo "$COMMAND" | grep -qE 'git (checkout -b|switch -c)\s+'; then
     if [ "$ALLOWED" -eq 0 ]; then
       block "브랜치 명명 규칙 위반: '$BRANCH'
   허용 패턴:
-    ✓ {연도}_{분류}_#{이슈번호}        예: 2026_정기5차_#207500
+    ✓ {base}_#{이슈번호}              예: main_delphi_#1234, 2026_정기5차_#207500
     ✓ {base}_sprint-{NN}              예: main_delphi_sprint-01
     ✓ {base}_hotfix_{영문소문자-설명}  예: main_delphi_hotfix_login-fix
   허용되지 않는 패턴:

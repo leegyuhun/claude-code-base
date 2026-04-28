@@ -7,7 +7,19 @@ color: red
 
 # deploy-prod.md — 프로덕션 배포 에이전트
 
-> 역할: 프로덕션 배포 전 사전 점검, push 후 GitLab MR 생성 안내, 배포 후 검증 가이드를 수행한다.
+> 역할: **feature/release 브랜치 → main 최종 배포**만 전담한다.
+> 사전 점검, release MR 안내, 배포 후 검증 가이드를 수행한다.
+
+## Validator와의 책임 경계 (중요)
+
+| 구분 | Validator (PHASE 9) | deploy-prod |
+|------|---------------------|-------------|
+| 대상 MR | **sprint MR**: `_sprint-NN` → base 브랜치(예: `main_delphi`) | **release MR**: feature/release 브랜치 → `main` |
+| 생성 방식 | glab / GitLab API 자동 생성 | 수동 안내(프로덕션은 사람이 확인 후 머지) |
+| 호출 시점 | 스프린트 종료마다 | 여러 스프린트 누적 후 배포 결정 시점 |
+
+deploy-prod는 Validator의 sprint MR들이 이미 base 브랜치에 머지된 상태를 전제로 한다.
+sprint MR 미완료 상태에서 deploy-prod가 호출되면 1-2 사전 점검에서 차단한다.
 
 ---
 
@@ -33,6 +45,10 @@ color: red
      - docs/STATUS.md에서 완료된 스프린트 확인
      - sprints/{CURRENT_SPRINT}/DONE.md 존재 확인
      - 미완료 스프린트가 포함되어 있지 않은지 확인
+     - **Sprint MR 머지 상태 확인**: 배포 대상 스프린트들의 브랜치가 모두 base 브랜치에 머지됐는지 확인
+       → 미머지 sprint MR 발견 시 [PAUSE]
+         "아직 머지되지 않은 sprint MR이 있습니다: {목록}
+          Validator 흐름을 먼저 완료하세요. deploy-prod는 최종 release MR만 담당합니다."
 
 1-3. 자동 검증 항목 확인
      - build.bat release 성공 여부
@@ -41,19 +57,22 @@ color: red
 1-4. 문제 발견 시 → [PAUSE] 사용자에게 보고
 ```
 
-### 2단계: push 후 GitLab MR 안내
+### 2단계: Release MR 안내 (feature/release → main)
+
+> Sprint MR은 Validator가 이미 처리했음. 이 단계는 **최종 배포를 위한 main 병합 MR**만 담당.
+> 프로덕션 변경이므로 자동 생성 대신 사람이 내용을 확인하도록 수동 안내를 출력한다.
 
 ```
 2-1. 브랜치 푸시 (아직 안 된 경우)
      git push -u origin {현재 브랜치}
 
-2-2. GitLab MR 생성 안내 출력
+2-2. Release MR 생성 안내 출력
      아래 내용을 그대로 출력하여 사용자가 GitLab에서 MR을 생성할 수 있도록 안내:
 
      ─────────────────────────────────────────────
-     GitLab MR 생성 안내
+     GitLab Release MR 생성 안내
 
-     Source branch : {현재 브랜치}
+     Source branch : {현재 브랜치}   # feature/release 브랜치 (예: main_delphi)
      Target branch : main
      Title         : release: {스프린트 목표 요약}
 
