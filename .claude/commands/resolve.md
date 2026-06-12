@@ -53,7 +53,7 @@ git diff를 읽어 현재 변경 내용을 파악한 뒤, 기획자·QA가 참�
 **해당 있을 때** 아래 질문을 한 번에 출력하고 응답을 기다린다:
 
 ```
-📝 Redmine 댓글 초안을 작성할게요. (빈칸은 생략됩니다)
+📝 Redmine 댓글 초안을 작성할게요.
 
 1. 수정/구현 내용 한 줄 요약
    (예: "환자 조회 시 삭제된 항목이 노출되던 문제 수정")
@@ -63,6 +63,8 @@ git diff를 읽어 현재 변경 내용을 파악한 뒤, 기획자·QA가 참�
 
 3. 주의사항 또는 특이사항
    (예: "기존 데이터 중 XX 케이스는 수동 확인 필요")
+
+4. 건너띔
 ```
 
 응답을 받으면 아래 형식으로 댓글 초안을 구성하여 출력한다:
@@ -89,27 +91,33 @@ git diff를 읽어 현재 변경 내용을 파악한 뒤, 기획자·QA가 참�
 
 ## Step 3.7 — 첨부파일 선택 [PAUSE]
 
-첨부할 파일을 선택합니다. (복수 선택 가능, 없으면 Enter)
+첨부할 파일을 선택합니다.
 
 ```
-📎 첨부 옵션 (번호를 쉼표로 구분, 없으면 Enter)
+📎 첨부 옵션
 
-  1. PRD.md — docs/PRD.md
+  1. PRD.md — docs/PRD_*.md (현재 이슈 PRD)
+  2. 첨부 없이 진행
 
-선택 (예: "1" 또는 Enter로 건너뜀):
+선택 (1 또는 2):
 ```
+
+- "1" → PRD.md 업로드 진행
+- "2" → `{UPLOAD_TOKENS}` 비움, 다음 단계로 진행
 
 선택이 있으면 각 파일을 Redmine에 업로드하여 토큰을 획득한다.
 
 **PRD.md 선택 시:**
-1. `docs/PRD.md` 존재 확인
-   - 없으면: "⚠️ docs/PRD.md 가 없습니다. 건너뜁니다." 출력 후 해당 항목 제외
+1. `.claude/ACTIVE_ISSUE`에서 이슈번호 확인 → `docs/PRD_{이슈번호}.md` 존재 확인
+   - 없으면 `docs/PRD_*.md` Glob으로 최신 PRD 파일 탐색
+   - 그래도 없으면: "⚠️ PRD 파일을 찾을 수 없습니다. 건너뜁니다." 출력 후 해당 항목 제외
+   - PRD_FILE = 발견된 파일 경로
 2. 존재하면 업로드:
    ```
    curl -s -X POST \
      -H "X-Redmine-API-Key: $REDMINE_API_KEY" \
      -H "Content-Type: application/octet-stream" \
-     --data-binary @docs/PRD.md \
+     --data-binary @{PRD_FILE} \
      "$REDMINE_URL/uploads.json"
    ```
    응답: `{"upload": {"token": "..."}}`
@@ -154,9 +162,11 @@ git diff를 읽어 현재 변경 내용을 파악한 뒤, 기획자·QA가 참�
    MCP: update_issue(issue_id={이슈번호}, status_id={다음상태})
    폴백: Body: {"issue": {"status_id": {다음상태}}}
 
-4. 2단계 응답의 issue.start_date 값을 확인한다:
-   - 값이 있으면(null·빈 문자열 아님) → {EXISTING_START_DATE} 로 저장, Resolved 전환 시 start_date 필드 생략
-   - 값이 없으면 → start_date 필드에 {start_date} 포함
+4. 날짜 필드 처리:
+   - start_date: 2단계 응답의 issue.start_date 값 확인
+     - 값이 있으면(null·빈 문자열 아님) → {EXISTING_START_DATE} 로 저장, Resolved 전환 시 start_date 필드 생략
+     - 값이 없으면 → start_date 필드에 {start_date} 포함
+   - due_date(완료일): 기존 값과 무관하게 항상 {due_date}(오늘)로 업데이트한다. 조건 없이 필수 포함.
 
    마지막으로 Resolved(3) + done_ratio/날짜 + 댓글 + 첨부파일 한 번에 전환
    ({NOTES}가 있으면 notes 필드 포함, 없으면 생략)
@@ -165,7 +175,8 @@ git diff를 읽어 현재 변경 내용을 파악한 뒤, 기획자·QA가 참�
    MCP: update_issue(issue_id={이슈번호}, status_id=3, done_ratio=100,
                      start_date="{start_date}",  ← EXISTING_START_DATE 없을 때만 포함
                      due_date="{due_date}",
-                     notes="{NOTES}")
+                     notes="{NOTES}",
+                     custom_fields=[{"id": 103, "value": "AI"}])
    폴백: curl -s -X PUT -H "X-Redmine-API-Key: $REDMINE_API_KEY" -H "Content-Type: application/json" \
          $REDMINE_URL/issues/{이슈번호}.json
          Body: {
@@ -175,7 +186,8 @@ git diff를 읽어 현재 변경 내용을 파악한 뒤, 기획자·QA가 참�
              "start_date": "{start_date}",  ← EXISTING_START_DATE 없을 때만 포함
              "due_date": "{due_date}",
              "notes": "{NOTES}",
-             "uploads": [{UPLOAD_TOKENS}]
+             "uploads": [{UPLOAD_TOKENS}],
+             "custom_fields": [{"id": 103, "value": "AI"}]
            }
          }
 ```

@@ -23,11 +23,20 @@ sprint MR 미완료 상태에서 deploy-prod가 호출되면 1-2 사전 점검�
 
 ---
 
+## 워크스페이스 해석 (항상 먼저 수행)
+
+```
+1. .claude/ACTIVE_ISSUE 읽기 → ACTIVE_ISSUE 값 획득
+2. 없으면 git branch --show-current 출력에서 #(\d+) 추출
+3. 모두 실패 시 → .claude/rules/active-issue.md의 3단계 메시지 출력 후 종료
+4. WORKSPACE_DIR = workspace/{ACTIVE_ISSUE}
+5. STATUS_FILE = {WORKSPACE_DIR}/STATUS.md
+```
+
 ## 실행 명령
 
 ```
-.claude/agents/deploy-prod.md와 docs/STATUS.md를 읽고
-프로덕션 배포를 진행해줘.
+.claude/agents/deploy-prod.md를 읽고 프로덕션 배포를 진행해줘.
 ```
 
 ---
@@ -42,8 +51,8 @@ sprint MR 미완료 상태에서 deploy-prod가 호출되면 1-2 사전 점검�
      git diff main...HEAD --stat
 
 1-2. 배포 대상 확인
-     - docs/STATUS.md에서 완료된 스프린트 확인
-     - sprints/{CURRENT_SPRINT}/DONE.md 존재 확인
+     - {STATUS_FILE}에서 완료된 스프린트 확인
+     - {WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/DONE.md 존재 확인
      - 미완료 스프린트가 포함되어 있지 않은지 확인
      - **Sprint MR 머지 상태 확인**: 배포 대상 스프린트들의 브랜치가 모두 base 브랜치에 머지됐는지 확인
        → 미머지 sprint MR 발견 시 [PAUSE]
@@ -131,9 +140,9 @@ sprint MR 미완료 상태에서 deploy-prod가 호출되면 1-2 사전 점검�
       📋 다음 단계:
       1. GitLab에서 MR 생성 후 리뷰 및 main 머지
       2. 배포 완료 후 검증 체크리스트 수행
-      3. 문제 없으면 docs/STATUS.md 업데이트"
+      3. 문제 없으면 {STATUS_FILE} 업데이트"
 
-4-2. docs/STATUS.md 업데이트
+4-2. {STATUS_FILE} 업데이트
      - LAST_BRANCH 기록
      - DEPLOY_STATUS=done 추가
      - PHASE는 변경하지 않음 (Validator가 이미 처리)

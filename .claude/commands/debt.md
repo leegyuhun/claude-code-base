@@ -1,5 +1,13 @@
 # /debt — Tech Debt 종합 보고
 
+## 워크스페이스 해석
+
+1. `.claude/ACTIVE_ISSUE` 읽기 → ACTIVE_ISSUE 값 획득
+2. 없으면 `git branch --show-current` 출력에서 `#(\d+)` 추출 (폴백)
+3. 모두 실패 시 → "`⚠️ 활성 이슈를 확인할 수 없습니다.`" 출력 후 종료
+
+WORKSPACE_DIR = `workspace/{ACTIVE_ISSUE}`
+
 프로젝트 전체의 기술 부채를 수집하고 요약해줘.
 
 ## 수집 대상
@@ -10,12 +18,15 @@
    - 파일 경로, 라인 번호, 내용 포함
 
 2. **OUT_OF_SCOPE.md 수집**
-   - sprints/*/OUT_OF_SCOPE.md 파일 전체 읽기
+   - {WORKSPACE_DIR}/sprints/*/OUT_OF_SCOPE.md 파일 전체 읽기
    - 스프린트별로 그룹핑
 
 3. **DONE.md Tech Debt 섹션**
-   - sprints/*/DONE.md에서 "Tech Debt" 섹션 추출
+   - {WORKSPACE_DIR}/sprints/*/DONE.md에서 "Tech Debt" 섹션 추출
    - 스프린트별로 그룹핑
+
+4. **TECH_DEBT.md 중앙 집계**
+   - {WORKSPACE_DIR}/sprints/TECH_DEBT.md 읽기 (있는 경우)
 
 ## 출력 형식
 
@@ -23,6 +34,7 @@
 ┌──────────────────────────────────────┐
 │ Tech Debt 종합 보고                  │
 │                                      │
+│ 이슈:    {ACTIVE_ISSUE}              │
 │ TODO 주석: N개                       │
 │ 범위 외 사항: N개                    │
 │ 누적 Tech Debt: N개                  │
@@ -31,7 +43,7 @@
 ## TODO 주석 (코드 내)
 | 파일 | 라인 | 내용 |
 |------|------|------|
-| src/foo.ts | 42 | [tech-debt] 임시 하드코딩 |
+| src/foo.pas | 42 | [tech-debt] 임시 하드코딩 |
 | ...  | ...  | ...  |
 
 ## 범위 외 발견사항 (OUT_OF_SCOPE.md)

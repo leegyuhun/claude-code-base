@@ -1,5 +1,5 @@
 ---
-paths: []
+paths: ["**/*.pas", "**/*.dfm"]
 description: "Delphi 2007 구현 패턴 레퍼런스 — 코딩 방법이 막힐 때 참조. coding-principles.md가 규칙을, 이 파일은 구체적 코드 예시를 제공한다."
 ---
 

@@ -13,11 +13,45 @@ color: green
 
 ---
 
+## 워크스페이스 해석
+
+```
+[워크스페이스 해석]
+1. .claude/ACTIVE_ISSUE 읽기
+2. ACTIVE_ISSUE 값이 없으면 git 브랜치에서 추출
+3. 모두 실패 시 → 사용자 안내 후 종료
+4. WORKSPACE_DIR = workspace/{ACTIVE_ISSUE}
+5. STATUS_FILE = {WORKSPACE_DIR}/STATUS.md
+6. workspace/{ACTIVE_ISSUE}/ 디렉토리 없으면 생성
+```
+
+---
+
+## TRACK 변수 정의 (워크스페이스 해석 직후)
+
+STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
+
+**TRACK=sprint (또는 미지정):**
+- `GOAL_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/GOAL.md`
+- `DONE_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/DONE.md`
+- `FEEDBACK_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/FEEDBACK.md`
+- `OUT_OF_SCOPE_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md`
+- `TECH_DEBT_FILE` = `{WORKSPACE_DIR}/sprints/TECH_DEBT.md`
+
+**TRACK=defect:**
+- `GOAL_FILE` = `docs/PRD_{ACTIVE_ISSUE}.md` (PRD의 `## 검증 계약` 섹션을 체크리스트로 사용)
+- `DONE_FILE` = `{WORKSPACE_DIR}/DONE.md`
+- `FEEDBACK_FILE` = `{WORKSPACE_DIR}/FEEDBACK.md`
+- `OUT_OF_SCOPE_FILE` = `{WORKSPACE_DIR}/OUT_OF_SCOPE.md`
+- `TECH_DEBT_FILE` = `{WORKSPACE_DIR}/TECH_DEBT.md`
+
+---
+
 ## 실행 명령
 
 ```
-.claude/agents/validator.md와 docs/STATUS.md를 읽고
-sprints/{CURRENT_SPRINT} 검증을 시작해줘.
+.claude/agents/validator.md와 {STATUS_FILE}를 읽고
+{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 [PAUSE] 지점에서 멈추고 내 확인을 기다려.
 ```
 
@@ -31,8 +65,8 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
 ```
 7-1. 읽을 파일
-     - docs/STATUS.md
-     - sprints/{CURRENT_SPRINT}/GOAL.md
+     - {STATUS_FILE}
+     - {GOAL_FILE} (TRACK=defect면 PRD의 `## 검증 계약` 섹션을 체크리스트로 사용)
      - CLAUDE.md (빌드 명령 확인용)
 
 7-1.5. 사전 자동 검사 (빌드 전)
@@ -85,35 +119,51 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      → 재시도 최대 3회
      → 3회 실패 시 [PAUSE] "빌드 실패, 확인 필요합니다"
 
-7-3. GOAL.md 검증 계약 독립 검증
-     GOAL.md의 "## 검증 계약" 항목을 읽고 Validator가 직접 판정:
+7-3. 검증 계약 독립 검증
+     `{GOAL_FILE}`의 `## 검증 계약` 항목을 읽고 Validator가 직접 판정:
      - 빌드 성공 여부 (자동 확인)
      - 각 기능별 완료 여부 → 관련 .pas/.dfm 파일 직접 읽어 확인
-     - 완료 확인된 항목만 GOAL.md에서 [ ] → [x] 전환
+     - 완료 확인된 항목만 `{GOAL_FILE}`에서 [ ] → [x] 전환
      (Implementer의 자체 선언이 아닌 독립 검증 결과로 체크)
+     TRACK=defect: PRD 체크박스 업데이트. sprints/*/GOAL.md는 탐색하지 않는다.
 
-7-5. 코드 리뷰 채점표 출력
-     dev-process.md §6 코드 리뷰 체크리스트 기준으로 변경 파일 검토:
-     ┌──────────────────────────────────────┐
-     │ 📊 코드 리뷰 채점표                  │
-     │ Critical (배포 차단): N건            │
-     │ High (수정 권장): N건                │
-     │   예: TDataSet.State 미체크          │
-     │ Medium (기록): N건                   │
-     │ 판정: PASS / PASS (수정 후) / FAIL   │
-     └──────────────────────────────────────┘
+7-4. 코드 리뷰 Subagent 디스패치
+     > 참조: `.claude/skills/requesting-code-review/SKILL.md`
 
-7-6. 자동 검증 항목:
+     1. Git SHA 확보:
+        BASE_SHA=$(git merge-base HEAD master)   — 스프린트 브랜치 분기점
+        HEAD_SHA=$(git rev-parse HEAD)
+
+     2. code-reviewer subagent 디스패치:
+        `.claude/skills/requesting-code-review/code-reviewer.md` 템플릿 사용
+        subagent_type: general-purpose
+        description: "코드 리뷰 — {현재 브랜치명}"
+        {DESCRIPTION}: {GOAL.md 제목 + 구현 항목 목록 요약}
+        {PLAN_OR_REQUIREMENTS}: {GOAL.md 검증 계약 섹션 전문}
+        {BASE_SHA}: 위에서 확보한 값
+        {HEAD_SHA}: 위에서 확보한 값
+
+     3. 결과 수집 및 요약 출력:
+        ┌──────────────────────────────────────┐
+        │ 📊 코드 리뷰 결과                    │
+        │ Critical (배포 차단): N건            │
+        │ High (수정 권장): N건                │
+        │ Medium (기록): N건                   │
+        │ 판정: PASS / PASS (수정 후) / FAIL   │
+        └──────────────────────────────────────┘
+
+7-5. 자동 검증 항목:
      ✅ build.bat 컴파일 성공 (0 오류)
      ✅ DUnit 테스트 통과 (Tests/Source/ 있는 경우)
      ✅ GOAL.md 검증 계약 항목 독립 검증
      ✅ 코드 리뷰 채점 (Critical 0건, High 0건 이어야 통과)
      ⚠️ 런타임 동작 확인은 수동 테스트(PHASE 8)에서
 
-7-7. 실패 항목 있으면
-     → 명백한 수정사항(빌드 오류, High 이하 코드 리뷰 지적)이면 직접 수정 후 재검증
+7-6. 실패 항목 있으면
+     → 빌드 오류 발생 시 → `.claude/skills/systematic-debugging/SKILL.md` Phase 1 ~ 4 절차 적용 후 수정 (증상만 보고 즉흥 패치 금지)
+     → High 이하 코드 리뷰 지적이면 직접 수정 후 재검증
      → 구조적 문제(Critical 코드 리뷰, 기능 미구현)이면:
-       sprints/{CURRENT_SPRINT}/FEEDBACK.md 생성:
+       `{FEEDBACK_FILE}` 생성:
 
        # Validator 피드백 — 검증 실패
 
@@ -126,16 +176,16 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
        ## 통과 항목 (재검증 불필요)
        - {통과된 항목 목록}
 
-       docs/STATUS.md PHASE=6 으로 리셋
+       {STATUS_FILE} PHASE=6 으로 리셋
        [PAUSE]
        "Implementer 재실행 필요 — FEEDBACK.md 확인 후 타겟 수정
         아래 명령어를 실행하세요:
 
-        .claude/agents/implementer.md와 docs/STATUS.md를 읽고
-        sprints/{CURRENT_SPRINT}/FEEDBACK.md 기준으로 타겟 수정해줘.
+        .claude/agents/implementer.md와 {STATUS_FILE}를 읽고
+        {FEEDBACK_FILE} 기준으로 타겟 수정해줘.
         FEEDBACK.md에 없는 항목은 수정하지 마."
 
-7-8. 전체 통과 → docs/STATUS.md PHASE=8 업데이트
+7-7. 전체 통과 → {STATUS_FILE} PHASE=8 업데이트
 ```
 
 ---
@@ -143,8 +193,9 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 ### PHASE 8 — Sprint 확인 [PAUSE]
 
 ```
-8-1. GOAL.md에서 ⚠️ 수동 확인 필요 항목 추출
-8-2. GOAL.md의 수동 테스트 시나리오 참조
+8-1. `{GOAL_FILE}`에서 ⚠️ 수동 확인 필요 항목 추출
+8-2. `{GOAL_FILE}`의 `## 수동 테스트 시나리오` 섹션 참조
+     (TRACK=defect: PRD의 `## 수동 테스트 시나리오` 섹션 직접 사용)
 
 8-3. 수동 테스트 가이드 출력
      ┌──────────────────────────────────────────┐
@@ -165,22 +216,22 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      └──────────────────────────────────────────┘
 
 8-4. [PAUSE]
-     "Output\Debug\ 에서 EXE를 직접 실행하여 테스트해주세요.
+     "C:\YsrOutput\Exe\ 에서 EXE를 직접 실행하여 테스트해주세요.
       - '통과' → PR 생성으로 진행
       - '수정 필요: {내용}' → 해당 내용 수정 후 재검증"
 
-8-5. '통과' → docs/STATUS.md PHASE=9 업데이트
+8-5. '통과' → {STATUS_FILE} PHASE=9 업데이트
 8-6. '수정 필요'
-     경미한 수정 → 직접 수정 후 docs/STATUS.md PHASE=7 업데이트 → PHASE 7부터 재시도
+     경미한 수정 → 직접 수정 후 {STATUS_FILE} PHASE=7 업데이트 → PHASE 7부터 재시도
      대규모 수정 (기능 누락, 구조 변경 필요) → FEEDBACK.md 생성 후 Implementer로 에스컬레이션:
-       sprints/{CURRENT_SPRINT}/FEEDBACK.md 생성 (7-7과 동일 형식)
-       docs/STATUS.md PHASE=6 으로 리셋
+       `{FEEDBACK_FILE}` 생성 (7-6과 동일 형식)
+       {STATUS_FILE} PHASE=6 으로 리셋
        [PAUSE]
        "대규모 수정 필요 — Implementer 재실행이 필요합니다.
         아래 명령어를 실행하세요:
 
-        .claude/agents/implementer.md와 docs/STATUS.md를 읽고
-        sprints/{CURRENT_SPRINT}/FEEDBACK.md 기준으로 타겟 수정해줘.
+        .claude/agents/implementer.md와 {STATUS_FILE}를 읽고
+        {FEEDBACK_FILE} 기준으로 타겟 수정해줘.
         FEEDBACK.md에 없는 항목은 수정하지 마."
 ```
 
@@ -190,7 +241,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
 ```
 9-1. DONE.md 생성
-     경로: sprints/{CURRENT_SPRINT}/DONE.md
+     경로: `{DONE_FILE}` (TRACK=sprint: `sprints/{CURRENT_SPRINT}/DONE.md` / TRACK=defect: `{WORKSPACE_DIR}/DONE.md`)
 
      # {CURRENT_SPRINT} 완료 보고
 
@@ -216,28 +267,39 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
        ### 기술 부채
        - OUT_OF_SCOPE.md 항목 요약
 
-9-3. sprints/TECH_DEBT.md 업데이트
+9-3. `{TECH_DEBT_FILE}` 업데이트
      - 없으면 새로 생성
-     - OUT_OF_SCOPE.md의 항목과 TODO 주석 목록을 아래 형식으로 추가:
-       | 항목 | 출처 스프린트 | 우선순위 | 처리 스프린트 |
-       | ---- | ------------ | -------- | ------------ |
-       | ...  | {CURRENT_SPRINT} | P1/P2 | -      |
+     - `{OUT_OF_SCOPE_FILE}`의 항목과 TODO 주석 목록을 아래 형식으로 추가:
+       | 항목 | 출처 | 우선순위 | 처리 예정 |
+       | ---- | ---- | -------- | -------- |
+       | ...  | {CURRENT_SPRINT 또는 defect/#이슈번호} | P1/P2 | - |
      - 이미 처리된 항목은 ✅ 표시 후 행 유지
 
 9-4. 커밋 메시지 생성 (commit-writer 호출)
-     commit-writer를 스프린트 모드로 호출:
+     TRACK 값에 따라 commit-writer 호출:
 
+     TRACK=sprint:
      Agent({
        subagent_type: "commit-writer",
        prompt: ".claude/agents/commit-writer.md와 .claude/skills/commit-format/SKILL.md를 읽고
                 스프린트 모드로 커밋 메시지를 작성해줘.
                 mode: sprint
                 sprint_name: {CURRENT_SPRINT}
-                GOAL.md: sprints/{CURRENT_SPRINT}/GOAL.md
-                DONE.md: sprints/{CURRENT_SPRINT}/DONE.md"
+                GOAL.md: {GOAL_FILE}
+                DONE.md: {DONE_FILE}"
      })
 
-     commit-writer가 sprints/{CURRENT_SPRINT}/COMMIT_MESSAGE.md에 저장한 메시지로 커밋:
+     TRACK=defect:
+     Agent({
+       subagent_type: "commit-writer",
+       prompt: ".claude/agents/commit-writer.md와 .claude/skills/commit-format/SKILL.md를 읽고
+                defect 모드로 커밋 메시지를 작성해줘.
+                mode: defect
+                PRD.md: docs/PRD_{ACTIVE_ISSUE}.md
+                DONE.md: {DONE_FILE}"
+     })
+
+     commit-writer가 `{WORKSPACE_DIR}/COMMIT_MESSAGE.md`에 저장한 메시지로 커밋:
      git add .
      git commit -m "$(COMMIT_MESSAGE.md의 '## 커밋 메시지' 섹션)"
 
@@ -248,10 +310,24 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
      git push -u origin $(git branch --show-current)
 
 9-6. GitLab MR 자동 생성
+
+     [라벨 설정 — 최초 1회만]
+     GITLAB_LABEL 환경변수 확인:
+     - 설정된 경우 → 그 값을 MR_LABEL 로 사용
+     - 없는 경우 → [PAUSE] 인터뷰:
+       "GitLab MR에 등록할 팀 라벨을 선택해주세요.
+        1) 의사랑전략개발팀
+        2) 의사랑운영개발팀"
+
+       선택 결과를 .claude/settings.local.json 의 env 섹션에 저장:
+         "GITLAB_LABEL": "{선택한 라벨명}"
+       이후 MR_LABEL={선택한 라벨명} 으로 사용
+
      다음 변수를 먼저 준비:
        CURRENT_BRANCH=$(git branch --show-current)
        BASE_BRANCH 는 9-5에서 결정된 값
-       MR_TITLE="[{CURRENT_SPRINT}] {GOAL.md 첫 번째 목표 줄 요약}"
+       MR_TITLE="fix #{Redmine 이슈번호} {Redmine 일감 제목} - {CURRENT_SPRINT}"
+       (이슈번호/제목은 GOAL.md 또는 COMMIT_MESSAGE.md에서 추출; 없으면 제목만 "fix {DONE.md 한줄 요약} - {CURRENT_SPRINT}")
        MR_DESC (DONE.md 완료된 기능 목록 기반 Markdown)
        REMOTE_URL=$(git remote get-url origin)
        GITLAB_HOST=$(echo $REMOTE_URL | sed 's|https://||' | cut -d'/' -f1)
@@ -268,17 +344,19 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
            \"target_branch\": \"$BASE_BRANCH\",
            \"title\": \"$MR_TITLE\",
            \"description\": \"$MR_DESC\",
+           \"labels\": \"$MR_LABEL\",
            \"remove_source_branch\": false
          }") && \
        MR_URL=$(echo $MR_RESPONSE | python3 -c "import sys,json; print(json.load(sys.stdin).get('web_url',''))") && \
        echo "MR_CREATED: $MR_URL"
-	   
-	 [방법 2] glab CLI 사용 :
+
+     [방법 2] glab CLI 사용:
        which glab > /dev/null 2>&1 && \
        glab mr create \
          --title "$MR_TITLE" \
          --target-branch "$BASE_BRANCH" \
          --description "$MR_DESC" \
+         --label "$MR_LABEL" \
          --no-editor && \
        echo "MR_CREATED_GLAB"
 
@@ -289,6 +367,7 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
        Source branch : {CURRENT_BRANCH}
        Target branch : {BASE_BRANCH}
        Title         : {MR_TITLE}
+       Labels        : {MR_LABEL}
 
        Description 본문 (복사하여 사용):
 
@@ -324,13 +403,13 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
       머지 완료 후 '머지완료'를 입력해주세요."
 
 9-8. '머지완료' 입력 시
-     docs/STATUS.md 업데이트:
+     {STATUS_FILE} 업데이트:
      - 해당 스프린트 상태 → ✅ 완료
      - LAST_COMMIT, LAST_BRANCH 기록
      - PHASE=10
 
 9-8.5. Redmine 이슈 Resolved 안내
-     GOAL.md 또는 sprints/{CURRENT_SPRINT}/COMMIT_MESSAGE.md에서
+     GOAL.md 또는 {WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/COMMIT_MESSAGE.md에서
      이슈 번호(#NNNNN 패턴) 추출 시도.
 
      이슈 번호 발견 시:
@@ -344,9 +423,29 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
 
 ---
 
-### PHASE 10 — 다음 Sprint 진행
+### PHASE 10 — 다음 Sprint 진행 (또는 Defect 완료)
 
 ```
+TRACK 값에 따라 분기:
+
+─── TRACK=defect ───────────────────────────────────────────
+
+10-D. Defect 트랙 완료
+      "✅ Defect 트랙 완료! (#ACTIVE_ISSUE)
+
+       완료된 수정:
+       - {DONE_FILE}의 ## 완료된 기능 목록
+
+       Redmine 이슈를 Resolved 처리하시겠습니까?
+       → /resolve {ACTIVE_ISSUE}
+
+       프로덕션 배포가 필요하면:
+       → .claude/agents/deploy-prod.md를 읽고 배포를 진행해줘."
+
+      {STATUS_FILE} PHASE=10 으로 유지 (종료, 다음 스프린트 없음)
+
+─── TRACK=sprint (또는 미지정) ──────────────────────────────
+
 10-1. 전체 진행 현황 출력
       ✅ sprint-01 완료
       🔄 sprint-02 진행 예정
@@ -358,18 +457,18 @@ sprints/{CURRENT_SPRINT} 검증을 시작해줘.
       "🎉 모든 스프린트 완료! MVP 달성" 출력 후 종료
 
       신규 요구사항이 생기면:
-      명령어: '.claude/agents/orchestrator.md와 docs/STATUS.md 읽고 PHASE 11 실행해줘'
+      명령어: '.claude/agents/orchestrator.md와 {STATUS_FILE} 읽고 PHASE 11 실행해줘'
 
 10-4. 다음 스프린트 있으면
-      docs/STATUS.md 업데이트:
+      {STATUS_FILE} 업데이트:
       - CURRENT_SPRINT → 다음 스프린트
       - PHASE=5
 
       [PAUSE]
       "다음 {NEXT_SPRINT}를 시작하려면 아래 명령어를 실행하세요:
 
-      '.claude/agents/planner.md와 docs/STATUS.md 읽고
-       sprints/{NEXT_SPRINT}/GOAL.md 작성해줘'"
+      '.claude/agents/planner.md와 {STATUS_FILE} 읽고
+       {WORKSPACE_DIR}/sprints/{NEXT_SPRINT}/GOAL.md 작성해줘'"
 ```
 
 ---

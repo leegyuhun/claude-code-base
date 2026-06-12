@@ -1,9 +1,8 @@
 ---
 paths:
-  - "sprints/**"
-  - "docs/STATUS.md"
-  - "docs/PRD.md"
-  - "plan.md"
+  - "workspace/**"
+  - "docs/PRD_*.md"
+  - ".claude/ACTIVE_ISSUE"
 ---
 
 # 개발 프로세스
@@ -16,11 +15,16 @@ paths:
 ## 1. 프로젝트 라이프사이클
 
 ```
-docs/PRD.md 작성
+/prd [#이슈번호 | 인자 없음 → 임시 ID 입력 받음]
+  → TRACK 자동 판정 (Defect/Sprint) + [PAUSE] 확정 → STATUS.md에 TRACK 기록
+  → .claude/ACTIVE_ISSUE 갱신 + workspace/{ACTIVE_ISSUE}/ 생성 + docs/PRD_*.md 생성
+  (ACTIVE_ISSUE = `#NNNNNN` 이슈번호 또는 `exp_login` 같은 임시 ID — 자세한 규칙은 active-issue.md)
+
+[Sprint 트랙 — TRACK=sprint]
   → Orchestrator (PHASE 1~4.5)
-    → PRD 분석 → plan.md → ROADMAP.md → 프로젝트 초기화
+    → PRD 분석 → workspace/#이슈번호/plan.md → ROADMAP.md → 프로젝트 초기화
   → Planner (PHASE 5)
-    → sprints/{sprint}/GOAL.md 생성
+    → workspace/#이슈번호/sprints/{sprint}/GOAL.md 생성
   → Implementer (PHASE 6)
     → GOAL.md 기준 구현
   → Validator (PHASE 7~10)
@@ -29,6 +33,11 @@ docs/PRD.md 작성
     → 프로덕션 배포
   → Orchestrator (PHASE 11) — MVP 이후 신규 요구사항
     → PRD 재분석 → ROADMAP.md 갱신 → PHASE 5로 재진입
+
+[Defect 트랙 — TRACK=defect]
+  → Implementer (PHASE 6, PRD `## 검증 계약` 기준)
+  → Validator (PHASE 7~9)
+    → 검증 → 수동 테스트 → push + GitLab MR 자동 생성 → 종료
 ```
 
 ### 전체 흐름도
@@ -48,19 +57,34 @@ docs/PRD.md 작성
 └─────────┘    └─────────┘    └─────────┘    └──────────┘    └──────────┘    └──────────┘
                     │                                                               ▲
                     └── PHASE 5로 반복 ─────────────────────────────────────────────┘
+
+MVP 완료 후 신규 요구사항 발생 시:
+  Orchestrator (PHASE 11 Re-plan) → ROADMAP.md 갱신 → PHASE 5로 재진입
+
+[Defect 트랙] PRD → Implementer (PHASE 6) → Validator (PHASE 7→8→9) → 종료
+              Orchestrator·Planner·ROADMAP·GOAL 생략, PRD `## 검증 계약`이 GOAL 대체
+              (판정 기준 → sprint-workflow.md "트랙 정의" 섹션)
 ```
 
 ---
 
 ## 2. Sprint 프로세스
 
-모든 작업(버그 수정, 기능 추가, 개선)은 Sprint 프로세스로 처리합니다.
+작업의 규모와 성격에 따라 **Sprint 트랙** 또는 **Defect 트랙**으로 처리합니다.
+트랙 판정 기준은 `sprint-workflow.md`의 "트랙 정의" 섹션을 참조하세요.
 
+**Sprint 트랙:**
 ```
 1. Planner → GOAL.md 생성 (PHASE 5)
 2. Implementer → 구현 (PHASE 6)
 3. Validator → 검증 + push + GitLab MR 자동 생성 (PHASE 7~10)
 4. deploy-prod → 프로덕션 배포
+```
+
+**Defect 트랙 (경량):**
+```
+1. Implementer → PRD 기준 구현 (PHASE 6)
+2. Validator → 검증 + push + GitLab MR 자동 생성 (PHASE 7~9) → 종료
 ```
 
 ---
@@ -80,6 +104,7 @@ docs/PRD.md 작성
 | 이슈 베이스 | `{현재브랜치}_#{이슈번호}` | `main_delphi_#1234` |
 | 스프린트 (이슈 있음) | `{현재브랜치}_#{이슈번호}_{CURRENT_SPRINT}` | `main_delphi_#1234_sprint-01` |
 | 스프린트 (이슈 없음) | `{현재브랜치}_{CURRENT_SPRINT}` | `main_delphi_sprint-01` |
+| 임시 작업 | `{현재브랜치}_{임시ID}` | `main_delphi_exp_login` |
 | 메인 | `main` | — |
 
 ---
@@ -88,22 +113,22 @@ docs/PRD.md 작성
 
 ### 에이전트별 역할
 
-| 에이전트 | PHASE | 역할 | 모델 |
-|----------|-------|------|------|
-| orchestrator | 1~4.5 | PRD 분석, plan.md, ROADMAP.md, 초기화 | opus |
-| planner | 5 | GOAL.md 작성 | opus |
-| implementer | 6 | 기능 구현 | opus |
-| validator | 7~10 | 검증, push + GitLab MR 자동 생성, 스프린트 전환 | sonnet |
-| deploy-prod | 독립 | 프로덕션 배포 | sonnet |
-| commit-writer | 독립 | 커밋 메시지 작성 (Validator PHASE 9에서 호출) | sonnet |
+| 에이전트 | PHASE | 역할 | Defect 트랙 | 모델 |
+|----------|-------|------|-------------|------|
+| orchestrator | 1~4.5 | PRD 분석, plan.md, ROADMAP.md, 초기화 | ⏭️ 스킵 | opus |
+| planner | 5 | GOAL.md 작성 | ⏭️ 스킵 | opus |
+| implementer | 6 | 기능 구현 | PRD `## 검증 계약` 기준 구현 | opus |
+| validator | 7~10 | 검증, push + GitLab MR 자동 생성, 스프린트 전환 | PHASE 7~9, PHASE 10에서 종료 | sonnet |
+| deploy-prod | 독립 | 프로덕션 배포 | 동일 | sonnet |
+| commit-writer | 독립 | 커밋 메시지 작성 (Validator PHASE 9에서 호출) | PRD + 루트 DONE.md 기준 | sonnet |
 
 ### 에이전트 호출 방법
 
 에이전트는 **Agent 도구**로 호출합니다 (Skill 도구가 아님).
 
 ```
-# 직접 실행
-.claude/agents/{에이전트}.md와 docs/STATUS.md를 읽고 ...
+# 직접 실행 (각 에이전트가 ACTIVE_ISSUE를 자동 해석함)
+.claude/agents/{에이전트}.md를 읽고 ...
 
 # /next 스킬로 다음 단계 자동 안내
 /next
@@ -219,9 +244,28 @@ Sprint: {sprint-name}
 
 ```
 프로젝트 루트/
-├── docs/PRD.md                              ← 프로젝트 요구사항
-├── plan.md                             ← 기능 분석 결과 (Orchestrator 생성)
-├── docs/STATUS.md                           ← 파이프라인 상태 (공유 상태 파일)
+├── docs/
+│   ├── PRD_#208801.md                  ← 이슈별 요구사항 (입력 문서, /prd 생성)
+│   └── PRD_#208900.md
+│
+├── workspace/                          ← 이슈별 산출물 루트
+│   ├── #208801/
+│   │   ├── plan.md                     ← 기능 분석 결과 (Orchestrator 생성)
+│   │   ├── STATUS.md                   ← 파이프라인 상태 (이슈별 격리)
+│   │   └── sprints/
+│   │       ├── ROADMAP.md              ← 전체 스프린트 로드맵
+│   │       ├── TECH_DEBT.md            ← 누적 기술 부채 (Validator가 자동 집계)
+│   │       ├── sprint-01/
+│   │       │   ├── GOAL.md             ← 구현 명세서 (Planner 생성)
+│   │       │   ├── DONE.md             ← 완료 보고서 (Validator 생성)
+│   │       │   ├── OUT_OF_SCOPE.md     ← 범위 외 발견사항
+│   │       │   ├── FEEDBACK.md         ← 검증 실패 시 수정 지시 (선택적)
+│   │       │   └── COMMIT_MESSAGE.md   ← 커밋 메시지 (commit-writer 생성)
+│   │       └── sprint-02/
+│   │           └── ...
+│   └── #208900/
+│       └── ...
+│
 ├── CLAUDE.md                           ← 코딩 원칙, 빌드 명령 (claude /init)
 ├── CHANGELOG.md                        ← 전체 변경 이력 (Validator가 스프린트 종료 시 자동 업데이트)
 ├── .gitignore
@@ -231,22 +275,11 @@ Sprint: {sprint-name}
 ├── Tests/
 │   └── Source/                         ← 테스트 유닛 (.pas)
 │
-├── sprints/
-│   ├── ROADMAP.md                      ← 전체 스프린트 로드맵
-│   ├── TECH_DEBT.md                    ← 누적 기술 부채 (Validator가 자동 집계)
-│   ├── sprint-01/
-│   │   ├── GOAL.md                     ← 구현 명세서 (Planner 생성)
-│   │   ├── DONE.md                     ← 완료 보고서 (Validator 생성)
-│   │   ├── OUT_OF_SCOPE.md             ← 범위 외 발견사항
-│   │   ├── FEEDBACK.md                 ← 검증 실패 시 수정 지시 (Validator 생성, 선택적)
-│   │   └── COMMIT_MESSAGE.md           ← 커밋 메시지 (commit-writer 생성)
-│   └── sprint-02/
-│       └── ...
-│
 ├── .githooks/
 │   └── commit-msg                      ← 커밋 메시지 형식 검증 hook
 │
 └── .claude/
+    ├── ACTIVE_ISSUE                    ← 현재 활성 이슈 포인터 (예: #208801)
     ├── settings.json                   ← 권한 설정
     ├── hooks/
     │   └── pretooluse-bash-guard.sh    ← bash 명령 가드 훅
@@ -258,7 +291,7 @@ Sprint: {sprint-name}
     │   ├── deploy-prod.md              ← 프로덕션 배포
     │   └── commit-writer.md            ← 커밋 메시지 작성 (Validator가 호출)
     ├── commands/
-    │   ├── prd.md                      ← /prd — PRD.md 생성
+    │   ├── prd.md                      ← /prd — PRD.md 생성 + ACTIVE_ISSUE 갱신
     │   ├── sprint-dev.md               ← /sprint-dev — Sprint 구현 오케스트레이터
     │   ├── next.md                     ← /next — 다음 에이전트 안내
     │   ├── status.md                   ← /status — 현재 상태 요약
@@ -271,6 +304,7 @@ Sprint: {sprint-name}
     │   ├── redmine/SKILL.md            ← Redmine 이슈 조회 (orchestrator/planner에서 사용)
     │   └── commit-format/SKILL.md      ← YSR 커밋 메시지 형식 (commit-writer가 사용)
     └── rules/
+        ├── active-issue.md             ← 워크스페이스 해석 규칙 (항상 활성화)
         ├── sprint-workflow.md          ← Sprint 워크플로우 보완 규칙
         ├── coding-principles.md        ← 코딩 원칙 (paths 기반 자동 활성화)
         ├── delphi2007-patterns.md      ← Delphi 2007 구현 패턴 레퍼런스 (명시적 Read 필요)
@@ -284,11 +318,11 @@ Sprint: {sprint-name}
 
 ### 9.1 계획 단계 (PHASE 1~5)
 
-1. **docs/PRD.md 작성** (사용자)
+1. **docs/PRD_#이슈번호.md 작성** (사용자) — `/prd #이슈번호`로 자동 생성 가능
    - 목적 & 배경, 핵심 기능 및 요구사항, MVP 기준, 제약 조건
 
 2. **Orchestrator 실행** (PHASE 1~4.5)
-   - PRD 분석 → plan.md 생성 → 사용자 확인 → ROADMAP.md 생성
+   - PRD 분석 → workspace/#이슈번호/plan.md 생성 → 사용자 확인 → ROADMAP.md 생성
    - 프로젝트 초기화 + CLAUDE.md 생성
 
 3. **Planner 실행** (PHASE 5)
@@ -354,13 +388,20 @@ git push origin main
 
 세션이 끊겼을 때:
 
-1. `/status` 실행 → 현재 상태 확인
+1. `/status` 실행 → 현재 이슈(`ACTIVE_ISSUE`)와 PHASE 확인
 2. `/next` 실행 → 다음 에이전트 명령어 확인
 3. 해당 명령어 실행
 
 또는 직접:
 ```
-docs/STATUS.md를 읽고 현재 PHASE에 맞는 에이전트를 실행해줘.
+.claude/ACTIVE_ISSUE를 읽고 workspace/{ACTIVE_ISSUE}/STATUS.md에서
+현재 PHASE에 맞는 에이전트를 실행해줘.
+```
+
+이슈가 기억나지 않을 때:
+```
+.claude/ACTIVE_ISSUE    ← 현재 활성 이슈 확인
+workspace/              ← 전체 이슈 목록 확인
 ```
 
 ---
@@ -388,7 +429,9 @@ YSR처럼 다수의 `.dpr`을 가진 멀티모듈 프로젝트에서 각 모듈�
 ### 모듈별 필수 설정
 - `build.bat` — 해당 모듈의 `.dproj`를 빌드하는 스크립트 (모듈 루트에 배치)
 - `run_tests.bat` — 해당 모듈의 DUnit 테스트 실행 스크립트 (없으면 생략 가능)
-- `docs/PRD.md`, `docs/STATUS.md` — 모듈 루트의 `docs/` 폴더에 배치
+- `docs/PRD_#이슈번호.md` — 모듈 루트의 `docs/` 폴더에 배치 (입력 문서)
+- `workspace/#이슈번호/STATUS.md` — 이슈별 산출물 루트에 자동 생성
+- `.claude/ACTIVE_ISSUE` — 현재 활성 이슈 포인터
 - `CLAUDE.md` — 모듈별 기술 스택, 빌드 경로, 출력 경로 명시
 
 ### 모듈별 경로 확인
@@ -414,7 +457,7 @@ CLAUDE.md에 아래 항목을 반드시 기입하세요:
 
 새 프로젝트를 시작할 때:
 
-- [ ] docs/PRD.md 작성 (목적, 핵심 기능 및 요구사항, MVP, 제약 조건)
+- [ ] docs/PRD_#이슈번호.md 작성 (목적, 핵심 기능 및 요구사항, MVP, 제약 조건) — `/prd #이슈번호`
 - [ ] Orchestrator 실행 (PHASE 1~4.5)
 - [ ] plan.md 확인 및 수정
 - [ ] ROADMAP.md 확인

@@ -1,45 +1,76 @@
+---
+name: sprint-dev
+description: "GOAL.md에 따라 스프린트를 구현. Implementer/Spec Reviewer/Code Quality Reviewer 3단계 진행."
+model: sonnet
+---
+
 GOAL.md에 따라 스프린트를 구현하는 오케스트레이터.
 
 > 이 커맨드는 `implementer` 에이전트(PHASE 6)의 커맨드 래퍼입니다.
 > implementer 에이전트를 직접 호출하는 대신 이 커맨드를 사용하면
 > 스프린트명 파싱, 브랜치 준비, 구현 Plan, 최종 검증까지 자동 진행됩니다.
 
+## 워크스페이스 해석 (항상 먼저 수행)
+
+1. `.claude/ACTIVE_ISSUE` 읽기 → ACTIVE_ISSUE 값 획득
+2. 없으면 `git branch --show-current` 출력에서 `#(\d+)` 추출 (폴백)
+3. 모두 실패 시 → "`⚠️ 활성 이슈를 확인할 수 없습니다. /prd #이슈번호 를 실행하세요.`" 출력 후 종료
+4. WORKSPACE_DIR = `workspace/{ACTIVE_ISSUE}`
+5. STATUS_FILE = `{WORKSPACE_DIR}/STATUS.md`
+
+## TRACK 변수 정의 (워크스페이스 해석 직후)
+
+STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
+
+**TRACK=sprint (또는 미지정):**
+- `GOAL_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/GOAL.md`
+- `DONE_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/DONE.md`
+- `FEEDBACK_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/FEEDBACK.md`
+- `OUT_OF_SCOPE_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md`
+
+**TRACK=defect:**
+- `GOAL_FILE` = `docs/PRD_{ACTIVE_ISSUE}.md` (PRD의 `## 검증 계약` 섹션을 체크리스트로 사용)
+- `DONE_FILE` = `{WORKSPACE_DIR}/DONE.md`
+- `FEEDBACK_FILE` = `{WORKSPACE_DIR}/FEEDBACK.md`
+- `OUT_OF_SCOPE_FILE` = `{WORKSPACE_DIR}/OUT_OF_SCOPE.md`
+
 ## 인수
 
 `$ARGUMENTS`: 스프린트 이름 (예: `sprint-01`, `01`)
-- `sprints/{CURRENT_SPRINT}/GOAL.md` 경로를 결정한다.
-- 인수가 없으면 docs/STATUS.md에서 CURRENT_SPRINT을 읽는다.
+- `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/GOAL.md` 경로를 결정한다.
+- 인수가 없으면 {STATUS_FILE}에서 CURRENT_SPRINT을 읽는다.
 
 ## 실행 절차
 
 ### 사전 검증: PHASE 확인
 
-1. docs/STATUS.md에서 PHASE 값을 확인한다.
+1. {STATUS_FILE}에서 PHASE와 TRACK 값을 확인한다.
 2. PHASE가 5 또는 6이 아니면:
-   - PHASE 1~4.5 → "⚠️ 아직 계획 단계입니다 (PHASE={N}). Orchestrator/Planner를 먼저 완료해주세요." 출력 후 종료
+   - TRACK=defect + PHASE 1~5 → 정상 진행 (PHASE=6으로 자동 승격 처리)
+   - TRACK=sprint + PHASE 1~4.5 → "⚠️ 아직 계획 단계입니다 (PHASE={N}). Orchestrator/Planner를 먼저 완료해주세요." 출력 후 종료
    - PHASE 7~10 → "⚠️ 이미 검증 단계입니다 (PHASE={N}). Validator를 실행해주세요." 출력 후 종료
-3. PHASE 5 또는 6 → 정상 진행
+3. PHASE 5 또는 6 (또는 TRACK=defect) → 정상 진행
 
 ### 1단계: 스프린트 문서 읽기
 
 필수:
 - CLAUDE.md (없으면 경고 후 계속: `"⚠️ CLAUDE.md가 없습니다. .claude/rules/coding-principles.md를 참조합니다."`)
-- docs/STATUS.md ← 현재 PHASE와 CURRENT_SPRINT 확인
-- `sprints/{CURRENT_SPRINT}/GOAL.md` ← 구현 명세 (전체 읽기)
+- {STATUS_FILE} ← 현재 PHASE와 CURRENT_SPRINT 확인
+- `{GOAL_FILE}` ← 구현 명세 (전체 읽기; TRACK=defect면 PRD의 `## 검증 계약` 섹션을 체크리스트로 사용)
 
 참조 가능 (수정 금지):
-- `plan.md` ← 전체 설계 맥락 파악용
-- `sprints/ROADMAP.md` ← 스프린트 간 의존성 확인용
-- `sprints/TECH_DEBT.md` ← 누적 기술 부채 (이번 스프린트 처리 항목 확인)
-- `sprints/{PREV_SPRINT}/DONE.md` ← 직전 스프린트 주의사항
-- `sprints/{PREV_SPRINT}/OUT_OF_SCOPE.md` ← 직전 스프린트 범위 외 사항
-- `sprints/{CURRENT_SPRINT}/FEEDBACK.md` ← Validator 롤백 시 생성된 피드백 (있을 때만)
+- `{WORKSPACE_DIR}/plan.md` ← 전체 설계 맥락 파악용
+- `{WORKSPACE_DIR}/sprints/ROADMAP.md` ← 스프린트 간 의존성 확인용
+- `{WORKSPACE_DIR}/sprints/TECH_DEBT.md` ← 누적 기술 부채 (이번 스프린트 처리 항목 확인)
+- `{WORKSPACE_DIR}/sprints/{PREV_SPRINT}/DONE.md` ← 직전 스프린트 주의사항
+- `{WORKSPACE_DIR}/sprints/{PREV_SPRINT}/OUT_OF_SCOPE.md` ← 직전 스프린트 범위 외 사항
+- `{FEEDBACK_FILE}` ← Validator 롤백 시 생성된 피드백 (있을 때만)
 
 구현 패턴 레퍼런스 (구현 중 필요 시 Read):
 - `.claude/rules/delphi2007-patterns.md` ← 재진입 가드, TDataSet 상태, TThread, GDI 핸들, TtsQuery·SQL 구성, Record 기반 파라미터, INI 프로파일, TJGrid 등 17개 구현 패턴. 4단계에서 해당 패턴이 필요한 기능을 만날 때 해당 섹션만 부분 Read한다.
 
 FEEDBACK.md 재진입 판단:
-- FEEDBACK.md가 존재하면 → Validator가 PHASE 7 검증 실패 후 롤백한 상황
+- `{FEEDBACK_FILE}`이 존재하면 → Validator가 PHASE 7 검증 실패 후 롤백한 상황
   - FEEDBACK.md에 기술된 항목만 타겟 수정 (전체 재구현 금지)
   - 수정 완료 후 5단계(최종 검증)로 직접 이동
 - FEEDBACK.md가 없으면 정상 진입. 다음을 파악한다:
@@ -50,9 +81,13 @@ FEEDBACK.md 재진입 판단:
 
 ### 2단계: 브랜치 준비
 
+TRACK=sprint:
 1. 현재 브랜치가 `{현재 브랜치명}_{CURRENT_SPRINT}`이 아니면:
    - 현재 브랜치명을 확인(`git branch --show-current`)하여 `{현재 브랜치명}_{CURRENT_SPRINT}` 브랜치 생성
 2. 이미 해당 브랜치면 그대로 진행
+
+TRACK=defect:
+- 스프린트별 브랜치 분기 없음. 현재 브랜치(`{현재 브랜치명}`)에서 그대로 진행.
 
 ### 2.5단계: Redmine 상태 → InProgress
 
@@ -65,12 +100,12 @@ FEEDBACK.md 재진입 판단:
 start_date: 오늘 날짜 (YYYY-MM-DD)
 
 1. 현재 사용자 ID 조회
-   MCP: 없음 → WebFetch GET https://redmine.ubware.com/users/current.json
+   MCP: 없음 → curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/users/current.json
    → user.id 추출하여 {MY_USER_ID} 로 저장
 
 2. 현재 상태 조회
    MCP: get_issue(issue_id={이슈번호})
-   폴백: GET https://redmine.ubware.com/issues/{이슈번호}.json
+   폴백: curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/issues/{이슈번호}.json
 
 3. 현재 status_id에서 2까지 순서대로 호출
    - 현재=1:  → 11(Confirmed) → 10(Assigned) → 2(InProgress)
@@ -113,42 +148,65 @@ start_date: 오늘 날짜 (YYYY-MM-DD)
 └─────────────────────────────────────┘
 ```
 
-### 4단계: 기능 순차 구현
+### 4단계: 기능별 Subagent 디스패치
 
-'실행' 입력 후 GOAL.md 체크리스트 순서대로:
+> 참조: `.claude/skills/subagent-driven-development/SKILL.md`
 
-**매 기능마다 아래 체크리스트를 반드시 수행한다:**
+'실행' 입력 후 GOAL.md 체크리스트 항목 수를 파악하고, 각 항목에 대해 아래 3-STEP 루프를 **순차** 실행한다.
 
-```
-기능 실행 체크리스트 (건너뛰기 금지):
-1. ⬜ 기능 시작 알림 — "🔨 기능 {N}: {기능명} 시작"
-2. ⬜ 구현 — GOAL.md 명세대로
-3. ⬜ 검증 — 명시된 검증 방법 실행
-4. ⬜ 완료 선언 — "✅ {기능명} 구현 완료" 텍스트 출력 (GOAL.md 체크박스 수정 금지 — Validator가 독립 검증 후 체크)
-5. ⬜ (커밋 없음 — push 시점에 Validator가 최종 커밋)
-```
+**STEP 1 — Implementer Subagent 디스패치**
 
-규칙:
-- GOAL.md 범위 밖 기능 발견 시 → `sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md`에 기록하고 건너뜀
-- .pas 파일 수정 시 해당 .dfm 파일과 싱크 유지
-- 검증 실패 시 → 원인 분석 후 수정, 3회 실패 시 사용자에게 보고
-- 계획과 다른 결정이 필요하면 사용자에게 확인
+`.claude/skills/subagent-driven-development/implementer-prompt.md`를 읽어 프롬프트를 구성한 뒤
+Agent tool (subagent_type=implementer)로 디스패치:
+- 항목 전체 텍스트 (GOAL.md 해당 항목 원문)
+- 맥락: CURRENT_SPRINT, WORKSPACE_DIR, 직전 완료 항목
+- YSR 필수 규칙 포함 (CP949, TtsQuery, GOAL.md 범위 엄수, 컴파일 확인 의무)
+
+상태별 처리:
+- DONE: STEP 2로
+- DONE_WITH_CONCERNS: 우려사항 검토 → 정확성/범위 문제이면 처리, STEP 2로
+- NEEDS_CONTEXT: 추가 컨텍스트 제공 후 재디스패치
+- BLOCKED: [PAUSE] 후 사용자에게 보고 (컨텍스트/분해/아키텍처 문제 판단)
+
+**STEP 2 — Spec Reviewer Subagent 디스패치 (Implementer 완료 후)**
+
+`.claude/skills/subagent-driven-development/spec-reviewer-prompt.md`를 읽어
+Agent tool (general-purpose)로 디스패치:
+- GOAL.md 해당 항목 명세 전체 + Implementer 보고 내용 전달
+- ❌ 이슈 발견 → Implementer에 수정 지시 → 재리뷰 (통과까지 반복)
+- ✅ 통과 후에만 STEP 3 진행 (품질 리뷰 먼저 시작 금지)
+
+**STEP 3 — Code Quality Reviewer Subagent 디스패치 (Spec 통과 후에만)**
+
+`.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md`를 읽어
+Agent tool (general-purpose)로 디스패치:
+- dev-process.md §6 + CLAUDE.md 코딩 규칙 기준
+- ❌ 이슈 발견 → Implementer에 수정 지시 → 재리뷰 (통과까지 반복)
+- ✅ 통과 → 항목 완료. 다음 항목으로
+
+**공통 규칙:**
+- GOAL.md(또는 PRD 검증 계약) 범위 밖 발견 시 → `{OUT_OF_SCOPE_FILE}`에 기록하고 건너뜀
+- .pas 파일 수정 시 .dfm 동기화 (Implementer prompt에 명시)
+- Implementer subagent 병렬 디스패치 금지 (코드 충돌 위험, 직렬 순차 실행)
+- Implementer에서 오류 시 `.claude/skills/systematic-debugging/SKILL.md` Phase 1부터 시작. 3회 이상 실패 → BLOCKED 처리 후 사용자 보고
+- 계획과 다른 결정 필요 시 → [PAUSE] 후 사용자에게 확인
 
 요구사항 변경 발생 시:
-- 사용자가 구현 중 요구사항 변경을 요청하면 → [PAUSE]
+- [PAUSE]
   "요구사항 변경이 감지되었습니다.
    변경 내용: {내용}
    영향받는 항목: {목록}
    GOAL.md를 수정하고 계속할까요? (예/아니오)"
-- '예' → GOAL.md 수정 후 계속 구현
-- '아니오' → 현재까지 구현된 내용만으로 5단계 진행
+- '예' → GOAL.md 수정 후 계속
+- '아니오' → 현재까지 완료된 항목만으로 5단계 진행
 
 ### 5단계: 최종 검증
 
 모든 기능 완료 후:
 
 1. GOAL.md의 **완료 조건** 섹션 체크
-2. 빌드 성공 확인
+2. 최종 빌드 재실행 — 이번 스프린트에서 변경된 .dproj 대상 `build.bat debug` 실행 및 결과(에러 0건) 출력
+   (각 기능 완료 시 컴파일 확인했더라도 최종 통합 빌드를 다시 실행해야 함)
 3. 결과 요약:
    ```
    🏁 {CURRENT_SPRINT} 구현 완료
@@ -160,11 +218,13 @@ start_date: 오늘 날짜 (YYYY-MM-DD)
    | ... | ... |
 
    다음 단계: Validator 에이전트 실행
-   명령어: '.claude/agents/validator.md와 docs/STATUS.md 읽고
-            sprints/{CURRENT_SPRINT} 검증해줘'
+   명령어(TRACK=sprint): '.claude/agents/validator.md를 읽고
+            {WORKSPACE_DIR}/sprints/{CURRENT_SPRINT} 검증해줘'
+   명령어(TRACK=defect): '.claude/agents/validator.md를 읽고
+            TRACK=defect 모드로 검증을 시작해줘. [PAUSE] 지점에서 멈추고 내 확인을 기다려.'
    ```
 
-4. docs/STATUS.md PHASE=7 업데이트
+4. {STATUS_FILE} PHASE=7 업데이트
 
 ## 주의사항
 
@@ -177,8 +237,8 @@ start_date: 오늘 날짜 (YYYY-MM-DD)
 
 - ❌ GOAL.md 범위 밖 기능 구현
 - ❌ GOAL.md 체크박스 수정 (Validator가 독립 검증 후 체크 — 자기 평가 금지)
-- ❌ plan.md, ROADMAP.md 수정 (참조는 가능)
+- ❌ {WORKSPACE_DIR}/plan.md, ROADMAP.md 수정 (참조는 가능)
 - ❌ git push (Validator 완료 후 처리)
 - ❌ 아키텍처 변경 (Orchestrator 결정 사항)
-- ❌ 검증 / 테스트 실행 (Validator 담당)
+- ❌ 기능 검증·통합 테스트 (Validator 담당) — 단, 컴파일 확인(build.bat)은 implementer 의무이며 예외
 - ❌ 추측성 기능, 불필요한 추상화, 주변 코드 "개선"

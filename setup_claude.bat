@@ -9,7 +9,7 @@ echo   YSR EMR - Claude Code Setup
 echo ============================================================
 
 echo.
-echo [1/3] Git Hook (commit message format check)...
+echo [1/4] Git Hook (commit message format check)...
 git config core.hooksPath .githooks
 if !errorlevel! equ 0 (
     echo   OK
@@ -18,7 +18,7 @@ if !errorlevel! equ 0 (
 )
 
 echo.
-echo [2/3] .claude/settings.local.json...
+echo [2/4] .claude/settings.local.json...
 if exist ".claude\settings.local.json" (
     echo   INFO - already exists, merging missing keys from sample...
     powershell -NoProfile -ExecutionPolicy Bypass -Command "$e=Get-Content '.claude\settings.local.json'|ConvertFrom-Json;$s=Get-Content '.claude\settings.local.json.sample'|ConvertFrom-Json;function Merge-J($t,$src){foreach($p in $src.PSObject.Properties){$n=$p.Name;if($null -eq $t.$n){$t|Add-Member -MemberType NoteProperty -Name $n -Value $p.Value}elseif($t.$n -is [PSCustomObject] -and $p.Value -is [PSCustomObject]){Merge-J $t.$n $p.Value}}};Merge-J $e $s;$e|ConvertTo-Json -Depth 10|Set-Content '.claude\settings.local.json' -Encoding UTF8"
@@ -38,13 +38,22 @@ if exist ".claude\settings.local.json" (
 )
 
 echo.
-echo [3/3] .mcp.json...
+echo [3/4] .mcp.json...
 if exist ".mcp.json" (
     echo   OK - already exists, skipped
 ) else (
     copy ".mcp.json.example" ".mcp.json" > nul
     echo   OK - created
     echo   WARN - fill in YOUR_GITLAB_TOKEN, YOUR_REDMINE_API_KEY in .mcp.json
+)
+
+echo.
+echo [4/4] .gitignore (sprint / workspace entries)...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content '.gitignore'|ForEach-Object{$_.Trim()};$items=@('/CHANGELOG.md','/plan.md','/docs','/workspace','.mcp.json','/sprints/','/.claude/','build.bat','.mcp.json.example','claude.md','readme.md','setup_claude.bat','/.githooks/');$miss=$items|Where-Object{$lines -notcontains $_};if($miss.Count -gt 0){Add-Content '.gitignore' '';Add-Content '.gitignore' '# Claude Code - sprints/workspace (auto-added by setup_claude.bat)';$miss|ForEach-Object{Add-Content '.gitignore' $_};Write-Host ('  OK - added: '+($miss-join ', '))}else{Write-Host '  OK - already up to date'}"
+if !errorlevel! equ 0 (
+    echo   OK
+) else (
+    echo   FAIL - gitignore update error
 )
 
 echo.
@@ -82,6 +91,8 @@ if exist ".mcp.json" (
 ) else (
     echo   [.mcp.json  ] NOT CREATED
 )
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content '.gitignore'|ForEach-Object{$_.Trim()};$items=@('/CHANGELOG.md','/plan.md','/docs','/workspace','.mcp.json','/sprints/','/.claude/','build.bat','.mcp.json.example','claude.md','readme.md','setup_claude.bat','/.githooks/');$miss=$items|Where-Object{$lines -notcontains $_};if($miss.Count -gt 0){Write-Host ('  [.gitignore   ] WARN - missing: '+($miss-join ', '))}else{Write-Host '  [.gitignore   ] OK - all entries present'}"
 
 node --version > nul 2>&1
 if !errorlevel! equ 0 (

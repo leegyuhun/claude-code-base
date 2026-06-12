@@ -1,4 +1,6 @@
 ---
+name: prd
+description: "PRD.md 생성. 구조화된 인터뷰 → GAP 분석 → 문서 생성 3단계."
 model: opus
 ---
 
@@ -50,13 +52,14 @@ model: opus
 ## Phase 사전 검증
 
 ```
-docs/STATUS.md가 존재하면 PHASE 값을 확인한다.
+.claude/ACTIVE_ISSUE가 존재하면 현재 ACTIVE_ISSUE 값을 확인한다.
+workspace/{ACTIVE_ISSUE}/STATUS.md가 존재하면 PHASE 값을 확인한다.
 PHASE가 5~10 (스프린트 진행 중)이면:
-  ⚠️ "현재 스프린트가 진행 중입니다 (PHASE={N}).
-   /prd 실행 시 새 PRD가 생성되어 기존 파이프라인과 충돌할 수 있습니다.
+  ⚠️ "현재 이슈({ACTIVE_ISSUE})의 스프린트가 진행 중입니다 (PHASE={N}).
+   /prd 실행 시 새 이슈로 전환됩니다. 기존 이슈 작업은 그대로 보존됩니다.
    계속하시겠습니까? (예/아니오)"
   → '아니오' → 종료
-  → '예' → 계속 진행 (기존 STATUS.md는 건드리지 않음)
+  → '예' → 새 이슈로 계속 진행
 ```
 
 ## Phase 0: 시작 안내
@@ -93,6 +96,16 @@ ISSUE_NUMBERS가 없으면:
 ```
 
 - `docs/` 디렉토리가 없으면 생성한다 (mkdir -p).
+- ISSUE_NUMBERS가 있으면: `.claude/ACTIVE_ISSUE` 파일에 `#{이슈번호}` 기록, `workspace/#{이슈번호}/` 디렉토리 없으면 생성.
+- ISSUE_NUMBERS가 없으면: [PAUSE] 출력 후 임시 ID 한 줄 입력 받기.
+  - 안내 메시지:
+    ```
+    이슈번호 없이 진행합니다. 임시 작업 ID를 입력하세요.
+    - 형식: 영문 소문자/숫자/언더스코어 (3~31자, 첫 글자는 영문)
+    - 예: exp_login_test, bug_repro_001, learn_async
+    ```
+  - 입력 검증: `^[a-z][a-z0-9_]{2,30}$` 패턴 매칭. 실패 시 재입력 요청.
+  - 검증 통과 시: `.claude/ACTIVE_ISSUE`에 임시 ID 기록 (`#` 접두사 없이), `workspace/{임시ID}/` 디렉토리 없으면 생성.
 - 동일 파일명이 이미 있으면 [PAUSE]: "기존 {PRD_FILENAME}이 있습니다. 덮어쓸까요? (예/아니오/수정)"
   - '수정' → 기존 파일을 읽어 Phase 1 인터뷰 응답의 초기값으로 사용
 
@@ -282,6 +295,34 @@ GAP이 있으면:
 
 ---
 
+## Phase 2.5: 트랙 판정 [PAUSE] (공통)
+
+수집된 이슈 정보와 기술 분석 결과를 종합하여 트랙을 자동 판정한다.
+
+```
+🔀 트랙 판정
+
+[Defect 조건 체크 — 모두 충족 시 Defect 제안]
+  ☑/☐ 프로덕션 장애·버그·긴급 수정
+       (tracker, priority, 이슈 제목·설명 키워드 기반 추정)
+  ☑/☐ 변경 예상 파일 ≤ 3개  ({추정 파일 수}개)
+  ☑/☐ 변경 코드량 ≤ 50줄   (추정)
+  ☑/☐ DB 스키마 변경 없음
+  ☑/☐ 새 .pas 파일 없음 (dproj 변경 없음)
+
+→ 판정: Defect 트랙 제안 / Sprint 트랙 제안
+```
+
+[PAUSE]
+```
+  [A] Defect 트랙 — Orchestrator·Planner 스킵, PRD `## 검증 계약` 기준으로 직접 구현
+  [B] Sprint 트랙  — Orchestrator(PHASE 1~4.5) → Planner(5) → Implementer(6)
+```
+
+선택값을 `SELECTED_TRACK` 변수에 저장한다 (A → `defect` / B → `sprint`).
+
+---
+
 ## Phase 3: PRD.md 생성
 
 수집된 정보를 템플릿으로 변환하여 `{PROJECT_PATH}/docs/{PRD_FILENAME}`에 저장한다.
@@ -329,12 +370,12 @@ ISSUE_NUMBERS 없을 때:
 목표 상태: Confirmed (status_id=11)
 
 1. 현재 사용자 ID 조회 (assigned_to_id 설정에 필요)
-   MCP: 없음 → WebFetch GET https://redmine.ubware.com/users/current.json
+   MCP: 없음 → curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/users/current.json
    → user.id 추출하여 {MY_USER_ID} 로 저장
 
 2. 현재 상태 조회
    MCP: get_issue(issue_id={이슈번호})
-   폴백: GET https://redmine.ubware.com/issues/{이슈번호}.json
+   폴백: curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/issues/{이슈번호}.json
 
 3. 현재 status_id에서 11까지 순서대로 호출
    - 현재=1:  → 11(Confirmed) with assigned_to_id
@@ -372,13 +413,27 @@ PRD.md 저장 후 아래 형식을 **그대로** 출력한다.
 ──────────────────────────────────────────
 ```
 
-docs/STATUS.md가 없으면 먼저 생성한다:
+workspace/{ACTIVE_ISSUE}/STATUS.md 가 없으면 먼저 생성한다:
+
+**SELECTED_TRACK = `sprint` 인 경우:**
 ```
 PHASE=1
+TRACK=sprint
 CURRENT_SPRINT=
 ORCHESTRATOR=pending
 PRD=done
 ```
+
+**SELECTED_TRACK = `defect` 인 경우:**
+```
+PHASE=6
+TRACK=defect
+PRD=done
+```
+
+---
+
+**SELECTED_TRACK = `sprint` 인 경우:**
 
 [PAUSE]
 ```
@@ -388,19 +443,32 @@ PRD=done
 ```
 
 [1] 선택 시:
-`.claude/agents/orchestrator.md`와 `docs/STATUS.md`를 읽고 현재 PHASE부터 실행한다. [PAUSE] 지점에서 멈추고 확인을 기다린다. 코드 구현은 하지 않는다.
+`.claude/agents/orchestrator.md`를 읽고 현재 PHASE부터 실행한다. [PAUSE] 지점에서 멈추고 확인을 기다린다. 코드 구현은 하지 않는다.
 
 [2] 선택 시:
 ```
 준비가 되면 아래 명령어를 실행하세요:
 
-.claude/agents/orchestrator.md와 docs/STATUS.md를 읽고 현재 PHASE부터 실행해줘.
+.claude/agents/orchestrator.md를 읽고 현재 PHASE부터 실행해줘.
 [PAUSE] 지점에서 멈추고 내 확인을 기다려. 코드 구현은 하지 마.
 ```
 
+**SELECTED_TRACK = `defect` 인 경우:**
+
+```
+✅ Defect 트랙 준비 완료
+
+  TRACK=defect, PHASE=6 으로 STATUS.md 설정됨
+  산출물 위치: workspace/{ACTIVE_ISSUE}/ (sprints/ 없음, 루트에 직접)
+  PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
+
+  바로 구현을 시작하려면 /sprint-dev 를 실행하세요.
+```
+
 **STATUS.md 자동 생성 규칙:**
-`{PROJECT_PATH}/docs/STATUS.md`가 없으면 Phase 5에서 직접 생성한다.
-이미 있으면 건드리지 않는다.
+STATUS.md 경로: `{PROJECT_PATH}/workspace/{ACTIVE_ISSUE}/STATUS.md`
+(ACTIVE_ISSUE는 Phase 0에서 이슈번호 또는 임시 ID로 이미 확정됨)
+해당 경로에 파일이 없으면 Phase 5에서 생성한다. 이미 있으면 건드리지 않는다.
 
 ---
 
