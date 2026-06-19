@@ -24,11 +24,12 @@ STATUS_FILE = `{WORKSPACE_DIR}/STATUS.md`
   ```
   (STATUS.md의 PHASE가 1~5로 남아있으면 PHASE=6 으로 수동 수정을 안내한다)
 
-- PHASE 6 → Implementer (PRD 기준)
+- PHASE 6 → loop-sprint (Maker=Implementer, PRD 기준)
   ```
-  /sprint-dev
+  /loop-sprint
   ```
-  (sprint-dev는 TRACK=defect 감지 시 PRD의 `## 검증 계약` 섹션을 GOAL 대체로 사용한다)
+  (loop-sprint는 TRACK=defect 감지 시 PRD의 `## 검증 계약` 섹션을 GOAL 대체로 사용한다.
+   자동 검증 종료조건 충족까지 Maker⇄Checker 이터레이션을 자동 반복한다)
 
 - PHASE 7~9 → Validator
   ```
@@ -59,9 +60,9 @@ STATUS_FILE = `{WORKSPACE_DIR}/STATUS.md`
   완료되면 다음 에이전트 실행 방법을 알려줘.
   ```
 
-- PHASE 6 → Implementer
+- PHASE 6 → loop-sprint (Maker=Implementer ⇄ Checker 자동 반복)
   ```
-  /sprint-dev
+  /loop-sprint
   ```
 
 - PHASE 7~10 → Validator

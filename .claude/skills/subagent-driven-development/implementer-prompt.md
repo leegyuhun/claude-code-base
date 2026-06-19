@@ -1,6 +1,6 @@
 # Implementer Subagent Prompt Template (YSR)
 
-sprint-dev.md 4단계에서 항목별 Implementer subagent를 디스패치할 때 사용.
+loop-sprint 이터레이션에서 항목별 Maker(Implementer) subagent를 디스패치할 때 사용.
 
 ```
 Agent tool:

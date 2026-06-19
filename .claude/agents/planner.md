@@ -185,8 +185,8 @@ GOAL.md를 별도로 작성하지 않으며, PRD의 `## 검증 계약` 섹션이
       - 수동 확인: N개
       - 예상 소요: 약 Nh
 
-      다음 단계: /sprint-dev 실행
-      명령어: '/sprint-dev'"
+      다음 단계: /loop-sprint 실행
+      명령어: '/loop-sprint'"
 
 5-7. {STATUS_FILE} PHASE=6 업데이트
 ```

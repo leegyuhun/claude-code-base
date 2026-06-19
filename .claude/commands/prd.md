@@ -462,7 +462,7 @@ PRD=done
   산출물 위치: workspace/{ACTIVE_ISSUE}/ (sprints/ 없음, 루트에 직접)
   PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
 
-  바로 구현을 시작하려면 /sprint-dev 를 실행하세요.
+  바로 구현을 시작하려면 /loop-sprint 를 실행하세요.
 ```
 
 **STATUS.md 자동 생성 규칙:**
