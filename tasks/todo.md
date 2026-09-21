@@ -1,17 +1,19 @@
-# Codex-only template conversion
+# Codex 대형 프로젝트 운영 체계
 
-- [x] Audit Claude-specific files and references.
-- [x] Replace external Claude workflow dependencies with self-contained Codex policy.
-- [x] Remove the `.claude` template and Claude-only documentation.
-- [x] Verify that no Claude workflow reference remains and that Codex instructions load.
+- [x] 간소화된 Codex 전용 템플릿을 점검하고 누락된 운영 통제를 식별한다.
+- [x] 이슈 접수, 트랙 분류, 상태, 산출물 템플릿을 추가한다.
+- [x] 계획, 구현, 리뷰, 검증, 빌드 복구 Codex 플레이북을 추가한다.
+- [x] 프로젝트별 planner, implementer, reviewer 에이전트를 추가한다.
+- [x] 새 워크플로우에 맞춰 루트 지침과 운영 문서를 갱신한다.
+- [x] 지침 체인, 에이전트 설정, 템플릿, 참조를 검증한다.
 
-## Review
+## 검토
 
-- Claude-only files were removed. The environment retained empty `.claude`
-  directories after blocking recursive directory removal; empty directories are
-  not tracked by Git.
-- `rg --files .claude` found no files and a hidden-file scan found no remaining
-  Claude references outside this task log.
-- `git diff --check` passed.
-- A read-only ephemeral Codex session loaded the active issue, task planning,
-  CP949, and verification safeguards.
+- `AGENTS.override.md`가 상세 정책을 병합하지 않고 대체하는 우선순위를 바로잡았다.
+  오버라이드를 제거하고 루트 `AGENTS.md`를 유일한 자동 로드 정책으로 만들었다.
+- 워크플로우 단계와 동일 오류 2회/전체 10회 에스컬레이션 기준을 세션 시작부터 적용하도록
+  플레이북에서 `AGENTS.md`로 올렸다.
+- `git diff --check`를 통과했고, 16개 플레이북·템플릿·에이전트 자산과 TOML 필수 키,
+  여러 줄 지침 구분자를 검증했다.
+- 새 읽기 전용 Codex 세션이 도구로 파일을 읽지 않고도 워크플로우, 리뷰 분리,
+  에스컬레이션 기준을 정확히 보고했다.

@@ -1,20 +1,24 @@
 # 프로젝트 상태
 
-> 이 파일은 프로젝트 전체의 참고 상태다. 실제 이슈 작업 상태와 검증 이력은 `workspace/{issue}/STATUS.md`, `workspace/{issue}/PROGRESS.md`에 기록한다.
+> 이 문서는 프로젝트 전체의 참고 상태다. 실행 중인 이슈의 정본 상태는 `workspace/{issue}/STATUS.md`와 `PROGRESS.md`다.
 
 ## 현재 상태
 
 ```text
 ACTIVE_ISSUE:      -
+TRACK:             -
+PHASE:             -
 CURRENT_GOAL:      -
+NEXT_ACTION:       -
 LAST_VERIFICATION: -
 LAST_COMMIT:       -
 UPDATED_AT:        -
 ```
 
-## 사용 원칙
+## 운영 원칙
 
-- 제품 코드 작업 전 `.codex/ACTIVE_ISSUE`에 이슈 ID를 기록한다.
-- Codex는 작업 계약과 현재 diff를 확인한 뒤 최소 범위로 구현한다.
-- 빌드·테스트·리뷰 결과는 해당 이슈의 `PROGRESS.md`에 남긴다.
-- 커밋·push·배포·외부 이슈 변경은 사람의 명시적 요청 뒤에만 수행한다.
+- 제품 코드 작업 전에 `.codex/ACTIVE_ISSUE`를 기록한다.
+- 새 이슈는 INTAKE부터 시작해 Sprint 또는 Defect로 분류한다.
+- 구현·리뷰·검증 상태는 이슈 작업공간에만 기록한다.
+- 자동 검증이 끝나도 수동 테스트와 외부 변경은 `HUMAN_GATE`에 남긴다.
+- 끝난 이슈의 작업 산출물은 다음 유지보수의 근거로 보존한다.

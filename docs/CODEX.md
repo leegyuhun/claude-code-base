@@ -1,41 +1,63 @@
 # Codex 운영 안내
 
-## 자동 로드 규칙
+## 운영 계층
 
-Codex는 저장소 루트의 `AGENTS.override.md`를 자동으로 읽는다. `AGENTS.override.md`는 상세 규칙인 `AGENTS.md`와 방향 문서 `VISION.md`를 먼저 읽도록 지시한다. 별도 에이전트 정의나 슬래시 명령은 필요 없다.
+| 계층 | 역할 |
+|---|---|
+| `AGENTS.md` | Codex 자동 로드 정본: 도메인 안전 규칙과 종료 조건 |
+| `.codex/playbooks/` | 반복 가능한 단계별 절차 |
+| `.codex/templates/` | 이슈 상태·계획·피드백 산출물 |
+| `.codex/agents/` | 계획·구현·리뷰·빌드복구 역할 |
+| `workspace/{issue}/` | 이슈별 장기 작업 메모리 |
 
-## 제품 코드 작업 준비
-
-`.codex/ACTIVE_ISSUE.example`을 `.codex/ACTIVE_ISSUE`로 복사하고 이슈 번호를 입력한다. 실제 값은 Git에서 제외된다. 작업 계약은 우선순위대로 다음 중 하나다.
-
-1. `sprints/{sprint}/GOAL.md`
-2. `docs/PRD_{issue}.md`의 `## 검증 계약`
-3. 사용자가 제공한 범위와 검증 기대치
-
-Codex는 구현과 로컬 검증을 수행할 수 있다. 커밋·push·배포·마이그레이션·외부 이슈 변경은 사용자의 별도 요청이 필요하다.
-
-## 복사해 쓸 요청
-
-```text
-AGENTS.md, VISION.md, .codex/ACTIVE_ISSUE를 읽어라. 현재 이슈의 작업 계약을 확인한 뒤 미완료 항목을 구현해라. CP949 및 Sybase ASA/PostgreSQL 규칙을 지키고, 변경에 맞는 검증을 새로 실행한 뒤 명령과 결과를 보고해라. 커밋과 push는 하지 마라.
-```
-
-```text
-현재 빌드 실패의 근본 원인을 조사해라. AGENTS.md를 먼저 읽고 가장 작은 안전한 수정을 적용한 뒤 관련 빌드를 다시 실행해라. 해결되지 않으면 가설·증거·다음 판단에 필요한 정보를 보고해라.
-```
-
-```text
-현재 diff를 AGENTS.md의 CP949, SQL, 공유 유닛, 데이터 안전성 규칙으로 검토해라. 파일은 수정하지 말고 Critical, High, Medium 순으로 재현 가능한 문제만 보고해라.
-```
-
-## 권장 상태 기록
-
-복잡한 작업은 `tasks/todo.md`에 계획·진행·검증 결과를 남긴다. 이슈가 길어지면 `workspace/{issue}/PROGRESS.md`에 가설, 변경 요약, 검증 결과, 미해결 위험을 기록한다. `GOAL.md` 체크박스는 구현자가 임의로 완료 처리하지 않으며, 검증 뒤에만 변경한다.
-
-## 설치 확인
-
-저장소 루트에서 다음 명령으로 지침 로드를 확인할 수 있다.
+## 새 이슈 시작
 
 ```powershell
-codex exec --sandbox read-only --ephemeral "Summarize the project instructions. Do not run tools."
+Copy-Item .codex/ACTIVE_ISSUE.example .codex/ACTIVE_ISSUE
+New-Item -ItemType Directory workspace/#1234
+Copy-Item .codex/templates/STATUS.md workspace/#1234/STATUS.md
+Copy-Item .codex/templates/PROGRESS.md workspace/#1234/PROGRESS.md
+```
+
+Sprint로 분류되면 `GOAL.md`, `OUT_OF_SCOPE.md`도 복사한다. 그 다음 Codex에 아래 요청을 전달한다.
+
+```text
+AGENTS.md, VISION.md, .codex/playbooks/00-INTAKE.md와 workspace/#1234/STATUS.md를 읽어라.
+이 요청을 Sprint 또는 Defect로 분류하고 상태·위험·검증 계약을 채워라. 아직 제품 코드는 수정하지 마라.
+공유 유닛 영향이 있으면 모듈 목록과 함께 멈춰라.
+```
+
+## Sprint 운영
+
+1. **계획**: planner가 `02-PLANNING.md`에 따라 `GOAL.md`를 작성한다.
+2. **구현**: implementer가 한 GOAL 항목만 구현하고 `PROGRESS.md`에 근거를 기록한다.
+3. **리뷰**: reviewer가 계약과 diff를 독립 검토한다.
+4. **통합 검증**: 메인 Codex가 `05-VALIDATION.md`로 빌드·테스트·계약을 확인한다.
+5. **사람 게이트**: 수동 테스트와 외부 변경은 사람이 승인한다.
+
+```text
+planner 에이전트에게 workspace/#1234/GOAL.md 계획을 맡겨라. 제품 코드는 변경하지 말고,
+범위·비범위·자동 검증·수동 테스트·롤백 신호를 채워라.
+```
+
+```text
+implementer 에이전트에게 GOAL.md의 항목 2만 구현하게 해라. PROGRESS.md에 근거를 기록하고,
+GOAL 체크박스는 바꾸지 않게 해라.
+```
+
+```text
+reviewer 에이전트에게 현재 diff를 독립 검토하게 해라. Critical/High만 FEEDBACK.md 형식으로
+보고하고 제품 파일은 수정하지 않게 해라.
+```
+
+## Defect와 빌드 복구
+
+Defect는 `00-INTAKE.md`의 경량 기준을 충족할 때만 사용한다. 원인이 불명확하거나 수정이 확장되면 Sprint로 승격한다. 빌드가 깨졌다면 `build_recovery` 역할과 `06-BUILD-RECOVERY.md`를 사용한다. 동일한 첫 오류가 두 번 반복되거나 총 10회 시도하면 추측을 멈추고 `PROGRESS.md` 증거와 함께 에스컬레이션한다.
+
+## 재개와 설치 확인
+
+재개할 때는 `STATUS.md`, `PROGRESS.md`, `GOAL.md`, `FEEDBACK.md` 순으로 읽는다. `NEXT_ACTION`이 다음 작업의 시작점이다.
+
+```powershell
+codex exec --sandbox read-only --ephemeral "프로젝트 지침을 요약하고 대형 프로젝트 워크플로우 단계를 나열해라. 도구는 실행하지 마라."
 ```
