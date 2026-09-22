@@ -64,7 +64,15 @@ def main() -> int:
     with temp_repo(**common) as root:
         setup(root, phase="7", goal=(" ", " "))
         rc, err = fire(root)
-        rep.case("검증계약 미충족 -> 차단", 2, rc, "검증 계약 미충족 2건" in err, err)
+        # 자동 1건만 센다. 수동 1건은 PHASE 8 대상이라 제외 — 제외했다고 알려야 한다
+        rep.case("검증계약 미충족 -> 차단", 2, rc,
+                 "검증 계약 미충족 1건" in err and "수동 항목 1건" in err, err)
+
+    # 자동 항목은 전부 [x], 수동만 [ ] — PHASE 7에서 정상 상태다. 막으면 자기채점 압박이 된다
+    with temp_repo(**common) as root:
+        setup(root, phase="7", goal=("x", " "))
+        rc, err = fire(root)
+        rep.case("수동 항목만 미체크 -> 통과", 0, rc, err.strip() == "", err)
 
     with temp_repo(**common) as root:
         setup(root, phase="7", goal=("x", "x"))

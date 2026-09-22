@@ -35,29 +35,35 @@ BRANCH_ALLOWED = (
 )
 
 # (정규식, 차단 사유) — 원본 .sh의 규칙 1~5와 동일한 순서·패턴
+# 정규식은 원본 .sh보다 넓다. 감사에서 확인된 우회 경로를 막기 위해서다:
+#   git push origin HEAD:master      refspec 뒤의 master       (원본은 `\s+master` 만 봄)
+#   git push origin +main_delphi     + 접두 force              (원본은 -f/--force 만 봄)
+#   bash -c 'cd /x && ls' / (cd /x; ls)   줄 시작이 아닌 cd 체이닝
+#   git -C /x reset --hard           git 과 reset 사이의 옵션
+# 인용 구간을 벗기지 않는다 — 인용 안이라도 bash -c 로 실제 실행될 수 있다.
 RULES = (
     (
-        re.compile(r"^\s*cd\s+[^\s&;]+\s*&&", re.M),
-        "디렉토리 체이닝(cd /path && ...)은 금지됩니다.\n"
+        re.compile(r"\bcd\s+[^\s&;|()]+\s*(?:&&|;)"),
+        "디렉토리 체이닝(cd /path && ... / cd /path; ...)은 금지됩니다.\n"
         "  → 절대 경로로 직접 명령을 실행하세요.",
     ),
     (
-        re.compile(r"git push(\s+[^\s]+)?\s+master(\s|$)", re.M),
+        re.compile(r"git push(?:\s+\S+)*?\s+(?:\S+:)?master(?:\s|$)", re.M),
         "master 브랜치 직접 push는 금지됩니다.\n"
         "  → 브랜치 전략: Release → master PR을 통해 병합하세요.",
     ),
     (
-        re.compile(r"git push(\s+[^\s]+)?\s+Release(\s|$)", re.M),
+        re.compile(r"git push(?:\s+\S+)*?\s+(?:\S+:)?Release(?:\s|$)", re.M),
         "Release 브랜치 직접 push는 금지됩니다.\n"
         "  → 브랜치 전략: 정기 배포 브랜치(2026_정기_N차) → Release PR을 통해 병합하세요.",
     ),
     (
-        re.compile(r"git push.+(-f\b|--force\b|--force-with-lease\b)"),
+        re.compile(r"git push.+?(?:-f\b|--force\b|--force-with-lease\b|\s\+\S)"),
         "Force push는 공유 브랜치의 히스토리를 손상시킵니다.\n"
         "  → 대안: 충돌을 해소하거나 새 커밋을 생성하세요.",
     ),
     (
-        re.compile(r"git reset\s+--hard"),
+        re.compile(r"\bgit\b[^\n|;&]*?\breset\s+--hard"),
         "git reset --hard는 로컬 변경 사항을 영구적으로 삭제합니다.\n"
         "  → 대안: 'git stash'로 임시 보관하거나 'git revert'를 사용하세요.",
     ),

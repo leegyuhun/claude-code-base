@@ -9,8 +9,10 @@
   포함하지만 그건 이중 방어이고, 실제로 손상을 잡는 지점은 Bash 이후다.
 
 비용 관리
-  이 훅은 모든 도구 호출마다 실행된다. 명령/경로에 .pas/.dfm/cp949가 없으면
-  git을 호출하기 전에 즉시 통과시킨다 — 대부분의 호출이 여기서 끝난다.
+  Write/Edit는 file_path가 .pas/.dfm이 아니면 즉시 통과한다.
+  Bash는 **항상** git status로 실제 변경을 본다 (수백 ms). 처음엔 명령 문자열에
+  .pas/.dfm/cp949가 있을 때만 검사했는데, `python fix.py` 한 줄이 .pas 수십 개를
+  다시 쓰는 경로를 통째로 놓쳤다. 놓치는 비용(복구 불가)이 검사 비용보다 크다.
   Delphi에는 린터도 단독 타입체커도 없으므로, 빠른 게이트에서 린트를 돌릴 수
   없다. 인코딩·구조 검사가 그 자리를 대신한다.
 
@@ -33,9 +35,6 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 
 CP949_SUFFIXES = (".pas", ".dfm")
-
-# 이 문자열이 없으면 CP949 파일을 건드릴 수 없다고 보고 즉시 통과시킨다
-TRIGGER = re.compile(r"\.pas|\.dfm|cp949", re.IGNORECASE)
 
 # validator 7-1.5의 날짜 하드코딩 검사와 같은 패턴
 DATE_HARDCODE = re.compile(
@@ -171,11 +170,13 @@ def main() -> int:
     if not isinstance(tool_input, dict):
         return 0
 
-    # ── 빠른 경로: CP949 파일과 무관한 호출은 git을 건드리지 않고 끝낸다 ──
+    # ── 빠른 경로 ──
+    # Write/Edit는 file_path로 판단할 수 있다: .pas/.dfm이 아니면 CP949 파일이 바뀔 수 없다.
+    # Bash는 판단할 수 없다. 명령 문자열에 .pas가 없어도 `python fix.py` 한 줄이
+    # 수십 개 .pas를 다시 쓸 수 있다 — 문자열 필터는 우회 경로였다 (감사 결함 ③).
+    # Bash 뒤에는 항상 git status로 실제 변경을 본다. 비용은 수백 ms, 놓치는 비용은 복구 불가.
     file_path = tool_input.get("file_path") or ""
-    command = tool_input.get("command") or ""
-    haystack = f"{file_path}\n{command}"
-    if not TRIGGER.search(haystack):
+    if file_path and not file_path.lower().endswith(CP949_SUFFIXES):
         return 0
 
     changed = changed_cp949_files()

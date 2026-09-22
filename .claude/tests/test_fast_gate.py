@@ -108,10 +108,16 @@ def main() -> int:
         rc, out, err = run_py(hook, TOUCH, cwd=root)
         rep.case("날짜 하드코딩 -> 경고", 0, rc, "날짜 하드코딩" in out, out)
 
+        # Bash는 명령 문자열과 무관하게 항상 검사한다 — `python fix.py`가 .pas를 망칠 수 있다
         reset(root)
         pas.write_bytes(PAS_BODY.encode("utf-8"))
-        rc, out, err = run_py(hook, BASH("git status"), cwd=root)
-        rep.case("무관한 명령 -> 즉시 통과", 0, rc, err.strip() == "", err)
+        rc, out, err = run_py(hook, BASH("python fix_encoding.py"), cwd=root)
+        rep.case("문자열 무관 Bash -> 손상 탐지", 2, rc, "UTF-8로 저장됐다" in err, err)
+
+        # Write/Edit는 file_path로 판단한다 — .md 편집은 .pas를 바꿀 수 없으니 즉시 통과
+        rc, out, err = run_py(
+            hook, {"tool_name": "Write", "tool_input": {"file_path": "docs/note.md"}}, cwd=root)
+        rep.case("Write .md -> 빠른 경로 통과(손상 있어도)", 0, rc, err.strip() == "", err)
 
         rc, out, err = run_py(
             hook, {"tool_name": "Write", "tool_input": {"file_path": "Forms/Treat.pas"}}, cwd=root)

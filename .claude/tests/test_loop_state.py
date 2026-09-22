@@ -79,16 +79,30 @@ def main() -> int:
                          "--signature", "R1", "--note", "리뷰 반려")
         rep.case("scope 독립 (build halt != review)", "continue", action)
 
-    # PHASE가 바뀌면 카운터를 이어 세지 않는다
+    # PHASE가 바뀌면 그 PHASE 전용(build/contract)만 리셋한다.
+    # 왕복 카운터(feedback/manual/review)는 살아야 한다 — 7→6→7 왕복을 세는 게 그것이다.
     with temp_repo(scripts=(SCRIPT_NAME,)) as root:
         script = root / ".claude" / "scripts" / SCRIPT_NAME
         workspace = setup(root)
         call(script, root, "bump", "--scope", "build", "--signature", "S1", "--note", "x")
         call(script, root, "bump", "--scope", "build", "--signature", "S2", "--note", "x")
+        call(script, root, "bump", "--scope", "feedback", "--signature", "F1", "--note", "반려 1")
         write_status(workspace, phase="6")
         action, out = call(script, root, "bump", "--scope", "build", "--signature", "S3", "--note", "x")
-        rep.case("PHASE 변경 -> 리셋", "continue", action, "카운터 리셋" in out, out)
-        rep.case("리셋 후 1/3부터", True, "1/3" in out, out)
+        rep.case("PHASE 변경 -> build 리셋", "continue", action, "PHASE 변경 감지" in out, out)
+        rep.case("build 1/3부터", True, "1/3" in out, out)
+        action, out = call(script, root, "bump", "--scope", "feedback", "--signature", "F2", "--note", "반려 2")
+        rep.case("PHASE 변경에도 feedback 유지 (2/3)", True, "2/3" in out, out)
+
+    # 스프린트가 바뀌면 전부 리셋한다
+    with temp_repo(scripts=(SCRIPT_NAME,)) as root:
+        script = root / ".claude" / "scripts" / SCRIPT_NAME
+        workspace = setup(root)
+        call(script, root, "bump", "--scope", "feedback", "--signature", "F1", "--note", "x")
+        call(script, root, "bump", "--scope", "feedback", "--signature", "F2", "--note", "x")
+        write_status(workspace, phase="7", sprint="sprint-02")
+        action, out = call(script, root, "bump", "--scope", "feedback", "--signature", "F3", "--note", "x")
+        rep.case("스프린트 변경 -> 전체 리셋", "continue", action, "전체 리셋" in out and "1/3" in out, out)
 
     return rep.done()
 

@@ -170,27 +170,43 @@ def new_state(status: dict[str, str]) -> dict:
     }
 
 
-def load_state(ws: Path, status: dict[str, str]) -> tuple[dict, bool]:
-    """(state, reset_happened). PHASE/스프린트가 바뀌면 리셋한다."""
+# PHASE가 바뀌면 지워도 되는 scope — 그 PHASE 안에서만 의미가 있는 것들.
+# feedback / manual / review:* 는 PHASE를 넘나드는 왕복을 세는 카운터라 여기 없다.
+# (7→6→7 왕복마다 전부 리셋하면 그 왕복은 영원히 계수되지 않는다 — 감사 결함 ①)
+PHASE_BOUND_SCOPES = {"build", "contract"}
+
+
+def load_state(ws: Path, status: dict[str, str]) -> tuple[dict, str]:
+    """(state, reset_kind). reset_kind: "" / "sprint" / "phase".
+
+    스프린트가 바뀌면 전부 리셋한다 — 다른 작업의 실패를 이어 세지 않는다.
+    PHASE만 바뀌면 PHASE_BOUND_SCOPES 만 리셋한다 — 왕복 카운터는 살려둔다.
+    """
     path = counter_path(ws)
     if not path.exists():
-        return new_state(status), False
+        return new_state(status), ""
     try:
         state = json.loads(path.read_text(encoding="utf-8-sig"))
     except (OSError, json.JSONDecodeError, UnicodeDecodeError):
-        return new_state(status), False
+        return new_state(status), ""
     if not isinstance(state, dict):
-        return new_state(status), False
-
-    phase = status.get("PHASE", "")
-    sprint = status.get("CURRENT_SPRINT", "")
-    if phase and sprint and (state.get("phase") != phase or state.get("sprint") != sprint):
-        return new_state(status), True
+        return new_state(status), ""
 
     state.setdefault("scopes", {})
     state.setdefault("halted", False)
     state.setdefault("halt_reason", "")
-    return state, False
+
+    phase = status.get("PHASE", "")
+    sprint = status.get("CURRENT_SPRINT", "")
+    if sprint and state.get("sprint") != sprint:
+        return new_state(status), "sprint"
+    if phase and state.get("phase") != phase:
+        for scope in list(state["scopes"]):
+            if scope.split(":", 1)[0] in PHASE_BOUND_SCOPES:
+                del state["scopes"][scope]
+        state["phase"] = phase
+        return state, "phase"
+    return state, ""
 
 
 def save_state(ws: Path, state: dict) -> None:
@@ -274,9 +290,11 @@ def cmd_bump(args: argparse.Namespace) -> int:
         emit("ACTION=continue\n")
         return 0
 
-    state, was_reset = load_state(ws, status)
-    if was_reset:
-        emit("[loop] PHASE/스프린트 변경 감지 - 카운터 리셋\n")
+    state, reset_kind = load_state(ws, status)
+    if reset_kind == "sprint":
+        emit("[loop] 스프린트 변경 감지 - 카운터 전체 리셋\n")
+    elif reset_kind == "phase":
+        emit("[loop] PHASE 변경 감지 - build/contract 카운터 리셋 (왕복 카운터는 유지)\n")
 
     scope = args.scope
     sc = state["scopes"].setdefault(

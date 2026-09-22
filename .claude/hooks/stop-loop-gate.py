@@ -51,6 +51,8 @@ PHASE_GATES = {"6": "build", "7": "contract"}
 MISSING = object()
 
 BUILD_ERROR = re.compile(r"([\w./\\-]+\.pas)\((\d+)\)\s*(?:Error:)?\s*(\w\d+)?(.*)", re.I)
+# goal-format.md의 수동 항목 표기: "(⚠️ 수동)" 또는 "(수동)"
+MANUAL_TAG = re.compile(r"\(\s*(?:⚠️\s*)?수동\s*\)")
 MISSING_MARKERS = ("rsvars.bat not found", "Project file not found", "not recognized")
 
 
@@ -193,14 +195,24 @@ def gate_contract(status: dict, issue: str):
     if not section:
         return MISSING, "`## 검증 계약` 섹션 없음"
 
-    pending = [
-        ln.strip() for ln in section.group(1).splitlines() if re.match(r"^\s*-\s*\[ \]", ln)
-    ]
+    # 수동 항목은 PHASE 8에서 사람이 확인한다. PHASE 7에서 [ ]인 것이 정상이므로
+    # 여기서 세면 훅이 모델에게 "수동 항목을 [x]로 바꿔라"고 압박하는 꼴이 된다 —
+    # 자기채점을 유도하는 게이트는 없는 것보다 나쁘다.
+    pending = []
+    skipped_manual = 0
+    for ln in section.group(1).splitlines():
+        if not re.match(r"^\s*-\s*\[ \]", ln):
+            continue
+        if MANUAL_TAG.search(ln):
+            skipped_manual += 1
+            continue
+        pending.append(ln.strip())
     if not pending:
         return None, ""
     listed = "\n".join(f"    {p}" for p in pending[:5])
     more = f"\n    ... 외 {len(pending) - 5}건" if len(pending) > 5 else ""
-    return (f"검증 계약 미충족 {len(pending)}건\n{listed}{more}", f"contract:{len(pending)}")
+    note = f"\n    (수동 항목 {skipped_manual}건은 PHASE 8 대상 — 제외)" if skipped_manual else ""
+    return (f"검증 계약 미충족 {len(pending)}건\n{listed}{more}{note}", f"contract:{len(pending)}")
 
 
 # ── 본체 ────────────────────────────────────────────────────────────
