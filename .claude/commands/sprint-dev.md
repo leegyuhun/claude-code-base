@@ -224,7 +224,13 @@ subagent 보고에서 **함정 후보**를 항목별로 수집해 둔다 (0건 �
 `.claude/skills/subagent-driven-development/spec-reviewer-prompt.md`를 읽어
 Agent tool (general-purpose)로 디스패치:
 - GOAL.md 해당 항목 명세 전체 + Implementer 보고 내용 전달
-- ❌ 이슈 발견 → Implementer에 수정 지시 → 재리뷰 (통과까지 반복)
+- ❌ 이슈 발견 → 재리뷰 **전에** 카운터를 올린다 (이 왕복에는 원래 상한이 없었다):
+
+      python .claude/scripts/loop_state.py bump --scope review:{항목번호} \
+        --signature "spec:{이슈 요지}" --note "{반려 사유 한 줄}"
+
+  ACTION=continue → Implementer에 수정 지시 후 재리뷰
+  ACTION=halt     → 같은 지적이 반복되는 상태다. [PAUSE] 후 사용자에게 보고
 - ✅ 통과 후에만 STEP 3 진행 (품질 리뷰 먼저 시작 금지)
 
 **STEP 3 — Code Quality Reviewer Subagent 디스패치 (Spec 통과 후에만)**
@@ -232,14 +238,24 @@ Agent tool (general-purpose)로 디스패치:
 `.claude/skills/subagent-driven-development/code-quality-reviewer-prompt.md`를 읽어
 Agent tool (general-purpose)로 디스패치:
 - dev-process.md §6 + CLAUDE.md 코딩 규칙 기준
-- ❌ 이슈 발견 → Implementer에 수정 지시 → 재리뷰 (통과까지 반복)
-- ✅ 통과 → 항목 완료. 다음 항목으로
+- ❌ 이슈 발견 → 재리뷰 **전에** 카운터를 올린다:
+
+      python .claude/scripts/loop_state.py bump --scope review:{항목번호} \
+        --signature "quality:{이슈 요지}" --note "{반려 사유 한 줄}"
+
+  ACTION=continue → Implementer에 수정 지시 후 재리뷰
+  ACTION=halt     → [PAUSE] 후 사용자에게 보고
+- ✅ 통과 → 항목 완료. 다음 항목으로. 카운터를 되돌린다:
+
+      python .claude/scripts/loop_state.py reset --scope review:{항목번호}
 
 **공통 규칙:**
 - GOAL.md(또는 PRD 검증 계약) 범위 밖 발견 시 → `{OUT_OF_SCOPE_FILE}`에 기록하고 건너뜀
 - .pas 파일 수정 시 .dfm 동기화 (Implementer prompt에 명시)
 - Implementer subagent 병렬 디스패치 금지 (코드 충돌 위험, 직렬 순차 실행)
-- Implementer에서 오류 시 `.claude/skills/systematic-debugging/SKILL.md` Phase 1부터 시작. 3회 이상 실패 → BLOCKED 처리 후 사용자 보고
+- Implementer에서 오류 시 `.claude/skills/systematic-debugging/SKILL.md` Phase 1부터 시작.
+  재시도 전 `loop_state.py bump --scope review:{항목번호}` 로 카운터를 올리고,
+  ACTION=halt 이면 BLOCKED 처리 후 사용자 보고 (횟수를 직접 세지 않는다)
 - 계획과 다른 결정 필요 시 → [PAUSE] 후 사용자에게 확인
 
 요구사항 변경 발생 시:

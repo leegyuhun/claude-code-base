@@ -10,11 +10,18 @@
 
 ```
 PHASE:            1
+LOOP:             running
+HALT_REASON:      -
 CURRENT_SPRINT:   -
 LAST_COMMIT:      -
 LAST_PR:          -
 UPDATED_AT:       -
 ```
+
+> `LOOP` / `HALT_REASON`은 `.claude/scripts/loop_state.py`가 관리한다.
+> `LOOP=halted`면 재시도 상한이나 헛돌기 감지에 걸려 루프가 멈춘 상태다.
+> PHASE 값은 그대로 두므로, 사람이 판단해 고친 뒤 `loop_state.py clear-halt`로 재개한다.
+> 시도 이력: `workspace/{ACTIVE_ISSUE}/.loop/attempts.log`
 
 ## PHASE 정의
 

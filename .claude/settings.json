@@ -19,12 +19,70 @@
       "Bash(* --help *)",
       "Bash(python *)",
       "Bash(python3 *)",
-	  "Read",
+      "Read",
       "Search",
       "Bash(grep *)",
       "Bash(findstr *)",
       "WebSearch",
       "WebFetch"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/pretooluse-cp949-guard.py",
+            "statusMessage": "CP949 파일 보호 검사 중..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/pretooluse-bash-guard.py",
+            "statusMessage": "Bash 위험 명령 검사 중..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/posttooluse-fast-gate.py",
+            "statusMessage": "CP949 무결성 검사 중..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/stop-loop-gate.py",
+            "statusMessage": "루프 게이트 검사 중..."
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/precompact-preserve.py",
+            "statusMessage": "작업 좌표 보존 중..."
+          }
+        ]
+      }
     ]
   }
 }

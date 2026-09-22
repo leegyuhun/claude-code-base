@@ -104,8 +104,17 @@ MVP 완료 후 신규 요구사항 발생 시:
 | 이슈 베이스 | `{현재브랜치}_#{이슈번호}` | `main_delphi_#1234` |
 | 스프린트 (이슈 있음) | `{현재브랜치}_#{이슈번호}_{CURRENT_SPRINT}` | `main_delphi_#1234_sprint-01` |
 | 스프린트 (이슈 없음) | `{현재브랜치}_{CURRENT_SPRINT}` | `main_delphi_sprint-01` |
-| 임시 작업 | `{현재브랜치}_{임시ID}` | `main_delphi_exp_login` |
+| 핫픽스 | `{현재브랜치}_hotfix_{영문소문자-설명}` | `main_delphi_hotfix_login-fix` |
+| 하네스/툴링 | `{현재브랜치}_harness_{영문소문자-설명}` | `main_delphi_harness_loop` |
 | 메인 | `main` | — |
+
+> 위 패턴은 `.claude/hooks/pretooluse-bash-guard.py`가 강제한다. 표를 고치면 훅도 함께 고칠 것.
+>
+> ⚠️ **임시 ID 브랜치 불일치**: `active-issue.md`는 이슈 없는 실험 작업에 임시 ID
+> (`exp_login` 등)를 쓰라고 안내하지만, `main_delphi_exp_login` 형태는 위 패턴에
+> 해당하지 않아 훅이 차단한다. 임시 작업도 당분간 `_harness_` 또는 `_hotfix_`
+> 패턴을 사용한다. (근본 해결은 훅에 임시 ID 패턴을 추가할지 결정이 필요 —
+> 그 패턴은 사실상 모든 소문자 브랜치명을 허용하게 되므로 규칙이 약해진다)
 
 ---
 

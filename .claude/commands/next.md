@@ -13,6 +13,40 @@ STATUS_FILE = `{WORKSPACE_DIR}/STATUS.md`
 
 ## 분기 로직
 
+### 0단계 — 루프 중단 상태 확인 (PHASE 분기보다 먼저)
+
+`{STATUS_FILE}`의 `LOOP` 값이 `halted`면, 재시도 상한이나 헛돌기 감지에 걸려
+자동 진행이 멈춘 상태다. **PHASE 안내보다 이것을 먼저 출력한다.**
+
+```
+python .claude/scripts/loop_state.py status
+```
+
+출력 형식:
+
+```
+┌─────────────────────────────────────┐
+│ ⛔ 루프 중단됨                       │
+│                                     │
+│ 사유: {HALT_REASON}                 │
+│ PHASE: {N} (변경되지 않았음)         │
+└─────────────────────────────────────┘
+
+최근 시도 (workspace/{ACTIVE_ISSUE}/.loop/attempts.log):
+  {최근 3~5줄}
+
+같은 방법으로 재시도하면 같은 결과가 나온다. 접근을 바꾸거나 범위를 줄여야 한다.
+
+판단 후 재개하려면:
+  python .claude/scripts/loop_state.py clear-halt
+
+그 다음 아래 PHASE 안내를 따른다.
+```
+
+`LOOP`가 없거나 `running`이면 아래로 진행한다.
+
+### 1단계 — TRACK 확인
+
 `{STATUS_FILE}`에서 `TRACK` 값을 먼저 확인한다.
 
 ### TRACK=defect 인 경우

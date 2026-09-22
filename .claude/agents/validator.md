@@ -115,8 +115,19 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
 
      실패 시:
      → 오류 메시지 분석 후 명백한 오류 (.pas 문법 오류, uses 누락 등)는 직접 수정
-     → 재시도 최대 3회
-     → 3회 실패 시 [PAUSE] "빌드 실패, 확인 필요합니다"
+     → 재시도 전 반드시 카운터를 올린다 (횟수를 머릿속으로 세지 않는다 —
+       컴팩션이 일어나면 그 숫자는 사라진다):
+
+       python .claude/scripts/loop_state.py bump --scope build \
+         --signature "{에러코드}:{파일}:{줄}" --note "{시도한 수정 한 줄 요약}"
+
+     → 출력 마지막 줄의 ACTION 값에 따른다:
+       ACTION=continue → 수정 후 재빌드
+       ACTION=halt     → 재시도를 중단하고 [PAUSE]. 사유는 출력에 있다
+                         (상한 도달 / 동일 실패 반복 / 벽시계 초과)
+                         "빌드 실패, 확인 필요합니다" + 실패 요약을 사용자에게 보고
+     → 빌드 성공 시 카운터를 되돌린다:
+       python .claude/scripts/loop_state.py reset --scope build
 
 7-3. 검증 계약 독립 검증
      `{GOAL_FILE}`의 `## 검증 계약` 항목을 읽고 Validator가 직접 판정:
@@ -175,6 +186,18 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
        ## 통과 항목 (재검증 불필요)
        - {통과된 항목 목록}
 
+       FEEDBACK.md는 최신 지시만 담는다 (덮어쓴다). 과거 실패 이력은
+       attempts.log가 맡는다 — 둘의 역할을 섞지 말 것.
+
+       Implementer로 되돌리기 전 카운터를 올린다:
+
+       python .claude/scripts/loop_state.py bump --scope feedback \
+         --signature "{실패항목}:{원인요지}" --note "{반려 사유 한 줄}"
+
+       ACTION=halt 이면 되돌리지 않는다. 같은 지점에서 왕복만 반복하는 상태이므로
+       [PAUSE] 후 사용자에게 보고하고 판단을 받는다 (FEEDBACK.md는 남겨둔다).
+
+       ACTION=continue 일 때만 아래를 진행한다:
        {STATUS_FILE} PHASE=6 으로 리셋
        [PAUSE]
        "Implementer 재실행 필요 — FEEDBACK.md 확인 후 타겟 수정
@@ -221,6 +244,15 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
 
 8-5. '통과' → {STATUS_FILE} PHASE=9 업데이트
 8-6. '수정 필요'
+     어느 경로든 먼저 카운터를 올린다 (수동 테스트 반려도 루프다):
+
+     python .claude/scripts/loop_state.py bump --scope manual \
+       --signature "{반려 항목}" --note "{사용자가 지적한 내용 한 줄}"
+
+     ACTION=halt 이면 재시도하지 않는다. 같은 항목이 반복 반려되는 상태이므로
+     [PAUSE] 후 사용자에게 보고하고 판단을 받는다.
+
+     ACTION=continue 일 때:
      경미한 수정 → 직접 수정 후 {STATUS_FILE} PHASE=7 업데이트 → PHASE 7부터 재시도
      대규모 수정 (기능 누락, 구조 변경 필요) → FEEDBACK.md 생성 후 Implementer로 에스컬레이션:
        `{FEEDBACK_FILE}` 생성 (7-6과 동일 형식)
