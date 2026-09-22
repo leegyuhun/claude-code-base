@@ -170,14 +170,21 @@ L5  Stop 훅         PHASE 6 빌드 / PHASE 7 검증계약   scope=build/contrac
 
 ## 검수 현황
 
+`.claude/tests/` — `python .claude/tests/run_all.py` (약 100초)
+
 ```
-gate_harness      PASS       JSON·문법·참조·훅경로, 실패 경로까지
-bash-guard        18/18      규칙 7종 차단 + 정상 통과
-cp949-guard       10/10      .pas/.dfm/대문자/윈도경로 차단, 오탐 없음
+gate_harness      PASS       JSON·문법·참조·훅경로 (별도 실행)
+PreToolUse 가드   29/29      규칙 7종 차단 + 정상 통과 + 인코딩 회귀
 fast-gate          9/9       CP949 손상 탐지, BOM 허용, 빠른 경로
 loop_state        13/13      상한·헛돌기·scope 독립·PHASE 리셋
 stop-loop-gate    12/12      STEP 7 시나리오 전량
+policy            14/14      값 검증·저장·손상 파일 복구
+                  ─────
+                  77건
 ```
+
+테스트는 절대 경로를 박지 않는다. `REPO`는 `__file__` 기준으로 계산하고 격리 레포는
+`tempfile`로 만든다 — 다른 PC에서도 그대로 돌아야 하기 때문이다.
 
 실물 검증(이 레포에서 직접): CP949 손상 탐지, `.pas` Write 차단, `cd &&` 차단,
 브랜치 명명 위반 차단, 정상 명령 통과.
@@ -223,14 +230,17 @@ stop-loop-gate    12/12      STEP 7 시나리오 전량
 - 빌드 에러 메시지에서 시그니처(`E2003:Unit.pas:412`) 추출이 되는가
 - 빌드 1회 소요가 벽시계 상한(30분) 대비 합리적인가
 
-## 2. 회귀 테스트가 레포에 없다
+## 2. ~~회귀 테스트가 레포에 없다~~ → 해결 (2026-09-22)
 
-검수에 쓴 스크립트 6개가 전부 세션 scratchpad에만 있고 커밋되지 않았다.
-**즉 다음 사람은 78케이스를 재현할 수 없다.** 훅을 고칠 때 회귀를 잡을 방법이 없는
-상태이고, 이건 루프 엔지니어링 관점에서 모순이다 — 검증기를 만들어놓고 검증기의
-검증기가 없다.
+`.claude/tests/` 로 이관했다. 77케이스, 전체 약 100초.
 
-`Tests/harness/` 아래로 옮기고, `gate_harness.py`가 이를 실행하도록 연결하는 것을 권한다.
+```
+python .claude/tests/run_all.py
+```
+
+`gate_harness.py`에는 **연결하지 않았다.** Stop 훅이 매 턴 `gate_harness`를 호출하므로
+거기에 100초짜리 테스트를 물리면 턴마다 그 비용을 물게 된다. 훅이나
+`.claude/scripts/*.py`를 고쳤을 때 수동으로 돌리는 쪽이 맞다.
 
 ## 3. 단위 테스트 실체 (`dev-process.md` 5장 불일치)
 
@@ -259,6 +269,11 @@ DUnit을 실제로 채울 계획이 없다면 표기를 현실에 맞게 고쳐�
 | 5 | em dash가 cp949에 없음 | 경고 출력 중 exit 1 → 게이트 무력화 |
 | 6 | 검증기 early return | 스캔 문서가 없으면 훅 경로 검사까지 건너뜀 |
 | 7 | `__pycache__` 유출 | 훅이 모듈을 import하며 생성 |
+| 8 | **`build.bat`의 `SET DPROJ=` 무조건 대입** | `validator.md`·`verification` 스킬이 안내하는<br>`set DPROJ=... && build.bat` 오버라이드가 **애초에 동작하지 않았다**.<br>`IF "%DPROJ%"==""` 로 고쳐 외부 지정을 우선하게 했다 |
+
+8번은 테스트를 레포로 옮기는 과정에서 드러났다. scratchpad 테스트는 우연히
+`.dproj` 탐지 실패 경로를 타서 통과했었다 — **테스트 환경이 달라지자 잡혔다.**
+회귀 테스트를 레포에 두어야 하는 이유가 이것이다.
 
 # 부록 B — 설계 시 자주 틀리는 지점
 

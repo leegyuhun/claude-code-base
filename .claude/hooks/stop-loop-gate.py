@@ -28,6 +28,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -69,9 +70,12 @@ def emit(text: str) -> None:
             pass
 
 
-def run(cmd: list[str], cwd: Path, timeout: int) -> tuple[int, str]:
+def run(cmd: list[str], cwd: Path, timeout: int,
+        env: dict[str, str] | None = None) -> tuple[int, str]:
     try:
-        proc = subprocess.run(cmd, cwd=cwd, capture_output=True, timeout=timeout)
+        proc = subprocess.run(
+            cmd, cwd=cwd, capture_output=True, timeout=timeout, env=env
+        )
     except subprocess.TimeoutExpired:
         return -1, "(timeout)"
     except OSError as exc:
@@ -142,10 +146,14 @@ def gate_build(_status: dict):
     if dproj is None:
         return MISSING, ".dproj를 찾지 못함"
 
-    env_cmd = ["cmd", "/c", f'set DPROJ={dproj} && build.bat debug']
-    code, out = run(env_cmd, REPO, 600)
+    # DPROJ는 환경변수로 넘긴다. `set X && build.bat` 형태로 조립하면 셸 파싱에
+    # 의존하게 되고, build.bat이 DPROJ를 무조건 덮어쓰면 오버라이드가 먹지 않는다.
+    env = dict(os.environ)
+    env["DPROJ"] = str(dproj)
+    code, out = run(["cmd", "/c", str(build_bat), "debug"], REPO, 600, env=env)
 
-    if code in (-1, -2) or any(m.lower() in out.lower() for m in MISSING_MARKERS):
+    # 9009 = 명령을 찾을 수 없음. 배치 실행 자체가 불가능한 상태도 "부재"다.
+    if code in (-1, -2, 9009) or any(m.lower() in out.lower() for m in MISSING_MARKERS):
         return MISSING, "빌드 환경 없음 (rsvars/msbuild 또는 프로젝트 파일)"
     if code == 0:
         return None, ""
