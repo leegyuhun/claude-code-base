@@ -42,3 +42,6 @@ _workspace_prev/
 # Python 캐시 (훅이 loop_state를 import하면서 생성)
 __pycache__/
 *.pyc
+
+# 작업 정책 (프로젝트별 1회 인터뷰 결과 — 각자 생성)
+.claude/loop-policy.json

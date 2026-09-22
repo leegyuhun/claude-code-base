@@ -118,6 +118,71 @@ ISSUE_NUMBERS가 없으면:
 
 ---
 
+## Phase 0.5: 작업 정책 확인 (프로젝트당 최초 1회)
+
+이후 단계의 [PAUSE] 중 "산출물을 보지 않아도 판단할 수 있는 것"을 여기서 한 번에 받는다.
+한 번 저장하면 다음 이슈부터는 이 Phase를 건너뛴다.
+
+```bash
+python .claude/scripts/policy.py show
+```
+
+`interviewed=true` 이면 **이 Phase를 건너뛰고** 출력된 값을 그대로 사용한다.
+`interviewed=false` 일 때만 아래 인터뷰를 수행한다.
+
+[PAUSE]
+```
+┌─ 작업 정책 (이 프로젝트에 한 번만 묻습니다) ──────────────┐
+│ 나중에 변경: python .claude/scripts/policy.py set 키=값    │
+│                                                          │
+│ 1. 브랜치                                                 │
+│    [1] 이슈마다 새 브랜치 생성            (권장)          │
+│    [2] 현재 브랜치에서 작업                               │
+│                                                          │
+│ 2. 트랙(Sprint/Defect) 확인                               │
+│    [1] 판정이 애매할 때만 확인            (권장)          │
+│    [2] 항상 확인                                          │
+│    [3] 항상 자동 판정                                     │
+│                                                          │
+│ 3. plan.md 검토                                           │
+│    [1] 요약만 보고 계속 진행              (권장)          │
+│        — 이의가 있으면 /rollback 으로 되돌립니다          │
+│    [2] 멈추고 검토                                        │
+│                                                          │
+│ 4. 구현 자동 진행                                          │
+│    [1] AUTO_RUN 6조건 충족 시 자동        (권장)          │
+│    [2] 항상 확인 후 진행                                  │
+│    [3] 조건을 넓혀 자동 진행                              │
+│                                                          │
+│ 5. 함정 회고 기록                                          │
+│    [1] 후보가 있으면 확인 후 기록         (권장)          │
+│    [2] 자동 기록                                          │
+│    [3] 기록하지 않음                                      │
+└──────────────────────────────────────────────────────────┘
+
+`1,1,1,1,1` 처럼 한 줄로 답해도 되고, `전부 권장` 이라고 해도 됩니다.
+```
+
+응답을 아래 값으로 변환해 저장한다. 저장 후에는 다시 묻지 않는다.
+
+| 문항 | 선택 → 값 |
+|---|---|
+| 1 브랜치 | [1] `branch=new` / [2] `branch=current` |
+| 2 트랙 | [1] `track_confirm=boundary` / [2] `always` / [3] `never` |
+| 3 plan | [1] `plan_review=notify` / [2] `pause` |
+| 4 구현 | [1] `auto_run=standard` / [2] `strict` / [3] `relaxed` |
+| 5 함정 | [1] `pitfall_capture=ask` / [2] `auto` / [3] `skip` |
+
+```bash
+python .claude/scripts/policy.py init \
+  branch={값} track_confirm={값} plan_review={값} auto_run={값} pitfall_capture={값}
+```
+
+> 이 정책은 **판단 기준을 미리 정하는 것이지 검증을 없애는 것이 아니다.**
+> PHASE 8 수동 UI 테스트, MR 머지 확인, BLOCKED 보고는 정책과 무관하게 항상 사람을 부른다.
+
+---
+
 ## Phase 1: 요구사항 수집
 
 ### 경로 A — Redmine 이슈 기반 (ISSUE_NUMBERS 있을 때)
@@ -299,9 +364,29 @@ GAP이 있으면:
 
 ---
 
-## Phase 2.5: 트랙 판정 [PAUSE] (공통)
+## Phase 2.5: 트랙 판정 (공통)
 
 수집된 이슈 정보와 기술 분석 결과를 종합하여 트랙을 자동 판정한다.
+
+**확인 여부는 Phase 0.5의 `track_confirm` 정책을 따른다** (`policy.py get track_confirm`):
+
+| 값 | 동작 |
+|---|---|
+| `never` | 판정 결과로 자동 확정. [PAUSE] 없음 |
+| `boundary` | **Defect 조건 충족 개수가 3~4개일 때만** [PAUSE] (아래 참조) |
+| `always` | 항상 [PAUSE] |
+
+`boundary`의 판정 기준 — 5개 조건 중 충족 개수로 가른다:
+
+```
+0~2개 충족 → Sprint 확정 (자동)
+5개 충족   → Defect 확정 (자동)
+3~4개 충족 → 애매하다. [PAUSE]로 확인받는다
+```
+
+> 왜 3~4개가 애매한가: `sprint-workflow.md`는 "모두 충족해야 Defect"라고 정하므로
+> 4개 충족은 규칙상 Sprint다. 하지만 한 조건 차이로 갈리는 지점이라 오판 비용이 크다 —
+> Sprint 규모 작업을 Defect로 처리하면 계획 없이 바로 구현에 들어간다.
 
 ```
 🔀 트랙 판정
@@ -317,13 +402,15 @@ GAP이 있으면:
 → 판정: Defect 트랙 제안 / Sprint 트랙 제안
 ```
 
-[PAUSE]
+[PAUSE] — 위 정책에 따라 확인이 필요할 때만
 ```
   [A] Defect 트랙 — Orchestrator·Planner 스킵, PRD `## 검증 계약` 기준으로 직접 구현
   [B] Sprint 트랙  — Orchestrator(PHASE 1~4.5) → Planner(5) → Implementer(6)
 ```
 
 선택값을 `SELECTED_TRACK` 변수에 저장한다 (A → `defect` / B → `sprint`).
+자동 확정한 경우에는 판정 결과를 한 줄로 알린다:
+`ℹ️ 트랙 자동 판정: {Sprint|Defect} (조건 {N}/5 충족) — 변경하려면 /rollback`
 
 ---
 
@@ -362,13 +449,17 @@ ISSUE_NUMBERS 없을 때:
 → 이미 해당 이슈의 브랜치이므로 [2]를 자동 선택하고 아래 한 줄만 출력한다:
   "ℹ️ 현재 브랜치가 이미 이슈 브랜치입니다 ({현재 브랜치명}) — 그대로 사용합니다."
 
-[PAUSE — 위 조건에 해당하지 않을 때만]
+[정책 적용 — 위 조건에 해당하지 않을 때]
 
-```
-브랜치를 어떻게 할까요?
-  [1] 새 브랜치 생성   — {브랜치명 후보} (현재 브랜치 기반)
-  [2] 현재 브랜치 사용 — {현재 브랜치명} 에 바로 작업
-```
+Phase 0.5의 `branch` 정책을 따른다 (`policy.py get branch`). **[PAUSE] 없이 진행한다.**
+
+| 값 | 동작 | 출력 |
+|---|---|---|
+| `new` | `{브랜치명 후보}` 생성 | `ℹ️ 새 브랜치 생성: {브랜치명} — 변경하려면 /branch` |
+| `current` | 현재 브랜치 그대로 | `ℹ️ 현재 브랜치에서 작업: {현재 브랜치명}` |
+
+> 브랜치는 되돌리기 쉬운 결정이다(`/branch`, `git switch`). 매 이슈마다 물을 이유가 없어
+> 정책으로 옮겼다.
 
 [1] 선택 시: `git checkout -b {브랜치명}`
 
