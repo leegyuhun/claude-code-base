@@ -113,14 +113,14 @@ MVP 완료 후 신규 요구사항 발생 시:
 
 ### 에이전트별 역할
 
-| 에이전트 | PHASE | 역할 | Defect 트랙 | 모델 |
-|----------|-------|------|-------------|------|
-| orchestrator | 1~4.5 | PRD 분석, plan.md, ROADMAP.md, 초기화 | ⏭️ 스킵 | opus |
-| planner | 5 | GOAL.md 작성 | ⏭️ 스킵 | opus |
-| implementer | 6 | 기능 구현 | PRD `## 검증 계약` 기준 구현 | opus |
-| validator | 7~10 | 검증, push + GitLab MR 자동 생성, 스프린트 전환 | PHASE 7~9, PHASE 10에서 종료 | sonnet |
-| deploy-prod | 독립 | 프로덕션 배포 | 동일 | sonnet |
-| commit-writer | 독립 | 커밋 메시지 작성 (Validator PHASE 9에서 호출) | PRD + 루트 DONE.md 기준 | sonnet |
+| 에이전트 | PHASE | 역할 | Defect 트랙 |
+|----------|-------|------|-------------|
+| orchestrator | 1~4.5 | PRD 분석, plan.md, ROADMAP.md, 초기화 | ⏭️ 스킵 |
+| planner | 5 | GOAL.md 작성 | ⏭️ 스킵 |
+| implementer | 6 | 기능 구현 | PRD `## 검증 계약` 기준 구현 |
+| validator | 7~10 | 검증, push + GitLab MR 자동 생성, 스프린트 전환 | PHASE 7~9, PHASE 10에서 종료 |
+| deploy-prod | 독립 | 프로덕션 배포 | 동일 |
+| commit-writer | 독립 | 커밋 메시지 작성 (Validator PHASE 9에서 호출) | PRD + 루트 DONE.md 기준 |
 
 ### 에이전트 호출 방법
 
@@ -301,14 +301,25 @@ Sprint: {sprint-name}
     │   ├── branch.md                   ← /branch — 브랜치 생성
     │   └── resolve.md                  ← /resolve — Redmine 이슈 Resolved 처리
     ├── skills/
-    │   ├── redmine/SKILL.md            ← Redmine 이슈 조회 (orchestrator/planner에서 사용)
-    │   └── commit-format/SKILL.md      ← YSR 커밋 메시지 형식 (commit-writer가 사용)
+    │   ├── redmine/SKILL.md                        ← Redmine 이슈 조회 (orchestrator/planner/prd)
+    │   ├── commit-format/SKILL.md                  ← YSR 커밋 메시지 형식 (commit-writer)
+    │   ├── subagent-driven-development/SKILL.md    ← 항목별 subagent 디스패치 (sprint-dev 4단계)
+    │   ├── requesting-code-review/SKILL.md         ← 코드 리뷰 디스패치 (validator PHASE 7)
+    │   ├── verification-before-completion/SKILL.md ← 완료 선언 전 컴파일 증거 (implementer)
+    │   ├── systematic-debugging/SKILL.md           ← 근본원인 디버깅 (validator/sprint-dev)
+    │   └── writing-plans/SKILL.md                  ← 계획 문서 자기검증 (orchestrator/planner)
+    ├── templates/
+    │   ├── prd-format.md                           ← PRD.md 양식 (/prd Phase 3)
+    │   └── goal-format.md                          ← GOAL.md 양식 (planner)
+    ├── refs/
+    │   └── pitfalls.md                             ← 함정 본문 (pitfalls-index.md에서 참조)
     └── rules/
         ├── active-issue.md             ← 워크스페이스 해석 규칙 (항상 활성화)
         ├── sprint-workflow.md          ← Sprint 워크플로우 보완 규칙
         ├── coding-principles.md        ← 코딩 원칙 (paths 기반 자동 활성화)
         ├── delphi2007-patterns.md      ← Delphi 2007 구현 패턴 레퍼런스 (명시적 Read 필요)
         ├── encoding-critical.md        ← CP949 인코딩 보호 규칙 (항상 활성화)
+        ├── pitfalls-index.md           ← 함정 인덱스 (상시 로드, 본문은 refs/pitfalls.md)
         └── dev-process.md              ← 개발 프로세스 정책 (이 문서)
 ```
 

@@ -1,7 +1,6 @@
 ---
 name: validator
 description: "PHASE 7~10에 도달했을 때 사용. 빌드/테스트 검증 실행, 수동 테스트 가이드 제시, push 후 GitLab MR 자동 생성(glab/GitLab API), 다음 스프린트 전환을 처리한다.\n\n<example>\nContext: Implementation is done, time to verify.\nuser: \"검증 시작해줘.\"\nassistant: \"validator 에이전트로 검증을 시작할게요.\"\n</example>"
-model: sonnet
 color: green
 ---
 
@@ -454,10 +453,16 @@ TRACK 값에 따라 분기:
 10-2. DONE.md Tech Debt 중 다음 스프린트 영향 있는 것 알림
 
 10-3. 남은 스프린트 없으면
-      "🎉 모든 스프린트 완료! MVP 달성" 출력 후 종료
+      {STATUS_FILE}에 PHASE=10 유지 + `PIPELINE=mvp_done` 기록
+      (모든 스프린트 완료 표식 — /next가 이 값을 보고 "MVP 완료" 분기로 라우팅한다)
 
-      신규 요구사항이 생기면:
-      명령어: '.claude/agents/orchestrator.md와 {STATUS_FILE} 읽고 PHASE 11 실행해줘'
+      "🎉 모든 스프린트 완료! MVP 달성" 출력 후 아래 경로 안내하고 종료:
+      - 프로덕션 배포:
+        '.claude/agents/deploy-prod.md를 읽고 배포를 진행해줘'
+      - 신규 요구사항 반영(Re-plan):
+        '.claude/agents/orchestrator.md와 {STATUS_FILE} 읽고 PHASE 11 실행해줘'
+        (orchestrator PHASE 11이 plan.md·ROADMAP.md를 갱신한 뒤 PHASE=5로 재진입시킨다)
+      - 현재 상태/다음 단계 재확인: /next
 
 10-4. 다음 스프린트 있으면
       {STATUS_FILE} 업데이트:

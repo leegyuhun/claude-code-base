@@ -1,12 +1,9 @@
 ---
 name: prd
 description: "PRD.md 생성. 구조화된 인터뷰 → GAP 분석 → 문서 생성 3단계."
-model: opus
 ---
 
 # /prd — PRD.md 생성
-
-<!-- model: opus — Redmine 이슈 분석(Phase 1 경로 A)의 요약·GAP 추론 품질을 보장하기 위해 opus 모델을 사용한다. 이 프론트매터는 변경하지 말 것. -->
 
 > orchestrator(PHASE 1)가 검증 없이 바로 통과할 수 있는 완성도 높은 PRD.md를 목표로 한다.
 > 구조화된 인터뷰 → GAP 분석 → 문서 생성 3단계로 진행한다.
@@ -54,9 +51,19 @@ model: opus
 ```
 .claude/ACTIVE_ISSUE가 존재하면 현재 ACTIVE_ISSUE 값을 확인한다.
 workspace/{ACTIVE_ISSUE}/STATUS.md가 존재하면 PHASE 값을 확인한다.
-PHASE가 5~10 (스프린트 진행 중)이면:
+
+[동일 이슈 재진입 판정 — 확인 생략]
+아래 중 하나라도 참이면 이슈 전환이 아니므로 [PAUSE] 없이 계속 진행한다.
+  - ACTIVE_ISSUE == 입력된 ISSUE_NUMBERS[0]
+  - `git branch --show-current` 출력에 입력된 #이슈번호가 포함됨
+    (예: 현재 브랜치 `main_delphi_#213378`, 입력 `/prd #213378`)
+→ 아래 한 줄만 출력하고 Phase 0으로 진행:
+  "ℹ️ 동일 이슈 재진입 (#{이슈번호}, PHASE={N}) — 확인 생략하고 계속합니다."
+
+[이슈 전환 판정 — 확인 필요]
+위 조건에 해당하지 않고 PHASE가 5~10 (다른 이슈의 스프린트 진행 중)이면:
   ⚠️ "현재 이슈({ACTIVE_ISSUE})의 스프린트가 진행 중입니다 (PHASE={N}).
-   /prd 실행 시 새 이슈로 전환됩니다. 기존 이슈 작업은 그대로 보존됩니다.
+   /prd 실행 시 새 이슈({입력된 이슈})로 전환됩니다. 기존 이슈 작업은 그대로 보존됩니다.
    계속하시겠습니까? (예/아니오)"
   → '아니오' → 종료
   → '예' → 새 이슈로 계속 진행
@@ -114,9 +121,6 @@ ISSUE_NUMBERS가 없으면:
 ## Phase 1: 요구사항 수집
 
 ### 경로 A — Redmine 이슈 기반 (ISSUE_NUMBERS 있을 때)
-
-> **모델:** 이 경로의 이슈 요약·GAP 추론·기술 분석은 opus 모델로 수행한다.
-> (커맨드 frontmatter `model: opus` 선언에 의해 자동 적용 — 임의 변경 금지)
 
 **1-A-1. 이슈 즉시 조회 (인터뷰 전)**
 
@@ -350,7 +354,15 @@ ISSUE_NUMBERS 없을 때:
   브랜치명 후보: `{현재브랜치}_sprint-{NN}` (다음 스프린트 번호)
 ```
 
-**4-2. 선택 [PAUSE]**
+**4-2. 선택**
+
+[자동 판정 — 확인 생략]
+현재 브랜치명에 입력된 `#{이슈번호}` 패턴이 이미 포함되어 있으면
+(예: 현재 `main_delphi_#213378`, 입력 `#213378`)
+→ 이미 해당 이슈의 브랜치이므로 [2]를 자동 선택하고 아래 한 줄만 출력한다:
+  "ℹ️ 현재 브랜치가 이미 이슈 브랜치입니다 ({현재 브랜치명}) — 그대로 사용합니다."
+
+[PAUSE — 위 조건에 해당하지 않을 때만]
 
 ```
 브랜치를 어떻게 할까요?
@@ -374,16 +386,16 @@ ISSUE_NUMBERS 없을 때:
    → user.id 추출하여 {MY_USER_ID} 로 저장
 
 2. 현재 상태 조회
-   MCP: get_issue(issue_id={이슈번호})
-   폴백: curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/issues/{이슈번호}.json
+   MCP(폴백): get_issue(issue_id={이슈번호})
+   curl(우선): curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/issues/{이슈번호}.json
 
 3. 현재 status_id에서 11까지 순서대로 호출
    - 현재=1:  → 11(Confirmed) with assigned_to_id
    - 현재=11: 생략
 
    ※ status_id=11(Confirmed) 전환 시 assigned_to_id 필수:
-   MCP: update_issue(issue_id={이슈번호}, status_id=11, assigned_to_id={MY_USER_ID})
-   폴백: Body: {"issue": {"status_id": 11, "assigned_to_id": {MY_USER_ID}}}
+   MCP(폴백): update_issue(issue_id={이슈번호}, status_id=11, assigned_to_id={MY_USER_ID})
+   curl(우선): Body: {"issue": {"status_id": 11, "assigned_to_id": {MY_USER_ID}}}
 ```
 
 성공: `✅ Redmine #{이슈번호} → 확인됨`
@@ -435,23 +447,14 @@ PRD=done
 
 **SELECTED_TRACK = `sprint` 인 경우:**
 
-[PAUSE]
+Phase 2.5에서 Sprint 트랙을 이미 확정했으므로 실행 여부를 다시 묻지 않고 이어간다.
+
 ```
-지금 바로 Orchestrator를 실행할까요?
-  [1] 예 — PHASE 1부터 바로 시작 (각 [PAUSE] 지점에서 확인 대기)
-  [2] 아니오 — 여기서 종료
+✅ Sprint 트랙 준비 완료 — Orchestrator(PHASE 1)로 이어갑니다.
+   (중단하려면 Esc)
 ```
 
-[1] 선택 시:
 `.claude/agents/orchestrator.md`를 읽고 현재 PHASE부터 실행한다. [PAUSE] 지점에서 멈추고 확인을 기다린다. 코드 구현은 하지 않는다.
-
-[2] 선택 시:
-```
-준비가 되면 아래 명령어를 실행하세요:
-
-.claude/agents/orchestrator.md를 읽고 현재 PHASE부터 실행해줘.
-[PAUSE] 지점에서 멈추고 내 확인을 기다려. 코드 구현은 하지 마.
-```
 
 **SELECTED_TRACK = `defect` 인 경우:**
 

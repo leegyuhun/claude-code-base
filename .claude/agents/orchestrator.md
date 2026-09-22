@@ -1,7 +1,6 @@
 ---
 name: orchestrator
 description: "새 프로젝트 시작 또는 PHASE 1~4.5에서 재개할 때 사용. PRD를 분석하고 plan.md 작성, ROADMAP.md 생성, 프로젝트 초기화를 처리한다.\n\n<example>\nContext: User has written a PRD and wants to start planning.\nuser: \"PRD 작성했어. 프로젝트 계획 시작해줘.\"\nassistant: \"orchestrator 에이전트로 PRD 분석부터 시작할게요.\"\n</example>"
-model: opus
 color: blue
 ---
 
@@ -316,6 +315,8 @@ PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
 11-5. {STATUS_FILE} 업데이트
       - CURRENT_SPRINT → 새 스프린트 (예: sprint-04)
       - PHASE=5
+      - `PIPELINE` 마커 제거 (또는 `PIPELINE=active` 로 변경)
+        — Re-plan으로 파이프라인이 재가동되므로 mvp_done 표식을 해제한다.
       - 스프린트 진행 현황 테이블에 새 행 추가
 
 11-6. 완료 후 출력:

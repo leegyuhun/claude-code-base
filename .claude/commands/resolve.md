@@ -1,6 +1,7 @@
 # /resolve — Redmine 이슈 Resolved 처리
 
 Redmine 이슈를 Resolved 상태로 업데이트합니다.
+연결된 **요구관리(프로젝트 296) 일감**이 있으면 dev 일감과 동일한 값(담당자·시작일·완료일·개발팀)으로 동기화하고, 개발공수(cf147)를 입력받아 함께 Resolved 처리합니다.
 
 **사용법:**
 - `/resolve 207500` — 이슈 번호 직접 지정
@@ -144,8 +145,8 @@ git diff를 읽어 현재 변경 내용을 파악한 뒤, 기획자·QA가 참�
    → user.id 추출하여 {MY_USER_ID} 로 저장
 
 2. 현재 상태 조회
-   MCP: get_issue(issue_id={이슈번호})
-   폴백: curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/issues/{이슈번호}.json
+   MCP(폴백): get_issue(issue_id={이슈번호})
+   curl(우선): curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/issues/{이슈번호}.json
 
 3. 현재 status_id에서 2(InProgress)까지 순서대로 전환
    - 현재=1:  → 11(Confirmed) → 10(Assigned) → 2(InProgress)
@@ -155,12 +156,12 @@ git diff를 읽어 현재 변경 내용을 파악한 뒤, 기획자·QA가 참�
    - 현재=3:  이미 완료, 종료
 
    ※ status_id=10(Assigned) 전환 시 assigned_to_id 필수:
-   MCP: update_issue(issue_id={이슈번호}, status_id=10, assigned_to_id={MY_USER_ID})
-   폴백: Body: {"issue": {"status_id": 10, "assigned_to_id": {MY_USER_ID}}}
+   MCP(폴백): update_issue(issue_id={이슈번호}, status_id=10, assigned_to_id={MY_USER_ID})
+   curl(우선): Body: {"issue": {"status_id": 10, "assigned_to_id": {MY_USER_ID}}}
 
    그 외 단계는 status_id만:
-   MCP: update_issue(issue_id={이슈번호}, status_id={다음상태})
-   폴백: Body: {"issue": {"status_id": {다음상태}}}
+   MCP(폴백): update_issue(issue_id={이슈번호}, status_id={다음상태})
+   curl(우선): Body: {"issue": {"status_id": {다음상태}}}
 
 4. 날짜 필드 처리:
    - start_date: 2단계 응답의 issue.start_date 값 확인
@@ -172,12 +173,12 @@ git diff를 읽어 현재 변경 내용을 파악한 뒤, 기획자·QA가 참�
    ({NOTES}가 있으면 notes 필드 포함, 없으면 생략)
    ({UPLOAD_TOKENS}가 있으면 uploads 필드 포함, 없으면 생략)
 
-   MCP: update_issue(issue_id={이슈번호}, status_id=3, done_ratio=100,
+   MCP(폴백): update_issue(issue_id={이슈번호}, status_id=3, done_ratio=100,
                      start_date="{start_date}",  ← EXISTING_START_DATE 없을 때만 포함
                      due_date="{due_date}",
                      notes="{NOTES}",
                      custom_fields=[{"id": 103, "value": "AI"}])
-   폴백: curl -s -X PUT -H "X-Redmine-API-Key: $REDMINE_API_KEY" -H "Content-Type: application/json" \
+   curl(우선): curl -s -X PUT -H "X-Redmine-API-Key: $REDMINE_API_KEY" -H "Content-Type: application/json" \
          $REDMINE_URL/issues/{이슈번호}.json
          Body: {
            "issue": {
@@ -203,6 +204,117 @@ git diff를 읽어 현재 변경 내용을 파악한 뒤, 기획자·QA가 참�
 ⚠️ Redmine 업데이트 실패. 수동으로 처리해주세요.
    이슈 번호: #{이슈번호}
    URL: https://redmine.ubware.com/issues/{이슈번호}
+```
+
+## Step 5 — 연결된 요구관리 일감 동기화
+
+dev 일감(#{이슈번호}) Resolved 처리가 성공하면, **연결된 요구관리(프로젝트 ID 296) 일감**을
+찾아 dev 일감과 동일한 값으로 동기화하고 Resolved까지 처리한다.
+
+### 5.1 dev 일감 재조회 — 연결일감 + 동기화 값 확보
+
+Step 4에서 확정된 최종 값을 얻기 위해 dev 일감을 relations 포함하여 재조회한다.
+
+- MCP(폴백): getIssue(issueId={이슈번호}, include=relations)
+- curl(우선): curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" "$REDMINE_URL/issues/{이슈번호}.json?include=relations"
+
+응답에서 추출:
+- {DEV_ASSIGNED_ID} : issue.assigned_to.id (담당자)
+- {DEV_START_DATE}  : issue.start_date (시작일)
+- {DEV_DUE_DATE}    : issue.due_date (완료일)
+- {DEV_TEAM}        : issue.custom_fields 중 id==128 의 value (개발팀). 값이 없으면 빈 값.
+- {RELATIONS}       : issue.relations 배열
+
+### 5.2 연결일감 중 요구관리(296) 필터
+
+1. {RELATIONS}의 각 항목에서 상대 일감 ID를 구한다:
+   - relation.issue_id == {이슈번호} → 상대 = relation.issue_to_id
+   - 그 외 → 상대 = relation.issue_id
+
+2. 각 상대 일감을 조회하여 프로젝트를 확인한다:
+   - MCP(폴백): getIssue(issueId={상대ID})
+   - curl(우선): curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" "$REDMINE_URL/issues/{상대ID}.json"
+   - project.id == 296 인 일감만 대상 목록 {REQ_ISSUES}에 담는다. (id, subject, status.id/name 보관)
+
+3. {REQ_ISSUES}가 비어 있으면 Step 5를 종료하고 완료 출력으로 간다.
+
+### 5.3 요구관리 일감별 처리 [각각 반복]
+
+{REQ_ISSUES}의 각 일감마다 아래 (1)~(4)를 반복한다.
+
+#### (1) 동기화 확인 [PAUSE]
+
+```
+🔗 연결된 요구관리 일감 발견
+
+  #{req_id} {req_subject}
+  현재 상태: {req_status_name}
+
+이 일감을 dev 일감(#{이슈번호})과 동일하게 동기화하고 Resolved 처리할까요?
+  - 담당자 : {DEV_ASSIGNED_ID}
+  - 시작일 : {DEV_START_DATE}
+  - 완료일 : {DEV_DUE_DATE}
+  - 개발팀 : {DEV_TEAM}
+
+'예' / '아니오'
+```
+
+'아니오' → 이 일감 건너뛰고 다음 일감으로.
+
+#### (2) 개발공수 입력 [PAUSE]
+
+```
+⏱️ 개발공수(customField 147)를 입력해주세요.
+
+  1. 0.25 (2h)
+  2. 0.5  (4h)
+  3. 0.75 (6h)
+  4. 1    (1d)
+  5. 직접입력
+
+선택 (1~5):
+```
+
+- 1~4 → 각각 0.25 / 0.5 / 0.75 / 1
+- 5 → "공수 값을 입력해주세요 (예: 2)" 출력 후 입력값 사용
+→ 선택 값을 {DEV_TIME}로 저장.
+
+#### (3) 순차 상태 전이 → Resolved
+
+워크플로우: New(1) → Confirmed(11) → Assigned(10) → InProgress(2) → Resolved(3)
+단계를 건너뛸 수 없으므로 요구관리 일감의 현재 상태부터 순차 전환하며, 각 단계에 dev 값을 실어 보낸다.
+
+전환 경로:
+- 현재=1(New):        →11 →10 →2 →3
+- 현재=11(Confirmed): →10 →2 →3
+- 현재=10(Assigned):  →2 →3
+- 현재=2(InProgress): →3
+- 현재=3(Resolved)/5(Closed): 상태 전이 없이 아래 Resolved 단계의 값 갱신 PUT만 수행
+
+각 단계별 필드 ({DEV_TEAM}이 빈 값이면 id:128 항목 생략):
+- →11(Confirmed): status_id=11, assigned_to_id={DEV_ASSIGNED_ID}, custom_fields=[{"id":128,"value":"{DEV_TEAM}"}]
+- →10(Assigned):  status_id=10, assigned_to_id={DEV_ASSIGNED_ID}, custom_fields=[{"id":128,"value":"{DEV_TEAM}"}]
+- →2(InProgress): status_id=2,  assigned_to_id={DEV_ASSIGNED_ID}, start_date="{DEV_START_DATE}", custom_fields=[{"id":128,"value":"{DEV_TEAM}"}]
+- →3(Resolved):   status_id=3,  done_ratio=100, due_date="{DEV_DUE_DATE}", custom_fields=[{"id":128,"value":"{DEV_TEAM}"},{"id":147,"value":"{DEV_TIME}"}]
+
+각 전환:
+- MCP(폴백): updateIssue(issueId={req_id}, ...위 필드...)
+- curl(우선): curl -s -X PUT -H "X-Redmine-API-Key: $REDMINE_API_KEY" -H "Content-Type: application/json" "$REDMINE_URL/issues/{req_id}.json" -d '{"issue": { ...위 필드... }}'
+
+전환 중 하나라도 실패하면 남은 단계를 멈추고 (4)에서 실패로 보고한 뒤 다음 일감으로 넘어간다.
+(dev 일감 resolve는 이미 확정되어 영향 없음)
+
+#### (4) 결과 출력
+
+성공:
+```
+✅ 요구관리 #{req_id} 동기화 + Resolved 완료 (개발공수 {DEV_TIME})
+```
+실패:
+```
+⚠️ 요구관리 #{req_id} 처리 실패 — {에러 메시지}
+   URL: https://redmine.ubware.com/issues/{req_id}
+   수동 확인이 필요합니다.
 ```
 
 ## 완료 후 항상 출력

@@ -30,12 +30,6 @@ GOAL.md 읽기 → 항목 목록 추출 및 TaskCreate →
 → 모든 항목 완료 → 5단계(최종 검증)로
 ```
 
-## 모델 선택
-
-- 단순 구현 (파일 1~2개, 명확한 명세): claude-haiku 또는 claude-sonnet
-- 복합 구현 (다중 파일, 통합 고려): claude-sonnet
-- 아키텍처 판단, 리뷰: claude-opus
-
 ## Implementer 상태 처리
 
 **DONE:** Spec Reviewer로 진행.

@@ -1,7 +1,6 @@
 ---
 name: sprint-dev
 description: "GOAL.md에 따라 스프린트를 구현. Implementer/Spec Reviewer/Code Quality Reviewer 3단계 진행."
-model: sonnet
 ---
 
 GOAL.md에 따라 스프린트를 구현하는 오케스트레이터.
@@ -104,8 +103,8 @@ start_date: 오늘 날짜 (YYYY-MM-DD)
    → user.id 추출하여 {MY_USER_ID} 로 저장
 
 2. 현재 상태 조회
-   MCP: get_issue(issue_id={이슈번호})
-   폴백: curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/issues/{이슈번호}.json
+   MCP(폴백): get_issue(issue_id={이슈번호})
+   curl(우선): curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/issues/{이슈번호}.json
 
 3. 현재 status_id에서 2까지 순서대로 호출
    - 현재=1:  → 11(Confirmed) → 10(Assigned) → 2(InProgress)
@@ -114,24 +113,66 @@ start_date: 오늘 날짜 (YYYY-MM-DD)
    - 현재=2:  생략
 
    ※ status_id=10(Assigned) 전환 시 assigned_to_id 필수:
-   MCP: update_issue(issue_id={이슈번호}, status_id=10, assigned_to_id={MY_USER_ID})
-   폴백: Body: {"issue": {"status_id": 10, "assigned_to_id": {MY_USER_ID}}}
+   MCP(폴백): update_issue(issue_id={이슈번호}, status_id=10, assigned_to_id={MY_USER_ID})
+   curl(우선): Body: {"issue": {"status_id": 10, "assigned_to_id": {MY_USER_ID}}}
 
    그 외 단계는 status_id만:
-   MCP: update_issue(issue_id={이슈번호}, status_id={다음상태})
-   폴백: Body: {"issue": {"status_id": {다음상태}}}
+   MCP(폴백): update_issue(issue_id={이슈번호}, status_id={다음상태})
+   curl(우선): Body: {"issue": {"status_id": {다음상태}}}
 
 4. InProgress 전환 시 start_date 함께 설정:
-   MCP: update_issue(issue_id={이슈번호}, status_id=2, start_date="{오늘날짜}")
-   폴백: Body: {"issue": {"status_id": 2, "start_date": "{오늘날짜}"}}
+   MCP(폴백): update_issue(issue_id={이슈번호}, status_id=2, start_date="{오늘날짜}")
+   curl(우선): Body: {"issue": {"status_id": 2, "start_date": "{오늘날짜}"}}
 ```
 
 성공: `✅ Redmine #{이슈번호} → 진행 중 (start_date: {오늘날짜})`
 실패: 무시하고 계속 진행 (이슈 번호 없으면 이 단계 건너뜀)
 
-### 3단계: 구현 Plan 작성 후 [PAUSE]
+### 3단계: 구현 Plan 작성 + AUTO_RUN 판정
 
-아래 형식으로 출력:
+Plan을 작성한 뒤, 아래 6개 조건을 **기계적으로** 판정한다.
+판정은 재량이 아니다. "명확해 보인다"는 이유로 통과시키지 않는다.
+하나라도 판단이 불가능하면 **미충족(☐)으로 처리**한다.
+
+```
+[AUTO_RUN 조건 — 전부 ☑ 이어야 자동 진행]
+  1. 수정 예상 파일 ≤ 3개
+  2. 신규 .pas / .dfm 생성 없음 (= .dproj 변경 없음)
+  3. 공용 유닛 미수정
+     — Common/, CommonBL/, CommonV7/, ComUnit/, PackageBL/ 경로 일체
+       (참조 프로젝트가 다수이므로 파급 범위 확인이 필수)
+  4. DB 스키마 변경 없음 (테이블/컬럼 추가·변경·삭제 DDL 없음)
+  5. Plan의 '예상 이슈' 0건
+  6. FEEDBACK.md 재진입이 아님
+     (재진입 = 이미 사람이 한 번 반려한 상태이므로 항상 확인)
+```
+
+**AUTO_RUN = 전부 충족:** Plan 박스를 출력하고 [PAUSE] 없이 4단계로 바로 진행한다.
+
+```
+┌─────────────────────────────────────┐
+│ 📋 구현 Plan — {CURRENT_SPRINT}    │
+│                                     │
+│ 구현 순서:                          │
+│  1. {기능명} — {접근 방식}          │
+│  2. {기능명} — {접근 방식}          │
+│                                     │
+│ 예상 이슈: 없음                     │
+│                                     │
+│ [AUTO_RUN 판정]                     │
+│  ☑ 수정 파일 3개 이하 ({N}개)       │
+│  ☑ 신규 .pas/.dfm 없음              │
+│  ☑ 공용 유닛 미수정                 │
+│  ☑ DB 스키마 변경 없음              │
+│  ☑ Plan 예상 이슈 0건               │
+│  ☑ FEEDBACK 재진입 아님             │
+│                                     │
+│ → 자동 진행합니다 (중단: Esc)       │
+└─────────────────────────────────────┘
+```
+
+**하나라도 미충족:** 기존대로 Plan 출력 후 [PAUSE] — '실행' 입력을 기다린다.
+미충족 항목에 ☐를 표시하고 사유를 한 줄로 명시한다.
 
 ```
 ┌─────────────────────────────────────┐
@@ -144,6 +185,9 @@ start_date: 오늘 날짜 (YYYY-MM-DD)
 │ 예상 이슈:                          │
 │  - {이슈 1}                         │
 │                                     │
+│ [AUTO_RUN 판정]                     │
+│  ☐ {미충족 항목} — {사유}           │
+│                                     │
 │ '실행' 입력 시 구현 시작합니다      │
 └─────────────────────────────────────┘
 ```
@@ -152,7 +196,8 @@ start_date: 오늘 날짜 (YYYY-MM-DD)
 
 > 참조: `.claude/skills/subagent-driven-development/SKILL.md`
 
-'실행' 입력 후 GOAL.md 체크리스트 항목 수를 파악하고, 각 항목에 대해 아래 3-STEP 루프를 **순차** 실행한다.
+3단계에서 AUTO_RUN이면 즉시, 아니면 '실행' 입력 후
+GOAL.md 체크리스트 항목 수를 파악하고, 각 항목에 대해 아래 3-STEP 루프를 **순차** 실행한다.
 
 **STEP 1 — Implementer Subagent 디스패치**
 
@@ -161,6 +206,12 @@ Agent tool (subagent_type=implementer)로 디스패치:
 - 항목 전체 텍스트 (GOAL.md 해당 항목 원문)
 - 맥락: CURRENT_SPRINT, WORKSPACE_DIR, 직전 완료 항목
 - YSR 필수 규칙 포함 (CP949, TtsQuery, GOAL.md 범위 엄수, 컴파일 확인 의무)
+- `{함정 카테고리}` 치환: 이 항목의 작업 영역으로 카테고리를 식별해 넘긴다
+  (기본 A·B / SQL이면 C / DFM·UI면 D / 빌드·패키지면 E / git·셸이면 F —
+   `.claude/rules/pitfalls-index.md`의 "빠른 매핑" 표 기준)
+
+subagent 보고에서 **함정 후보**를 항목별로 수집해 둔다 (0건 보고도 그대로 기록).
+수집분은 5.5단계에서 한 번에 취합해 사용자에게 제안한다.
 
 상태별 처리:
 - DONE: STEP 2로
@@ -207,7 +258,77 @@ Agent tool (general-purpose)로 디스패치:
 1. GOAL.md의 **완료 조건** 섹션 체크
 2. 최종 빌드 재실행 — 이번 스프린트에서 변경된 .dproj 대상 `build.bat debug` 실행 및 결과(에러 0건) 출력
    (각 기능 완료 시 컴파일 확인했더라도 최종 통합 빌드를 다시 실행해야 함)
-3. 결과 요약:
+
+### 5.5단계: 함정 회고 캡처 (건너뛸 수 없음)
+
+4단계에서 수집한 함정 후보를 취합해 사용자에게 기록 여부를 묻는다.
+**후보가 0건이어도 이 단계를 생략하지 않는다.** 침묵으로 넘어가면 회고가 사라진다.
+
+**후보 0건 — 아래 한 줄만 출력하고 6단계로:**
+
+```
+[함정 회고] 새 함정 후보 없음 — pitfalls.md 변경 없이 종료.
+```
+
+**후보 1건 이상 — 제안 후 [PAUSE]:**
+
+```
+[함정 회고 캡처 제안] {CURRENT_SPRINT}
+
+1) [증상]     {무엇이 잘못 보였는지}
+   [원인]     {왜 그렇게 됐는지}
+   [해결]     {어떻게 고쳤는지}
+   [다음 체크] {재발 방지용 한 줄}
+   [카테고리]  {A~F 중 판정}
+
+2) ...
+
+→ 기록 여부:
+   (y) 모두 기록  /  (n) 모두 폐기  /  (e) 편집 후 기록  /  항목 번호(예: 1,3) 선택
+```
+
+**응답 처리:**
+
+| 입력 | 처리 |
+|------|------|
+| `y` | 모든 후보를 append (아래 기록 형식) |
+| `n` | 폐기 후 6단계로. 파일 변경 없음 |
+| `e` | 사용자 수정본을 그대로 append |
+| `1,3` 등 숫자 | 지정 항목만 append |
+
+**기록 형식 — 두 파일을 모두 갱신해야 완료:**
+
+1. `.claude/refs/pitfalls.md` — 판정한 카테고리 섹션에 4단 구조로 추가.
+   번호는 **현재 본문의 최대 함정 번호 + 1** (카테고리별이 아니라 전체 통합 번호)
+
+   ```markdown
+   ### #{N} {증상 한 줄 요약}
+
+   **증상**: {사용자 관점에서 무엇이 잘못 보였는지}
+
+   **원인**: {왜 그렇게 됐는지}
+
+   **해결**: {어떻게 고쳤는지}
+
+   **다음 체크**: {재발 방지용 한 줄}
+
+   ---
+   ```
+
+   말미 `---` 구분선까지 기존 항목과 동일하게 맞춘다.
+   해당 카테고리 섹션(`## E. 빌드 / 패키지 ...` 등)이 본문에 아직 없으면 섹션부터 새로 만든다.
+
+2. `.claude/rules/pitfalls-index.md` — 해당 카테고리에 `- **#{N}** {한 줄 요약}` 추가.
+   인덱스에 "(아직 없음)"으로 표시된 카테고리라면 그 줄을 새 항목으로 교체한다.
+   필요하면 "빠른 매핑" 표도 갱신한다.
+
+> 인덱스 갱신을 빠뜨리면 다음 작업에서 그 함정은 없는 것과 같다. 본문만 쓰고 끝내지 않는다.
+
+**처리 결과는 6단계 요약에 한 줄로 남긴다** (`append 2건` / `사용자 폐기(n)` / `후보 없음`).
+
+### 6단계: 완료 보고 및 Validator 인계
+
+1. 결과 요약:
    ```
    🏁 {CURRENT_SPRINT} 구현 완료
 
@@ -215,6 +336,7 @@ Agent tool (general-purpose)로 디스패치:
    |-----------|------|
    | 빌드 | ✅ 성공 |
    | 테스트 | ✅ N passed |
+   | 함정 회고 | {append N건 / 사용자 폐기(n) / 후보 없음} |
    | ... | ... |
 
    다음 단계: Validator 에이전트 실행
@@ -224,7 +346,7 @@ Agent tool (general-purpose)로 디스패치:
             TRACK=defect 모드로 검증을 시작해줘. [PAUSE] 지점에서 멈추고 내 확인을 기다려.'
    ```
 
-4. {STATUS_FILE} PHASE=7 업데이트
+2. {STATUS_FILE} PHASE=7 업데이트
 
 ## 주의사항
 

@@ -7,14 +7,8 @@ description: Redmine 이슈를 실시간으로 조회한다. 이슈 번호를 �
 
 ## 조회 방법
 
-**MCP 우선**: `.mcp.json`에 redmine MCP 서버가 설정된 경우 MCP 도구를 사용한다.
-
-```
-MCP 도구: get_issue
-파라미터: issue_id = {이슈번호}
-```
-
-**MCP 없을 때 폴백**: curl로 직접 호출.
+**curl 우선**: Redmine REST API를 curl로 직접 호출한다.
+(MCP 서버는 연결 실패 시 대기·재시도로 시간을 크게 소모하는 실측이 있어 폴백으로 강등 — 2026-08-24)
 
 API 키 우선순위:
 1. 환경변수 `$REDMINE_API_KEY` (settings.local.json `env` 섹션에 설정됨)
@@ -23,6 +17,13 @@ API 키 우선순위:
 ```bash
 curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" \
   "$REDMINE_URL/issues/{이슈번호}.json"
+```
+
+**curl 실패 시 폴백**: `.mcp.json`에 redmine MCP 서버가 설정된 경우에만 MCP 도구를 사용한다.
+
+```
+MCP 도구: get_issue
+파라미터: issue_id = {이슈번호}
 ```
 
 ## 응답에서 추출할 정보
@@ -41,7 +42,7 @@ curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" \
 
 | 상황 | 처리 |
 |------|------|
-| MCP 도구 없음 | WebFetch 폴백으로 자동 전환 |
+| curl 실행 불가 (도구 차단 등) | MCP 도구 시도 → 그것도 없으면 WebFetch 폴백 |
 | API 키 없음 (폴백 시) | "`$REDMINE_API_KEY` 환경변수 또는 `.mcp.json` 파일이 없습니다. settings.local.json `env` 섹션에 `REDMINE_API_KEY`를 설정하세요." 출력 후 중단 |
 | 401 Unauthorized | "API 키가 유효하지 않습니다. Redmine 계정의 API 키를 확인하세요." |
 | 404 Not Found | "이슈 #{번호}를 찾을 수 없습니다. 이슈 번호를 확인하세요." |
