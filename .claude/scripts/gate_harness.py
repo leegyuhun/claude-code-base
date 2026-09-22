@@ -60,10 +60,9 @@ REF_WHITELIST = {
     ".claude/projects",
 }
 
-# 아직 만들지 않은 파일을 의도적으로 나열하는 문서 — 참조 검사에서 제외
-SCAN_EXCLUDE = {
-    "docs/Upgrade_loop.md",   # 루프 시공 지시서: 신규 예정 파일 목록을 포함한다
-}
+# 아직 만들지 않은 파일을 의도적으로 나열하는 문서 — 참조 검사에서 제외.
+# (Upgrade_loop.md는 시공 완료 후 실재 파일만 참조하므로 2026-09-22에 제외를 해제했다)
+SCAN_EXCLUDE: set[str] = set()
 
 REF_PATTERN = re.compile(r"\.claude/[A-Za-z0-9_][A-Za-z0-9_./\-]*")
 # 플레이스홀더·글롭이 섞인 경로는 실재 검사 대상이 아니다

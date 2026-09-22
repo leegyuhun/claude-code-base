@@ -110,11 +110,10 @@ MVP 완료 후 신규 요구사항 발생 시:
 
 > 위 패턴은 `.claude/hooks/pretooluse-bash-guard.py`가 강제한다. 표를 고치면 훅도 함께 고칠 것.
 >
-> ⚠️ **임시 ID 브랜치 불일치**: `active-issue.md`는 이슈 없는 실험 작업에 임시 ID
-> (`exp_login` 등)를 쓰라고 안내하지만, `main_delphi_exp_login` 형태는 위 패턴에
-> 해당하지 않아 훅이 차단한다. 임시 작업도 당분간 `_harness_` 또는 `_hotfix_`
-> 패턴을 사용한다. (근본 해결은 훅에 임시 ID 패턴을 추가할지 결정이 필요 —
-> 그 패턴은 사실상 모든 소문자 브랜치명을 허용하게 되므로 규칙이 약해진다)
+> **임시 ID는 브랜치명에 쓰지 않는다.** 이슈번호 없이 `/prd`를 실행하면 임시 ID
+> (`exp_login` 등)가 `.claude/ACTIVE_ISSUE`와 `workspace/{임시ID}/` 에만 쓰이고,
+> 브랜치는 `{현재브랜치}_sprint-{NN}` 으로 만들어진다 (prd.md Phase 4-1).
+> 워크스페이스 격리와 브랜치 명명은 별개 축이다.
 
 ---
 

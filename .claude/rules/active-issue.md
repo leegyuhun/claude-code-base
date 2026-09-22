@@ -70,6 +70,9 @@ WORKSPACE_DIR = workspace/{ACTIVE_ISSUE}
 - 예: `exp_login`, `bug_repro_001`, `learn_async`
 - `.claude/ACTIVE_ISSUE`에 임시 ID 그대로 기록 (`#` 접두사 없음)
 - WORKSPACE_DIR = `workspace/{임시ID}` (예: `workspace/exp_login`)
+- **브랜치명에는 임시 ID를 쓰지 않는다.** 브랜치는 `{현재브랜치}_sprint-{NN}` 으로 만든다
+  (prd.md Phase 4-1). `main_delphi_exp_login` 같은 이름은 `pretooluse-bash-guard.py`의
+  명명 규칙에 없어 차단된다 — 워크스페이스 격리와 브랜치 명명은 별개 축이다.
 - 청소: 작업 완료 후 `workspace/{임시ID}/` 디렉토리 수동 삭제 (브랜치 정리 시 함께 처리 권장)
 
 ## 브랜치/포인터 불일치 감지 (`/status` 전용)
