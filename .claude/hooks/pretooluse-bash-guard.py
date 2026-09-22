@@ -100,8 +100,40 @@ def block(reason: str, command: str) -> int:
     return 2
 
 
+def strip_quoted(text: str) -> str:
+    """따옴표로 감싼 구간을 공백으로 치환한다.
+
+    **브랜치 명명 검사 전용이다.** 명령 안에 인용된 예시 문자열
+    (테스트 코드나 문서를 작성할 때)을 실제 브랜치 생성으로 오인하지 않기 위해서다.
+
+    다른 규칙(force push, master push, hard reset)에는 적용하지 않는다 —
+    `bash -c "git push -f ..."` 처럼 인용 안의 내용이 실제로 실행될 수 있어서,
+    인용을 벗기면 우회 경로가 생긴다. 브랜치명은 되돌리기 쉬운 반면 그쪽은 아니다.
+    """
+    out: list[str] = []
+    quote = ""
+    escaped = False
+    for ch in text:
+        if escaped:
+            out.append(" " if quote else ch)
+            escaped = False
+        elif ch == "\\":
+            escaped = True
+            out.append(" " if quote else ch)
+        elif quote:
+            if ch == quote:
+                quote = ""
+            out.append(" ")
+        elif ch in "'\"":
+            quote = ch
+            out.append(" ")
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
 def check_branch_name(command: str) -> str | None:
-    match = BRANCH_CMD.search(command)
+    match = BRANCH_CMD.search(strip_quoted(command))
     if not match:
         return None
     branch = match.group(1)

@@ -32,6 +32,11 @@ BASH_CASES = [
     ("정상 push 통과", "git push -u origin main_delphi_sprint-01", 0),
     ("빈 명령 통과", "", 0),
     ("cd 단독 통과", "ls /e/proj", 0),
+    # 인용된 브랜치명은 실제 생성이 아니다 (테스트·문서 작성 시 오탐 방지)
+    ("인용된 브랜치명 통과(큰따옴표)", 'echo "git checkout -b some_name"', 0),
+    ("인용된 브랜치명 통과(작은따옴표)", "echo 'git switch -c other_name'", 0),
+    # 단, 인용을 벗긴다고 force push까지 풀어주지는 않는다
+    ("인용 안 force push 차단", 'bash -c "git push -f origin main"', 2),
 ]
 
 CP949_CASES = [
