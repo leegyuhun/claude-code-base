@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>YSR 개발 흐름도</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+
+  :root {
+    --bg: #F3F5F7;
+    --surface: #FFFFFF;
+    --surface-2: #E9EDF1;
+    --line: #D3DAE2;
+    --line-strong: #A9B4C2;
+    --ink: #1C2430;
+    --ink-2: #4A5665;
+    --ink-3: #7B8794;
+    --accent: #2B4C8C;
+    --accent-soft: #DCE5F5;
+    --human: #B86A14;
+    --human-soft: #FBE9D2;
+    --hook: #1E7F74;
+    --hook-soft: #D6EFEB;
+    --halt: #B4362E;
+    --halt-soft: #F7DDDA;
+    --rail: #C7D0DB;
+    --shadow: 0 1px 2px rgba(28,36,48,.06), 0 6px 20px rgba(28,36,48,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141A21;
+      --surface: #1C242E;
+      --surface-2: #232D39;
+      --line: #313C4A;
+      --line-strong: #4A5768;
+      --ink: #E6EBF0;
+      --ink-2: #B4BFCC;
+      --ink-3: #7F8B99;
+      --accent: #8FB0EE;
+      --accent-soft: #24344F;
+      --human: #E0A253;
+      --human-soft: #3D2E18;
+      --hook: #5CC1B4;
+      --hook-soft: #1B3A36;
+      --halt: #E27A72;
+      --halt-soft: #442324;
+      --rail: #3A4655;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141A21;
+    --surface: #1C242E;
+    --surface-2: #232D39;
+    --line: #313C4A;
+    --line-strong: #4A5768;
+    --ink: #E6EBF0;
+    --ink-2: #B4BFCC;
+    --ink-3: #7F8B99;
+    --accent: #8FB0EE;
+    --accent-soft: #24344F;
+    --human: #E0A253;
+    --human-soft: #3D2E18;
+    --hook: #5CC1B4;
+    --hook-soft: #1B3A36;
+    --halt: #E27A72;
+    --halt-soft: #442324;
+    --rail: #3A4655;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    word-break: keep-all;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding-block: 40px 72px; padding-inline: 20px; }
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: .92em;
+  }
+  code {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: .05em .4em;
+    color: var(--ink);
+  }
+  h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.25; }
+  h1 { font-size: clamp(28px, 4.2vw, 38px); font-weight: 700; letter-spacing: -.01em; }
+  h2 { font-size: 21px; font-weight: 600; margin-top: 64px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 15.5px; font-weight: 600; }
+  p { margin: 0; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--accent); font-weight: 500;
+  }
+  .lede { color: var(--ink-2); font-size: 17px; margin-top: 12px; max-width: 62ch; }
+  .muted { color: var(--ink-3); }
+  a { color: var(--accent); }
+
+  /* ── 범례 ── */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-size: 13.5px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.human { background: var(--human); }
+  .dot.hook { background: var(--hook); }
+  .dot.agent { background: var(--accent); }
+  .dot.halt { background: var(--halt); }
+
+  /* ── 태그 ── */
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 600; letter-spacing: .02em;
+    padding: 2px 9px; border-radius: 999px; line-height: 1.6; white-space: nowrap;
+  }
+  .tag.human { background: var(--human-soft); color: var(--human); }
+  .tag.hook { background: var(--hook-soft); color: var(--hook); }
+  .tag.agent { background: var(--accent-soft); color: var(--accent); }
+  .tag.halt { background: var(--halt-soft); color: var(--halt); }
+  .tag.plain { background: var(--surface-2); color: var(--ink-2); }
+
+  /* ── 세로 레일 ── */
+  .rail { position: relative; margin-top: 28px; padding-left: 64px; }
+  .rail::before {
+    content: ""; position: absolute; left: 23px; top: 8px; bottom: 8px;
+    width: 2px; background: var(--rail);
+  }
+  .step { position: relative; margin-bottom: 18px; }
+  .step .num {
+    position: absolute; left: -64px; top: 10px;
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--surface); border: 2px solid var(--line-strong);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 14px;
+    color: var(--ink); box-shadow: var(--shadow);
+  }
+  .step.human .num { border-color: var(--human); color: var(--human); }
+  .step.hook .num { border-color: var(--hook); color: var(--hook); }
+  .step .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 18px 16px 20px; box-shadow: var(--shadow);
+  }
+  .step.human .card { border-left: 4px solid var(--human); }
+  .step.hook .card { border-left: 4px solid var(--hook); }
+  .step .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+  .step .head .who { color: var(--ink-3); font-size: 13.5px; }
+  .step .body { margin-top: 8px; color: var(--ink-2); font-size: 14.5px; }
+  .step .body ul { margin: 6px 0 0; padding-left: 18px; }
+  .step .body li { margin: 2px 0; }
+  .step .out {
+    margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
+    font-size: 13.5px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center;
+  }
+  .step .out .lbl { color: var(--ink-3); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-family: "IBM Plex Mono", monospace; }
+  .step .out code { font-size: 12.5px; }
+  .gate {
+    margin-top: 10px; padding: 9px 12px; border-radius: 7px;
+    background: var(--hook-soft); color: var(--hook); font-size: 13.5px;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .gate strong { font-weight: 600; }
+  .pause {
+    margin-top: 10px; padding: 9px 12px; border-radius: 7px;
+    background: var(--human-soft); color: var(--human); font-size: 13.5px;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+
+  /* ── 분기 (Sprint / Defect) ── */
+  .fork { position: relative; margin: 6px 0 18px; }
+  .fork .lanes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .lane {
+    background: var(--surface-2); border: 1px dashed var(--line-strong); border-radius: 10px; padding: 14px 16px;
+  }
+  .lane h3 { display: flex; align-items: center; gap: 8px; }
+  .lane .crit { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
+  .lane .crit li { margin: 2px 0; }
+  .lane ol, .lane ul { padding-left: 18px; margin: 6px 0 0; }
+  .lane .skip { color: var(--ink-3); text-decoration: line-through; }
+  .fork .join {
+    text-align: center; color: var(--ink-3); font-size: 13px; margin-top: 10px;
+    font-family: "IBM Plex Mono", monospace;
+  }
+
+  /* ── 반복 표시 ── */
+  .loopback {
+    display: flex; align-items: center; gap: 10px; margin: 2px 0 18px 0;
+    color: var(--ink-3); font-size: 13px; font-family: "IBM Plex Mono", monospace;
+  }
+  .loopback .arrow { color: var(--accent); font-size: 18px; line-height: 1; }
+
+  /* ── 훅 층 그리드 ── */
+  .hooks { display: grid; grid-template-columns: 150px 1fr; gap: 0; margin-top: 20px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  .hooks > div { padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .hooks > div:nth-last-child(-n+2) { border-bottom: 0; }
+  .hooks .k { background: var(--surface-2); font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 500; color: var(--hook); }
+  .hooks .k small { display: block; color: var(--ink-3); font-weight: 400; font-family: "IBM Plex Sans KR", sans-serif; margin-top: 2px; }
+  .hooks .v strong { font-weight: 600; }
+  .hooks .v .muted { display: block; font-size: 13px; margin-top: 2px; }
+
+  /* ── 6↔7 루프 다이어그램 ── */
+  .loopdiag { margin-top: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 18px 14px; box-shadow: var(--shadow); overflow-x: auto; }
+  .flow { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 10px; align-items: stretch; min-width: 640px; }
+  .box {
+    border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 10px 12px; background: var(--surface);
+    font-size: 13.5px; line-height: 1.45; position: relative;
+  }
+  .box .t { font-weight: 600; display: block; margin-bottom: 3px; }
+  .box .s { color: var(--ink-2); font-size: 12.5px; }
+  .box.agent { border-color: var(--accent); }
+  .box.hook { border-color: var(--hook); background: var(--hook-soft); }
+  .box.halt { border-color: var(--halt); background: var(--halt-soft); }
+  .box.human { border-color: var(--human); background: var(--human-soft); }
+  .arrows { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 10px; min-width: 640px; margin-top: 8px; font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-3); text-align: center; }
+  .arrows .fail { color: var(--halt); }
+  .arrows .pass { color: var(--hook); }
+  .rules { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .rule { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; }
+  .rule .n { font-family: "IBM Plex Mono", monospace; font-weight: 600; color: var(--halt); display: block; }
+  .rule .d { color: var(--ink-2); font-size: 12.5px; }
+
+  /* ── 개입 지점 ── */
+  .stops { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+  .stop { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .stop h3 { display: flex; gap: 8px; align-items: center; }
+  .stop ul { padding-left: 18px; margin: 8px 0 0; color: var(--ink-2); font-size: 14px; }
+  .stop li { margin: 3px 0; }
+  .stop .note { font-size: 12.5px; color: var(--ink-3); margin-top: 8px; }
+
+  /* ── 명령 카드 ── */
+  .cmds { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+  .cmd { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .cmd code { display: block; background: var(--surface-2); border: 0; padding: 8px 10px; border-radius: 6px; font-size: 13px; margin-bottom: 6px; overflow-x: auto; white-space: nowrap; }
+  .cmd p { font-size: 13.5px; color: var(--ink-2); }
+
+  .foot { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px; }
+  .foot ul { margin: 8px 0 0; padding-left: 18px; }
+
+  @media (max-width: 640px) {
+    .wrap { padding-block: 28px 56px; padding-inline: 16px; }
+    .rail { padding-left: 52px; }
+    .rail::before { left: 17px; }
+    .step .num { left: -52px; width: 36px; height: 36px; font-size: 12px; top: 12px; }
+    .fork .lanes, .rules, .stops, .cmds { grid-template-columns: 1fr; }
+    .hooks { grid-template-columns: 1fr; }
+    .hooks .k { border-bottom: 0; padding-bottom: 4px; }
+    .hooks > div:nth-last-child(-n+2) { border-bottom: 1px solid var(--line); }
+    .hooks > div:last-child { border-bottom: 0; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .step .card { transition: transform .15s ease; }
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">claude-code-base · Delphi 2007 하네스</p>
+  <h1 style="margin-top:8px">YSR 개발 흐름도</h1>
+  <p class="lede"><code>/prd #이슈번호</code> 한 줄로 시작해서 GitLab MR까지. 에이전트가 PHASE를 따라 진행하고, 훅이 사이사이에서 검사하고, 사람은 세 곳에서만 멈춘다.</p>
+
+  <div class="legend">
+    <span><i class="dot agent"></i>에이전트 / 커맨드</span>
+    <span><i class="dot hook"></i>훅이 자동 검사</span>
+    <span><i class="dot human"></i>사람이 멈춰서는 곳</span>
+    <span><i class="dot halt"></i>루프 중단</span>
+  </div>
+
+  <!-- ══════════ 1. 메인 파이프라인 ══════════ -->
+  <h2>1. 이슈 하나가 흘러가는 순서</h2>
+  <p class="muted" style="margin-top:10px;font-size:14px">예시: Redmine #207500, 현재 브랜치 <code>main_delphi</code>. 원 안의 숫자가 STATUS.md의 PHASE 값이다.</p>
+
+  <div class="rail">
+
+    <div class="step human">
+      <div class="num">PRD</div>
+      <div class="card">
+        <div class="head"><h3><code>/prd #207500</code></h3><span class="who">커맨드</span><span class="tag human">첫 이슈만 1회</span></div>
+        <div class="body">
+          Redmine 이슈를 읽어 PRD를 만들고, 브랜치를 따고, 트랙을 판정한다.
+          <ul>
+            <li><strong>Phase 0.5 정책 인터뷰</strong> — 브랜치·트랙 확인·plan 검토·자동진행·함정회고 5문항을 한 화면에서. <code>.claude/loop-policy.json</code>에 저장되어 다음 이슈부터는 묻지 않는다</li>
+            <li>트랙 자동 판정 — Defect 조건 5개 중 3~4개 충족(애매)일 때만 확인</li>
+            <li>브랜치 <code>main_delphi_#207500</code> 생성 (정책 <code>branch=new</code>)</li>
+            <li>Redmine 상태 → InProgress</li>
+          </ul>
+        </div>
+        <div class="out"><span class="lbl">산출</span><code>docs/PRD_#207500.md</code><code>.claude/ACTIVE_ISSUE</code><code>workspace/#207500/STATUS.md</code></div>
+      </div>
+    </div>
+
+    <!-- 분기 -->
+    <div class="fork">
+      <div class="lanes">
+        <div class="lane">
+          <h3><span class="tag agent">Sprint 트랙</span><span class="muted" style="font-size:13px;font-weight:400">기능 추가 · 여러 모듈</span></h3>
+          <ol class="crit">
+            <li>Orchestrator PHASE 1~4.5 → plan.md, ROADMAP.md</li>
+            <li>Planner PHASE 5 → GOAL.md</li>
+            <li>PHASE 6 구현으로</li>
+          </ol>
+        </div>
+        <div class="lane">
+          <h3><span class="tag plain">Defect 트랙</span><span class="muted" style="font-size:13px;font-weight:400">버그 · 긴급 수정</span></h3>
+          <ul class="crit">
+            <li><span class="skip">Orchestrator · Planner</span> 스킵</li>
+            <li>PRD의 <code>## 검증 계약</code>이 GOAL.md를 대체</li>
+            <li>바로 PHASE 6 구현으로</li>
+          </ul>
+          <p class="crit" style="margin-top:8px">판정 조건 (전부 충족 시 Defect): 변경 파일 ≤3 · 코드 ≤50줄 · DB 스키마 변경 없음 · 새 .pas 없음 · 장애/버그 성격</p>
+        </div>
+      </div>
+      <p class="join">↓ 두 트랙은 PHASE 6에서 합류 ↓</p>
+    </div>
+
+    <div class="step">
+      <div class="num">1–4.5</div>
+      <div class="card">
+        <div class="head"><h3>Orchestrator</h3><span class="who">에이전트 · Sprint 트랙만</span></div>
+        <div class="body">
+          PRD 검증 → 기능 목록(P0/P1/P2) → plan.md → 스프린트 분할 → ROADMAP.md → CLAUDE.md.
+          <ul>
+            <li>PHASE 3 plan 검토 — 정책 <code>plan_review=notify</code>면 요약만 출력하고 계속. 이의가 있으면 <code>/rollback 3</code></li>
+          </ul>
+        </div>
+        <div class="out"><span class="lbl">산출</span><code>workspace/#207500/plan.md</code><code>sprints/ROADMAP.md</code><code>CLAUDE.md</code></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">5</div>
+      <div class="card">
+        <div class="head"><h3>Planner</h3><span class="who">에이전트 · Sprint 트랙만</span></div>
+        <div class="body">
+          ROADMAP에서 현재 스프린트를 떼어 구현 명세를 쓴다. 여기서 쓰는 <strong>검증 계약</strong>이 뒤의 모든 채점 기준이 된다 — "정상 동작" 같은 문구는 채점이 불가능하므로 측정 가능한 문장으로.
+        </div>
+        <div class="out"><span class="lbl">산출</span><code>sprints/sprint-01/GOAL.md</code><span class="muted">— 체크리스트 · 검증 계약(자동/수동 구분) · 수동 테스트 시나리오</span></div>
+      </div>
+    </div>
+
+    <div class="step hook">
+      <div class="num">6</div>
+      <div class="card">
+        <div class="head"><h3><code>/sprint-dev</code></h3><span class="who">커맨드 → Implementer</span><span class="tag hook">컴파일 게이트</span></div>
+        <div class="body">
+          브랜치 <code>main_delphi_#207500_sprint-01</code>을 따고, GOAL.md 항목마다 <strong>fresh subagent 3단</strong>을 순차로 돈다:
+          <ul>
+            <li>Implementer → Spec Reviewer → Code Quality Reviewer (통과해야 다음 항목)</li>
+            <li>AUTO_RUN 6조건 충족 시 Plan 확인 없이 자동 진행 (공용 유닛·DB 스키마·신규 유닛·반려 재진입이면 확인)</li>
+            <li>리뷰 반려 왕복은 <code>--scope review:N</code> 카운터로 계수 — 3회 또는 동일 지적 2회면 멈춤</li>
+          </ul>
+        </div>
+        <div class="gate"><span>⟳</span><div><strong>Stop 훅 · PHASE 6</strong> — 턴이 끝날 때 변경된 .pas가 있으면 <code>build.bat debug</code>. 실패하면 종료를 막고 에러 위치와 다음에 볼 곳을 알려준다. 3회 또는 같은 에러 2회면 중단.</div></div>
+        <div class="out"><span class="lbl">산출</span><span>.pas/.dfm 수정 · 커밋 없음(Validator가 한 번에)</span></div>
+      </div>
+    </div>
+
+    <div class="step hook">
+      <div class="num">7</div>
+      <div class="card">
+        <div class="head"><h3>Validator — 자동 검증</h3><span class="who">에이전트</span><span class="tag hook">검증계약 게이트</span></div>
+        <div class="body">
+          <ul>
+            <li>사전 검사 — 신규 .pas의 .dpr 등록, 날짜 하드코딩</li>
+            <li>빌드 (<code>--scope build</code> 카운터)</li>
+            <li>검증 계약 독립 채점 — Implementer 선언이 아니라 직접 확인해 <code>[ ]→[x]</code></li>
+            <li>code-reviewer subagent — diff만 받는다. Critical/High 0건이어야 통과</li>
+          </ul>
+          구조적 실패면 <code>FEEDBACK.md</code>를 쓰고 PHASE=6으로 되돌린다 (<code>--scope feedback</code> 카운터 — PHASE가 바뀌어도 유지).
+        </div>
+        <div class="gate"><span>⟳</span><div><strong>Stop 훅 · PHASE 7</strong> — <code>## 검증 계약</code>에 자동 항목 <code>- [ ]</code>가 남아 있으면 종료를 막는다. <em>수동 항목은 세지 않는다</em> — PHASE 8 대상이다.</div></div>
+      </div>
+    </div>
+
+    <div class="loopback"><span class="arrow">↺</span><span>검증 실패 → FEEDBACK.md → PHASE 6 → 타겟 수정 → PHASE 7 &nbsp;(왕복 3회 / 동일 반려 2회면 중단)</span></div>
+
+    <div class="step human">
+      <div class="num">8</div>
+      <div class="card">
+        <div class="head"><h3>수동 테스트</h3><span class="who">Validator가 시나리오 제시</span><span class="tag human">사람 필수</span></div>
+        <div class="body">
+          GOAL.md의 수동 테스트 시나리오를 화면에 띄우고 멈춘다. <code>C:\YsrOutput\Exe\</code>의 EXE를 직접 실행해서 확인한다.
+        </div>
+        <div class="pause"><span>■</span><div><strong>여기는 루프가 절대 건너뛰지 않는다.</strong> 런타임 검증 커버리지가 0%다 — 컴파일이 통과해도 Access Violation이나 잘못된 동작은 이 단계만 잡는다. Stop 훅은 PHASE 8이면 무조건 통과시킨다(막으면 사용자가 빠져나갈 수 없다).</div></div>
+        <div class="out"><span class="lbl">입력</span><span><code>통과</code> → PHASE 9 &nbsp;/&nbsp; <code>수정 필요: {내용}</code> → PHASE 7 또는 6 (<code>--scope manual</code>)</span></div>
+      </div>
+    </div>
+
+    <div class="step human">
+      <div class="num">9</div>
+      <div class="card">
+        <div class="head"><h3>커밋 · push · MR</h3><span class="who">Validator → commit-writer</span><span class="tag human">머지 확인</span></div>
+        <div class="body">
+          <ul>
+            <li>DONE.md, CHANGELOG.md, TECH_DEBT.md 갱신</li>
+            <li>commit-writer가 한국어 커밋 메시지 작성 → 스프린트에 <strong>커밋 1회</strong></li>
+            <li><code>git push -u origin main_delphi_#207500_sprint-01</code></li>
+            <li>GitLab MR 자동 생성 (glab → API → 수동 안내 폴백), 타겟 <code>main_delphi_#207500</code></li>
+          </ul>
+        </div>
+        <div class="pause"><span>■</span><div>MR을 확인하고 머지한 뒤 <code>머지완료</code>를 입력한다. 외부 시스템 상태라 자동화 대상이 아니다.</div></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="num">10</div>
+      <div class="card">
+        <div class="head"><h3>다음 스프린트 / MVP 완료</h3><span class="who">Validator</span></div>
+        <div class="body">
+          남은 스프린트가 있으면 <code>CURRENT_SPRINT</code>를 올리고 PHASE 5로 — Planner부터 반복. 전부 끝나면 <code>PIPELINE=mvp_done</code>. Defect 트랙은 여기서 종료.
+        </div>
+      </div>
+    </div>
+
+    <div class="loopback"><span class="arrow">↺</span><span>스프린트마다 5 → 6 → 7 → 8 → 9 → 10 반복</span></div>
+
+    <div class="step human">
+      <div class="num">끝</div>
+      <div class="card">
+        <div class="head"><h3><code>/resolve 207500</code></h3><span class="who">커맨드</span><span class="tag human">사람이 호출</span></div>
+        <div class="body">작업 기간을 계산하고 Redmine 이슈를 Resolved(100%)로. 자동 전이하지 않는다 — 이슈 종결은 사람의 선언이다.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════ 2. 훅 층 ══════════ -->
+  <h2>2. 사이사이에서 도는 것 — 훅 층</h2>
+  <p class="muted" style="margin-top:10px;font-size:14px">위 PHASE 흐름은 사람이 명령을 넣어 진행시키고, 아래 훅은 그 사이에서 자동으로 검사한다. 전부 <code>.claude/settings.json</code>에 팀 공유로 배선돼 있다.</p>
+
+  <div class="hooks">
+    <div class="k">PreToolUse<small>파일 수정 직전</small></div>
+    <div class="v"><strong>.pas / .dfm 편집 차단</strong><span class="muted">Write·Edit·MultiEdit가 CP949 파일을 건드리면 막는다. 수정은 <code>python … encoding='cp949'</code> 방식만.</span></div>
+
+    <div class="k">PreToolUse<small>Bash 실행 직전</small></div>
+    <div class="v"><strong>위험 명령 차단</strong><span class="muted">master/Release push(refspec 포함) · force push(<code>-f</code>, <code>+브랜치</code>) · <code>reset --hard</code> · <code>cd &amp;&amp;</code> 체이닝 · 브랜치 명명 규칙 위반.</span></div>
+
+    <div class="k">PostToolUse<small>도구 실행 직후 · 짧은 루프</small></div>
+    <div class="v"><strong>CP949 손상 탐지 → 즉시 되돌리라고 요구</strong><span class="muted">Bash 뒤에는 항상 git status로 바뀐 .pas/.dfm을 보고 CP949로 디코딩되는지 확인. .dfm 미동기·.dpr 미등록·날짜 하드코딩은 경고만.</span></div>
+
+    <div class="k">Stop<small>턴 종료 시 · 긴 루프</small></div>
+    <div class="v"><strong>하네스 무결성 + PHASE 6 빌드 / PHASE 7 검증계약</strong><span class="muted">실패하면 <code>exit 2</code>로 종료를 막고 stderr에 "무엇이 왜 실패했고 다음에 어디를 볼지"를 쓴다. 그 텍스트가 다음 턴의 지시가 된다. 빌드 환경이 없으면 실패가 아니라 "검증기 부재"로 통과.</span></div>
+
+    <div class="k">PreCompact<small>컴팩션 직전</small></div>
+    <div class="v"><strong>작업 좌표 보존</strong><span class="muted">ACTIVE_ISSUE·PHASE·스프린트와 STATUS.md/GOAL.md/attempts.log 경로만 남긴다. 내용을 뱉으면 컴팩션 목적을 스스로 무너뜨린다.</span></div>
+  </div>
+
+  <!-- ══════════ 3. 재시도 루프 ══════════ -->
+  <h2>3. 실패하면 어떻게 다시 도는가</h2>
+  <p class="muted" style="margin-top:10px;font-size:14px">재시도 횟수는 모델이 세지 않는다. <code>workspace/#207500/.loop/counter.json</code>에 scope별로 기록되고, 세션이 끊기거나 컴팩션이 일어나도 유지된다.</p>
+
+  <div class="loopdiag">
+    <div class="flow">
+      <div class="box agent"><span class="t">PHASE 6 구현</span><span class="s">Implementer가 .pas 수정</span></div>
+      <div class="box hook"><span class="t">Stop 훅 · 빌드</span><span class="s">build.bat debug<br><code>--scope build</code></span></div>
+      <div class="box agent"><span class="t">PHASE 7 검증</span><span class="s">Validator 독립 채점</span></div>
+      <div class="box hook"><span class="t">Stop 훅 · 계약</span><span class="s">자동 항목 <code>[ ]</code> 잔여?<br><code>--scope contract</code></span></div>
+      <div class="box human"><span class="t">PHASE 8</span><span class="s">사람 · 수동 테스트<br>훅 통과</span></div>
+    </div>
+    <div class="arrows">
+      <div></div>
+      <div><span class="fail">✕ 실패 → exit 2, 6에서 재시도</span><br><span class="pass">✓ 통과 → 카운터 리셋</span></div>
+      <div><span class="fail">✕ 구조적 실패 → FEEDBACK.md → 6</span><br><span class="muted"><code>--scope feedback</code> 유지</span></div>
+      <div><span class="fail">✕ 잔여 → exit 2</span><br><span class="pass">✓ 통과 → PHASE 8</span></div>
+      <div></div>
+    </div>
+
+    <div class="rules">
+      <div class="rule"><span class="n">동일 실패 2회 연속</span><span class="d">에러코드:파일:줄이 같으면 상한을 기다리지 않고 즉시 중단. 같은 자리에서 두 번 같은 방식으로 실패했으면 세 번째도 같다.</span></div>
+      <div class="rule"><span class="n">같은 scope 3회</span><span class="d">build · feedback · manual · review:N 각각 독립. 빌드가 상한에 걸려도 리뷰 카운터는 무관.</span></div>
+      <div class="rule"><span class="n">30분 경과</span><span class="d">빌드 1회 1분 미만 기준의 여유값. scope 최초 실패 시각부터.</span></div>
+    </div>
+
+    <p style="margin-top:14px;font-size:14px;color:var(--ink-2)"><span class="tag halt">중단되면</span>&nbsp; STATUS.md에 <code>LOOP=halted</code>와 사유가 기록되고 <strong>PHASE는 그대로</strong> 둔다. <code>/next</code>가 PHASE 안내보다 먼저 중단 사유와 최근 시도(<code>.loop/attempts.log</code>)를 보여준다. 접근을 바꾼 뒤 <code>python .claude/scripts/loop_state.py clear-halt</code>로 재개.</p>
+  </div>
+
+  <!-- ══════════ 4. 사람이 멈추는 지점 ══════════ -->
+  <h2>4. 사람이 멈춰서는 곳</h2>
+  <p class="muted" style="margin-top:10px;font-size:14px">15개였던 [PAUSE] 중 "산출물을 보지 않아도 정할 수 있는 것"은 <code>/prd</code> 첫 인터뷰로 옮겼다. 산출물을 봐야 알 수 있거나 되돌릴 수 없는 것만 남았다.</p>
+
+  <div class="stops">
+    <div class="stop">
+      <h3><span class="tag human">첫 이슈</span>3곳</h3>
+      <ul>
+        <li>작업 정책 인터뷰 — <code>/prd</code> Phase 0.5, 프로젝트당 1회</li>
+        <li>PHASE 8 수동 UI 테스트</li>
+        <li>PHASE 9 MR 머지 확인</li>
+      </ul>
+    </div>
+    <div class="stop">
+      <h3><span class="tag human">다음 이슈부터</span>2곳</h3>
+      <ul>
+        <li>PHASE 8 수동 UI 테스트</li>
+        <li>PHASE 9 MR 머지 확인</li>
+      </ul>
+      <p class="note">둘 다 앞당길 수 있는 성질이 아니다 — 구현이 끝나야 테스트할 수 있고, MR은 외부 시스템 상태다.</p>
+    </div>
+    <div class="stop">
+      <h3><span class="tag plain">예외일 때만</span></h3>
+      <ul>
+        <li>트랙 판정이 애매 (Defect 조건 3~4개)</li>
+        <li>AUTO_RUN 미충족 — 공용 유닛·DB 스키마·신규 유닛·반려 재진입</li>
+        <li>subagent BLOCKED</li>
+        <li>요구사항 변경 감지</li>
+        <li>루프 중단 (halt)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══════════ 5. 막혔을 때 ══════════ -->
+  <h2>5. 막혔을 때</h2>
+  <div class="cmds">
+    <div class="cmd"><code>/next</code><p>STATUS.md를 읽고 지금 실행할 명령어를 알려준다. 루프가 중단됐으면 그 사유부터.</p></div>
+    <div class="cmd"><code>/status</code><p>현재 이슈·PHASE·스프린트·브랜치 불일치 여부를 한눈에.</p></div>
+    <div class="cmd"><code>python .claude/scripts/loop_state.py status</code><p>scope별 시도 횟수와 최근 실패 이력.</p></div>
+    <div class="cmd"><code>python .claude/scripts/loop_state.py clear-halt</code><p>중단 해제. 같은 방법으로 재시도하면 같은 결과가 나오니 접근을 바꾼 뒤에.</p></div>
+    <div class="cmd"><code>/rollback {PHASE}</code><p>자동 진행된 결정(plan 검토, 트랙 판정)이 마음에 안 들면 되돌린다.</p></div>
+    <div class="cmd"><code>python .claude/scripts/policy.py set plan_review=pause</code><p>정책 변경. 키: branch · track_confirm · plan_review · auto_run · pitfall_capture</p></div>
+  </div>
+
+  <div class="foot">
+    <p>이 페이지는 다음 문서를 요약한 것이다. 세부 절차는 원문을 따른다.</p>
+    <ul>
+      <li><code>docs/프로세스.md</code> — 전체 흐름과 단계별 명령어</li>
+      <li><code>docs/구조.md</code> — 파일 구조와 훅 배치</li>
+      <li><code>docs/Upgrade_loop.md</code> — 루프 층 설계 근거, 감사 결과, 알려진 한계</li>
+      <li><code>.claude/agents/*.md</code>, <code>.claude/commands/*.md</code> — 각 PHASE의 실제 절차</li>
+    </ul>
+    <p style="margin-top:12px">알려진 한계: 컴파일 게이트(층 B)는 이 템플릿 레포에서 실전 검증되지 않았다. 실제 Delphi 레포에 적용해 첫 스프린트를 돌린 뒤에야 확인된다.</p>
+  </div>
+</div>
+</body>
+</html>
