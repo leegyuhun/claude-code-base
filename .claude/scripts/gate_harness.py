@@ -58,6 +58,7 @@ REF_WHITELIST = {
     ".claude/ACTIVE_ISSUE",
     ".claude/settings.local.json",
     ".claude/projects",
+    ".claude/loop-policy.json",   # /prd Phase 0.5가 1회 생성, gitignore 대상
 }
 
 # 아직 만들지 않은 파일을 의도적으로 나열하는 문서 — 참조 검사에서 제외.
@@ -74,12 +75,18 @@ class Report:
         self.quiet = quiet
         self.n_ok = 0
         self.n_skip = 0
+        self.n_warn = 0
         self.fails: list[str] = []
 
     def ok(self, msg: str) -> None:
         self.n_ok += 1
         if not self.quiet:
             print(f"  OK    {msg}")
+
+    def warn(self, msg: str) -> None:
+        """보고하되 종료 코드에 반영하지 않는다 — Stop 훅이 턴을 막지 않는다."""
+        self.n_warn += 1
+        print(f"  WARN  {msg}")
 
     def skip(self, msg: str) -> None:
         self.n_skip += 1
@@ -191,6 +198,22 @@ def iter_scan_files() -> list[Path]:
     return [f for f in files if f.relative_to(REPO).as_posix() not in SCAN_EXCLUDE]
 
 
+def read_doc(path: Path) -> list[str] | None:
+    """문서를 UTF-8 → CP949 순으로 읽는다. 둘 다 실패하면 None.
+
+    이 템플릿은 CP949 프로젝트에 설치된다. keyword.md, Schema.md처럼 CP949로 저장된
+    프로젝트 고유 문서가 정상적으로 존재하고, 그 파일들은 건드리면 안 된다.
+    UTF-8만 받아들이면 실제 레포에서 영구 FAIL이 된다 (ysr 이식 시 실측).
+    """
+    raw = path.read_bytes() if path.exists() else b""
+    for enc in ("utf-8-sig", "cp949"):
+        try:
+            return raw.decode(enc).splitlines()
+        except UnicodeDecodeError:
+            continue
+    return None
+
+
 def extract_refs(text: str) -> list[str]:
     found = []
     for match in REF_PATTERN.finditer(text):
@@ -242,21 +265,28 @@ def check_refs(rep: Report) -> None:
         rep.skip("스캔 대상 문서 없음 — 훅 command 경로만 검사")
     for path in files:
         rel_src = path.relative_to(REPO).as_posix()
-        try:
-            lines = path.read_text(encoding="utf-8-sig").splitlines()
-        except UnicodeDecodeError:
-            rep.fail(f"{rel_src} — UTF-8 디코딩 실패 (문서는 UTF-8이어야 한다)")
+        lines = read_doc(path)
+        if lines is None:
+            # 문서 하나를 못 읽는 것은 하네스 파손이 아니다. 턴을 막을 이유가 없다.
+            rep.warn(f"{rel_src} — UTF-8/CP949 모두 디코딩 실패, 참조 검사 건너뜀")
             continue
         for lineno, line in enumerate(lines, start=1):
             for ref in extract_refs(line):
                 refs.setdefault(ref, f"{rel_src}:{lineno}")
 
     broken = 0
+    hook_refs = set(collect_hook_refs())
     for ref in sorted(refs):
         if ref in REF_WHITELIST or (REPO / ref).exists():
             continue
-        rep.fail(f"{ref} — 실재하지 않음 (참조: {refs[ref]})")
         broken += 1
+        # 심각도를 나눈다. 훅 command 경로가 깨지면 가드가 조용히 무력화되므로 FAIL.
+        # 문서 속 링크가 깨진 건 문서 품질 문제라 WARN — Stop 훅이 매 턴 막으면
+        # 모델이 고칠 수도 없는 문서(프로젝트 고유 자산) 때문에 하네스가 잠긴다.
+        if ref in hook_refs:
+            rep.fail(f"{ref} — 실재하지 않음 (참조: {refs[ref]})")
+        else:
+            rep.warn(f"{ref} — 실재하지 않음 (참조: {refs[ref]})")
 
     if not broken:
         rep.ok(
@@ -283,7 +313,8 @@ def main(argv: list[str]) -> int:
         print("하네스가 깨졌다. 위 FAIL 항목을 먼저 고칠 것.")
         return 1
 
-    print(f"결과: PASS — SKIP {rep.n_skip}건 / OK {rep.n_ok}건")
+    warn = f" / WARN {rep.n_warn}건" if rep.n_warn else ""
+    print(f"결과: PASS — SKIP {rep.n_skip}건 / OK {rep.n_ok}건{warn}")
     return 0
 
 
