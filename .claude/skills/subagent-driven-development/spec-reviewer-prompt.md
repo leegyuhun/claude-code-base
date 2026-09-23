@@ -1,4 +1,4 @@
-# Spec Reviewer Subagent Prompt Template (YSR)
+# Spec Reviewer Subagent Prompt Template
 
 Implementer 완료 후, Code Quality 리뷰 전에 디스패치. GOAL.md 명세 대비 구현 적합성 검증.
 
@@ -49,9 +49,9 @@ Agent tool:
     - 요구사항을 의도와 다르게 해석했는가?
     - 올바른 기능인데 잘못된 방식으로 구현했는가?
 
-    **YSR 특이사항 확인:**
-    - CP949 Write 도구 사용 흔적 없는가? (파일 인코딩 손상 가능성)
-    - GOAL.md에 없는 공유 유닛(Common/ComUnit) 변경 없는가?
+    **특이사항 확인:**
+    - 파일 인코딩·줄바꿈이 의도치 않게 바뀐 흔적 없는가?
+    - GOAL.md에 없는 공유 모듈(CLAUDE.md 목록) 변경 없는가?
 
     코드를 직접 읽어 검증하세요. 보고서만 보지 마세요.
 

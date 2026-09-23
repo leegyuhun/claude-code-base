@@ -98,13 +98,14 @@ def action_of(stdout: str) -> str:
 
 @contextmanager
 def temp_repo(scripts: tuple[str, ...] = (), hooks: tuple[str, ...] = (),
-              git: bool = False) -> Iterator[Path]:
+              git: bool = False, harness: dict | None = None) -> Iterator[Path]:
     """격리된 가짜 레포를 만든다.
 
     실제 훅/스크립트를 복사해 넣으므로, 안에서 실행하면 REPO가 이 임시 디렉터리로
     잡힌다(모두 __file__ 기준 parents[2]를 쓴다). 실제 레포를 오염시키지 않는다.
+    harness가 주어지면 `.claude/harness.json`으로 쓴다 (없으면 빈 어댑터 — 검증기 부재).
     """
-    root = Path(tempfile.mkdtemp(prefix="ysr-harness-"))
+    root = Path(tempfile.mkdtemp(prefix="claude-harness-"))
     try:
         (root / ".claude" / "scripts").mkdir(parents=True)
         (root / ".claude" / "hooks").mkdir(parents=True)
@@ -116,7 +117,8 @@ def temp_repo(scripts: tuple[str, ...] = (), hooks: tuple[str, ...] = (),
         (root / ".claude" / "settings.json").write_text(
             '{"permissions":{"allow":["Read"]}}', encoding="utf-8")
         (root / ".claude" / "settings.local.json.sample").write_text("{}", encoding="utf-8")
-        (root / ".mcp.json.example").write_text("{}", encoding="utf-8")
+        (root / ".claude" / "harness.json").write_text(
+            json.dumps(harness or {}), encoding="utf-8")
         if git:
             subprocess.run(["git", "init", "-q"], cwd=root, capture_output=True, timeout=60)
             subprocess.run(["git", "config", "user.email", "t@t"], cwd=root,

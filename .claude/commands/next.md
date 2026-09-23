@@ -3,7 +3,7 @@
 ## 워크스페이스 해석
 
 1. `.claude/ACTIVE_ISSUE` 읽기 → ACTIVE_ISSUE 값 획득
-2. 없으면 `git branch --show-current` 출력에서 `#(\d+)` 추출 (폴백)
+2. 없으면 `git branch --show-current` 출력에서 `#([A-Za-z0-9-]+)` 추출 (폴백)
 3. 모두 실패 시 → "`⚠️ 활성 이슈를 확인할 수 없습니다. /prd #이슈번호 를 실행하세요.`" 출력 후 종료
 
 WORKSPACE_DIR = `workspace/{ACTIVE_ISSUE}`
@@ -73,7 +73,7 @@ python .claude/scripts/loop_state.py status
 - PHASE 10 → Defect 트랙 완료
   ```
   ✅ Defect 트랙이 완료되었습니다.
-  이슈를 Resolved 처리하려면: /resolve {이슈번호}
+  이슈 트래커를 쓴다면 해당 이슈 상태를 직접 갱신하세요.
   프로덕션 배포가 필요하면: .claude/agents/deploy-prod.md를 읽고 배포를 진행해줘.
   ```
 

@@ -7,7 +7,7 @@ paths:
 
 # 개발 프로세스
 
-> 이 문서는 ysr 프로젝트의 전체 개발 프로세스를 정의합니다.
+> 이 문서는 프로젝트의 전체 개발 프로세스를 정의합니다.
 > 에이전트와 사용자 모두가 참조하는 프로세스 정책 문서입니다.
 
 ---
@@ -18,7 +18,7 @@ paths:
 /prd [#이슈번호 | 인자 없음 → 임시 ID 입력 받음]
   → TRACK 자동 판정 (Defect/Sprint) + [PAUSE] 확정 → STATUS.md에 TRACK 기록
   → .claude/ACTIVE_ISSUE 갱신 + workspace/{ACTIVE_ISSUE}/ 생성 + docs/PRD_*.md 생성
-  (ACTIVE_ISSUE = `#NNNNNN` 이슈번호 또는 `exp_login` 같은 임시 ID — 자세한 규칙은 active-issue.md)
+  (ACTIVE_ISSUE = `#123`·`PROJ-45` 같은 이슈 ID 또는 `exp_login` 같은 임시 ID — 자세한 규칙은 active-issue.md)
 
 [Sprint 트랙 — TRACK=sprint]
   → Orchestrator (PHASE 1~4.5)
@@ -28,7 +28,7 @@ paths:
   → Implementer (PHASE 6)
     → GOAL.md 기준 구현
   → Validator (PHASE 7~10)
-    → 검증 → 수동 테스트 → push + GitLab MR 자동 생성 → 다음 스프린트
+    → 검증 → 수동 테스트 → push + PR/MR 초안 안내 → 다음 스프린트
   → deploy-prod
     → 프로덕션 배포
   → Orchestrator (PHASE 11) — MVP 이후 신규 요구사항
@@ -37,7 +37,7 @@ paths:
 [Defect 트랙 — TRACK=defect]
   → Implementer (PHASE 6, PRD `## 검증 계약` 기준)
   → Validator (PHASE 7~9)
-    → 검증 → 수동 테스트 → push + GitLab MR 자동 생성 → 종료
+    → 검증 → 수동 테스트 → push + PR/MR 초안 안내 → 종료
 ```
 
 ### 전체 흐름도
@@ -51,7 +51,7 @@ paths:
                                                                                    │
                                                                                    ▼
 ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│  배포   │ ←  │  다음   │ ←  │ push+MR │ ←  │  수동    │ ←  │  자동    │ ←  │  구현    │
+│  배포   │ ←  │  다음   │ ←  │ push+PR │ ←  │  수동    │ ←  │  자동    │ ←  │  구현    │
 │ deploy  │    │ Sprint  │    │  안내   │    │  테스트  │    │  검증    │    │  실행    │
 │         │    │ PHASE 10│    │ PHASE 9 │    │ PHASE 8  │    │ PHASE 7  │    │ PHASE 6  │
 └─────────┘    └─────────┘    └─────────┘    └──────────┘    └──────────┘    └──────────┘
@@ -77,14 +77,14 @@ MVP 완료 후 신규 요구사항 발생 시:
 ```
 1. Planner → GOAL.md 생성 (PHASE 5)
 2. Implementer → 구현 (PHASE 6)
-3. Validator → 검증 + push + GitLab MR 자동 생성 (PHASE 7~10)
+3. Validator → 검증 + push + PR/MR 초안 안내 (PHASE 7~10)
 4. deploy-prod → 프로덕션 배포
 ```
 
 **Defect 트랙 (경량):**
 ```
 1. Implementer → PRD 기준 구현 (PHASE 6)
-2. Validator → 검증 + push + GitLab MR 자동 생성 (PHASE 7~9) → 종료
+2. Validator → 검증 + push + PR/MR 초안 안내 (PHASE 7~9) → 종료
 ```
 
 ---
@@ -94,18 +94,18 @@ MVP 완료 후 신규 요구사항 발생 시:
 ### Sprint 흐름
 
 ```
-{현재브랜치}_{CURRENT_SPRINT}  →  push + GitLab MR  →  배포
+{현재브랜치}_{CURRENT_SPRINT}  →  push + PR/MR  →  배포
 ```
 
 ### 브랜치 명명 규칙
 
 | 용도 | 패턴 | 예시 |
 |------|------|------|
-| 이슈 베이스 | `{현재브랜치}_#{이슈번호}` | `main_delphi_#1234` |
-| 스프린트 (이슈 있음) | `{현재브랜치}_#{이슈번호}_{CURRENT_SPRINT}` | `main_delphi_#1234_sprint-01` |
-| 스프린트 (이슈 없음) | `{현재브랜치}_{CURRENT_SPRINT}` | `main_delphi_sprint-01` |
-| 핫픽스 | `{현재브랜치}_hotfix_{영문소문자-설명}` | `main_delphi_hotfix_login-fix` |
-| 하네스/툴링 | `{현재브랜치}_harness_{영문소문자-설명}` | `main_delphi_harness_loop` |
+| 이슈 베이스 | `{현재브랜치}_#{이슈번호}` | `main_#1234` |
+| 스프린트 (이슈 있음) | `{현재브랜치}_#{이슈번호}_{CURRENT_SPRINT}` | `main_#1234_sprint-01` |
+| 스프린트 (이슈 없음) | `{현재브랜치}_{CURRENT_SPRINT}` | `main_sprint-01` |
+| 핫픽스 | `{현재브랜치}_hotfix_{영문소문자-설명}` | `main_hotfix_login-fix` |
+| 하네스/툴링 | `{현재브랜치}_harness_{영문소문자-설명}` | `main_harness_loop` |
 | 메인 | `main` | — |
 
 > 위 패턴은 `.claude/hooks/pretooluse-bash-guard.py`가 강제한다. 표를 고치면 훅도 함께 고칠 것.
@@ -126,7 +126,7 @@ MVP 완료 후 신규 요구사항 발생 시:
 | orchestrator | 1~4.5 | PRD 분석, plan.md, ROADMAP.md, 초기화 | ⏭️ 스킵 |
 | planner | 5 | GOAL.md 작성 | ⏭️ 스킵 |
 | implementer | 6 | 기능 구현 | PRD `## 검증 계약` 기준 구현 |
-| validator | 7~10 | 검증, push + GitLab MR 자동 생성, 스프린트 전환 | PHASE 7~9, PHASE 10에서 종료 |
+| validator | 7~10 | 검증, push + PR/MR 초안 안내, 스프린트 전환 | PHASE 7~9, PHASE 10에서 종료 |
 | deploy-prod | 독립 | 프로덕션 배포 | 동일 |
 | commit-writer | 독립 | 커밋 메시지 작성 (Validator PHASE 9에서 호출) | PRD + 루트 DONE.md 기준 |
 
@@ -155,28 +155,26 @@ MVP 완료 후 신규 요구사항 발생 시:
 
 | 검증 항목 | Sprint | Deploy | 수단 |
 |-----------|--------|--------|------|
-| 컴파일 (0 error) | ✅ 자동 | ✅ 자동 | `build.bat` — Stop 훅이 PHASE 6에서 강제 |
-| CP949 인코딩 무결성 | ✅ 자동 | — | PostToolUse 빠른 게이트 |
+| 빌드 (0 error) | ✅ 자동 | ✅ 자동 | `harness.json`의 `build.cmd` — Stop 훅이 PHASE 6에서 강제 |
+| 빠른 검사 (린트/타입체크) | ✅ 자동 | — | `harness.json`의 `fast_check.cmd` — PostToolUse 빠른 게이트 (실패 시 exit 2) |
 | 하네스 무결성 | ✅ 자동 | — | `gate_harness.py` — Stop 훅이 매 턴 검사 |
 | 검증 계약 충족 | ✅ 자동 | — | Stop 훅이 PHASE 7에서 `- [ ]` 잔여 확인 |
 | 코드 리뷰 | ✅ 자동 | — | `code-reviewer` subagent (Validator 7-4) |
-| 신규 유닛 `.dpr` 등록 | ⚠️ 경고 | — | 빠른 게이트 (차단하지 않음) |
-| 단위 테스트 (DUnit) | ⬜ 미구축 | ⬜ 미구축 | `Tests/Source/` 가 비어 있다 |
-| 정적 분석 / 린트 | — | — | Delphi 2007에 해당 도구가 없다 |
+| 단위 테스트 | ⬜ 프로젝트별 | ⬜ 프로젝트별 | `harness.json`의 `test.cmd` — 비어 있으면 미구축 |
 | 런타임 동작 | ⚠️ 수동 | ⚠️ 수동 | PHASE 8 — 런타임을 검증하는 **유일한** 수단 |
 
 범례:
 - ✅ 자동: 에이전트 또는 훅이 자동 실행
 - ⚠️ 경고: 탐지하되 진행을 막지 않음
 - ⚠️ 수동: 사용자가 직접 수행
-- ⬜ 미구축: 인프라만 있고 내용이 없음
+- ⬜ 프로젝트별: `harness.json`에 명령을 채워야 동작 (비어 있으면 "검증기 부재"로 통과 — 실패 아님)
 - —: 해당 없음
 
-> **런타임 커버리지는 0%다.** 컴파일이 통과해도 실행 중 Access Violation이나
+> **자동 테스트가 없으면 런타임 커버리지는 0%다.** 빌드가 통과해도 실행 중 크래시나
 > 잘못된 동작은 아무도 잡지 못한다. PHASE 8 수동 테스트를 건너뛰면 검증이
 > 사실상 없는 것과 같다 — 루프가 PHASE 8을 절대 자동 통과시키지 않는 이유다.
 >
-> DUnit을 실제로 채우기 전까지 이 표의 "단위 테스트" 행은 ⬜ 로 유지할 것.
+> `test.cmd`를 실제로 채우기 전까지 이 표의 "단위 테스트" 행은 ⬜ 로 유지할 것.
 > 있지도 않은 검증을 있다고 적으면 그 표를 근거로 판단하는 쪽이 잘못 판단한다.
 
 ---
@@ -192,11 +190,11 @@ MVP 완료 후 신규 요구사항 발생 시:
 - [ ] 성능 이슈 (N+1 쿼리, 불필요한 루프)
 - [ ] 에러 핸들링 누락 (외부 API 호출, DB 연결)
 - [ ] 테스트 커버리지 부족
-- [ ] [Delphi] TDataSet.State 미체크로 Post/Cancel 누락
-- [ ] [Delphi] 백그라운드 쓰레드에서 VCL 직접 접근 (Synchronize 누락)
-- [ ] [Delphi] GDI 객체 DeleteObject 누락
-- [ ] [Delphi] ProcessMessages 호출 시 재진입 가드 없음
-- [ ] [Delphi] BeginUpdate/EndUpdate 누락 (대량 리스트 업데이트)
+- [ ] 리소스 해제 누락 (파일·커넥션·락 — 예외 경로 포함)
+- [ ] 백그라운드 작업에서 UI/공유 상태 직접 접근
+- [ ] 이벤트/요청 핸들러 재진입 가드 없음
+- [ ] 편집 중 상태 저장/취소 누락 (조용한 데이터 유실)
+- [ ] [프로젝트별] CLAUDE.md "코딩 규칙"에 정의된 언어·프레임워크 체크 항목
 
 ### Medium (기록)
 - [ ] 코딩 스타일 불일치
@@ -230,20 +228,20 @@ git config core.hooksPath .githooks
 ### 올바른 예
 
 ```
-feat: [sprint-02] F8 WmGetMinMaxInfo / SetFixForm floating 제약
+feat: [sprint-02] F8 applyWindowLimits / resizePanel floating 제약
 
 - floating 상태에서 최소 크기를 300x200으로 설정하여 사용 가능한 창 크기 보장
-- SetFixForm에서 floating 상태 시 Constraints를 초기화하여 자유 크기 조절 허용
-- WmGetMinMaxInfo에서 floating 시 최대 트랙 크기 제한 제거
+- resizePanel에서 floating 상태 시 크기 제약을 초기화하여 자유 크기 조절 허용
+- applyWindowLimits에서 floating 시 최대 크기 제한 제거
 ```
 
 ### 잘못된 예 (금지)
 
 ```
-feat: [sprint-02] F8 WmGetMinMaxInfo / SetFixForm floating constraints
+feat: [sprint-02] F8 applyWindowLimits / resizePanel floating constraints
 
 - Floating state uses 300x200 min size for usable window   ← 영문 금지
-- SetFixForm clears Constraints in floating state           ← 영문 금지
+- resizePanel clears limits in floating state               ← 영문 금지
 ```
 
 ### Sprint 최종 커밋 (Validator)
@@ -285,23 +283,30 @@ Sprint: {sprint-name}
 │   └── #208900/
 │       └── ...
 │
-├── CLAUDE.md                           ← 코딩 원칙, 빌드 명령 (claude /init)
+├── CLAUDE.md                           ← 기술 스택, 코딩 규칙 (Orchestrator PHASE 4.5 / claude /init)
 ├── CHANGELOG.md                        ← 전체 변경 이력 (Validator가 스프린트 종료 시 자동 업데이트)
 ├── .gitignore
-├── build.bat                           ← 빌드 스크립트 (debug/release)
-├── run_tests.bat                       ← DUnit 테스트 실행 스크립트
-│
-├── Tests/
-│   └── Source/                         ← 테스트 유닛 (.pas)
+├── setup_claude.bat                    ← 최초 설치 (git hook, settings.local)
 │
 ├── .githooks/
 │   └── commit-msg                      ← 커밋 메시지 형식 검증 hook
 │
 └── .claude/
     ├── ACTIVE_ISSUE                    ← 현재 활성 이슈 포인터 (예: #208801)
-    ├── settings.json                   ← 권한 설정
+    ├── settings.json                   ← 권한 + 훅 배선
+    ├── harness.json                    ← 프로젝트 어댑터 (빌드/테스트/빠른 검사 명령)
+    ├── loop-policy.json                ← 작업 정책 (gitignore, /prd가 1회 생성)
     ├── hooks/
-    │   └── pretooluse-bash-guard.sh    ← bash 명령 가드 훅
+    │   ├── pretooluse-bash-guard.py    ← 위험 Bash 명령 가드
+    │   ├── posttooluse-fast-gate.py    ← 짧은 루프: fast_check 실행
+    │   ├── stop-loop-gate.py           ← 긴 루프: PHASE 6 빌드 / PHASE 7 검증 계약
+    │   └── precompact-preserve.py      ← 컴팩션 시 작업 좌표 보존
+    ├── scripts/
+    │   ├── harness_config.py           ← harness.json 로더/실행기 (run build|test|fast_check)
+    │   ├── gate_harness.py             ← 하네스 무결성 검사
+    │   ├── loop_state.py               ← 루프 카운터·상한·헛돌기 감지
+    │   └── policy.py                   ← 작업 정책 (loop-policy.json)
+    ├── tests/                          ← 하네스 회귀 테스트 (run_all.py)
     ├── agents/
     │   ├── orchestrator.md             ← PHASE 1~4.5
     │   ├── planner.md                  ← PHASE 5
@@ -317,14 +322,12 @@ Sprint: {sprint-name}
     │   ├── rollback.md                 ← /rollback — PHASE 롤백
     │   ├── sprint-log.md               ← /sprint-log — 스프린트 종합 요약
     │   ├── debt.md                     ← /debt — Tech Debt 보고
-    │   ├── branch.md                   ← /branch — 브랜치 생성
-    │   └── resolve.md                  ← /resolve — Redmine 이슈 Resolved 처리
+    │   └── branch.md                   ← /branch — 브랜치 생성
     ├── skills/
-    │   ├── redmine/SKILL.md                        ← Redmine 이슈 조회 (orchestrator/planner/prd)
-    │   ├── commit-format/SKILL.md                  ← YSR 커밋 메시지 형식 (commit-writer)
+    │   ├── commit-format/SKILL.md                  ← 커밋 메시지 형식 (commit-writer)
     │   ├── subagent-driven-development/SKILL.md    ← 항목별 subagent 디스패치 (sprint-dev 4단계)
     │   ├── requesting-code-review/SKILL.md         ← 코드 리뷰 디스패치 (validator PHASE 7)
-    │   ├── verification-before-completion/SKILL.md ← 완료 선언 전 컴파일 증거 (implementer)
+    │   ├── verification-before-completion/SKILL.md ← 완료 선언 전 빌드 증거 (implementer)
     │   ├── systematic-debugging/SKILL.md           ← 근본원인 디버깅 (validator/sprint-dev)
     │   └── writing-plans/SKILL.md                  ← 계획 문서 자기검증 (orchestrator/planner)
     ├── templates/
@@ -335,9 +338,7 @@ Sprint: {sprint-name}
     └── rules/
         ├── active-issue.md             ← 워크스페이스 해석 규칙 (항상 활성화)
         ├── sprint-workflow.md          ← Sprint 워크플로우 보완 규칙
-        ├── coding-principles.md        ← 코딩 원칙 (paths 기반 자동 활성화)
-        ├── delphi2007-patterns.md      ← Delphi 2007 구현 패턴 레퍼런스 (명시적 Read 필요)
-        ├── encoding-critical.md        ← CP949 인코딩 보호 규칙 (항상 활성화)
+        ├── coding-principles.md        ← 언어 무관 코딩 원칙 (항상 활성화)
         ├── pitfalls-index.md           ← 함정 인덱스 (상시 로드, 본문은 refs/pitfalls.md)
         └── dev-process.md              ← 개발 프로세스 정책 (이 문서)
 ```
@@ -377,7 +378,7 @@ Sprint: {sprint-name}
 ### 9.3 검증 단계 (PHASE 7~8)
 
 1. **자동 검증** (PHASE 7)
-   - 빌드, lint, 타입체크, 단위 테스트, API 응답
+   - `harness.json`의 build / fast_check / test 명령, API 응답
    - 실패 시: 명백한 오류 직접 수정 → 3회 실패 시 Implementer로 롤백
 
 2. **수동 테스트** (PHASE 8)
@@ -386,7 +387,7 @@ Sprint: {sprint-name}
 
 ### 9.4 종료 단계 (PHASE 9~10)
 
-1. **DONE.md 생성 + push + GitLab MR 자동 생성** (PHASE 9)
+1. **DONE.md 생성 + push + PR/MR 초안 안내** (PHASE 9)
 2. **다음 스프린트 전환** (PHASE 10)
    - CURRENT_SPRINT 업데이트 → PHASE 5로 복귀
 
@@ -400,7 +401,7 @@ Sprint: {sprint-name}
 Sprint 완료 (PHASE 10)
   → deploy-prod 에이전트 실행
     → 사전 점검 (빌드, 테스트, 완료된 스프린트 확인)
-    → push + GitLab MR 생성 안내
+    → push + PR/MR 생성 안내
     → 배포 후 검증 가이드 제공
 ```
 
@@ -445,20 +446,17 @@ workspace/              ← 전체 이슈 목록 확인
 | `/rollback` | 특정 PHASE로 되돌리기 | 계획/구현을 다시 하고 싶을 때 |
 | `/sprint-log` | 현재 스프린트 종합 요약 | 스프린트 상태 파악 시 |
 | `/debt` | Tech Debt 종합 보고 | 기술 부채 점검 시 |
-| `/prd #{이슈번호}` | Redmine 이슈 → PRD 생성 → 브랜치 → 개발 착수 | 새 이슈 작업 시작 시 |
-| `/resolve {이슈번호}` | Redmine 이슈 Resolved 처리 | 스프린트 완료 후 |
-| `redmine` 스킬 | Redmine 이슈 조회 | #이슈번호가 주어질 때 (orchestrator/planner 자동 사용) |
-| `commit-format` 스킬 | YSR 커밋 메시지 형식 | commit-writer가 자동 사용 |
+| `/prd [이슈ID]` | 인터뷰 → PRD 생성 → 브랜치 → 개발 착수 | 새 이슈 작업 시작 시 |
+| `commit-format` 스킬 | 커밋 메시지 형식 | commit-writer가 자동 사용 |
 
 ---
 
 ## 13. 멀티모듈 프로젝트 적용 가이드
 
-YSR처럼 다수의 `.dpr`을 가진 멀티모듈 프로젝트에서 각 모듈에 이 설정을 적용할 때 확인사항:
+여러 빌드 단위(패키지·서비스·앱)를 가진 멀티모듈 프로젝트에서 각 모듈에 이 설정을 적용할 때 확인사항:
 
 ### 모듈별 필수 설정
-- `build.bat` — 해당 모듈의 `.dproj`를 빌드하는 스크립트 (모듈 루트에 배치)
-- `run_tests.bat` — 해당 모듈의 DUnit 테스트 실행 스크립트 (없으면 생략 가능)
+- `.claude/harness.json` — 해당 모듈의 `build.cmd` / `test.cmd` / `fast_check.cmd` (없는 항목은 빈 문자열)
 - `docs/PRD_#이슈번호.md` — 모듈 루트의 `docs/` 폴더에 배치 (입력 문서)
 - `workspace/#이슈번호/STATUS.md` — 이슈별 산출물 루트에 자동 생성
 - `.claude/ACTIVE_ISSUE` — 현재 활성 이슈 포인터
@@ -469,17 +467,17 @@ validator/deploy-prod 에이전트가 참조하는 경로는 모듈마다 다를
 CLAUDE.md에 아래 항목을 반드시 기입하세요:
 ```
 ## 빌드
-- 빌드 스크립트: build.bat debug / build.bat release
-- 출력 경로: Output\Debug\{실행파일명}.exe
+- 빌드 명령: {harness.json build.cmd와 동일}
+- 출력 경로: {빌드 산출물 경로}
 
 ## 테스트
-- 테스트 스크립트: run_tests.bat
-- 테스트 디렉토리: Tests\Source\
+- 테스트 명령: {harness.json test.cmd와 동일}
+- 테스트 디렉토리: {테스트 소스 경로}
 ```
 
-### 공유 유닛 주의
-`ComUnit/`, `Common/`, `CommonBL/`, `CommonV7/` 수정은 전체 모듈에 영향을 줍니다.
-반드시 `coding-principles.md`의 "공유 유닛 변경 주의" 규칙을 따르세요.
+### 공유 모듈 주의
+CLAUDE.md에 명시한 공유 모듈 경로의 수정은 전체 모듈에 영향을 줍니다.
+반드시 `coding-principles.md`의 "공유 모듈 변경 주의" 규칙을 따르세요.
 
 ---
 
@@ -487,11 +485,11 @@ CLAUDE.md에 아래 항목을 반드시 기입하세요:
 
 새 프로젝트를 시작할 때:
 
-- [ ] docs/PRD_#이슈번호.md 작성 (목적, 핵심 기능 및 요구사항, MVP, 제약 조건) — `/prd #이슈번호`
+- [ ] docs/PRD_{이슈ID}.md 작성 (목적, 핵심 기능 및 요구사항, MVP, 제약 조건) — `/prd {이슈ID}`
 - [ ] Orchestrator 실행 (PHASE 1~4.5)
 - [ ] plan.md 확인 및 수정
 - [ ] ROADMAP.md 확인
 - [ ] 프로젝트 초기화 (PHASE 4.5)
-- [ ] CLAUDE.md 생성 (`claude /init` 권장)
+- [ ] CLAUDE.md 생성 (`claude /init` 권장) + `.claude/harness.json` 명령 채우기
 - [ ] `.claude/rules/coding-principles.md` 확인
 - [ ] 첫 스프린트 시작 (Planner → Implementer → Validator)

@@ -12,7 +12,7 @@ GOAL.md에 따라 스프린트를 구현하는 오케스트레이터.
 ## 워크스페이스 해석 (항상 먼저 수행)
 
 1. `.claude/ACTIVE_ISSUE` 읽기 → ACTIVE_ISSUE 값 획득
-2. 없으면 `git branch --show-current` 출력에서 `#(\d+)` 추출 (폴백)
+2. 없으면 `git branch --show-current` 출력에서 `#([A-Za-z0-9-]+)` 추출 (폴백)
 3. 모두 실패 시 → "`⚠️ 활성 이슈를 확인할 수 없습니다. /prd #이슈번호 를 실행하세요.`" 출력 후 종료
 4. WORKSPACE_DIR = `workspace/{ACTIVE_ISSUE}`
 5. STATUS_FILE = `{WORKSPACE_DIR}/STATUS.md`
@@ -66,7 +66,7 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
 - `{FEEDBACK_FILE}` ← Validator 롤백 시 생성된 피드백 (있을 때만)
 
 구현 패턴 레퍼런스 (구현 중 필요 시 Read):
-- `.claude/rules/delphi2007-patterns.md` ← 재진입 가드, TDataSet 상태, TThread, GDI 핸들, TtsQuery·SQL 구성, Record 기반 파라미터, INI 프로파일, TJGrid 등 17개 구현 패턴. 4단계에서 해당 패턴이 필요한 기능을 만날 때 해당 섹션만 부분 Read한다.
+- CLAUDE.md의 "코딩 원칙" 섹션과 `.claude/rules/coding-principles.md`. 프로젝트 전용 패턴 문서가 있으면(CLAUDE.md에 명시) 4단계에서 해당 패턴이 필요한 기능을 만날 때 해당 섹션만 부분 Read한다.
 
 FEEDBACK.md 재진입 판단:
 - `{FEEDBACK_FILE}`이 존재하면 → Validator가 PHASE 7 검증 실패 후 롤백한 상황
@@ -88,46 +88,6 @@ TRACK=sprint:
 TRACK=defect:
 - 스프린트별 브랜치 분기 없음. 현재 브랜치(`{현재 브랜치명}`)에서 그대로 진행.
 
-### 2.5단계: Redmine 상태 → InProgress
-
-브랜치명에서 `#이슈번호` 패턴을 추출한다.
-이슈 번호가 있으면 InProgress(2)까지 순차 전환하고 start_date를 설정한다.
-
-```
-워크플로우: New(1) → Confirmed(11) → Assigned(10) → InProgress(2)
-목표 상태: InProgress (status_id=2)
-start_date: 오늘 날짜 (YYYY-MM-DD)
-
-1. 현재 사용자 ID 조회
-   MCP: 없음 → curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/users/current.json
-   → user.id 추출하여 {MY_USER_ID} 로 저장
-
-2. 현재 상태 조회
-   MCP(폴백): get_issue(issue_id={이슈번호})
-   curl(우선): curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/issues/{이슈번호}.json
-
-3. 현재 status_id에서 2까지 순서대로 호출
-   - 현재=1:  → 11(Confirmed) → 10(Assigned) → 2(InProgress)
-   - 현재=11: → 10(Assigned)  → 2(InProgress)
-   - 현재=10: → 2(InProgress)
-   - 현재=2:  생략
-
-   ※ status_id=10(Assigned) 전환 시 assigned_to_id 필수:
-   MCP(폴백): update_issue(issue_id={이슈번호}, status_id=10, assigned_to_id={MY_USER_ID})
-   curl(우선): Body: {"issue": {"status_id": 10, "assigned_to_id": {MY_USER_ID}}}
-
-   그 외 단계는 status_id만:
-   MCP(폴백): update_issue(issue_id={이슈번호}, status_id={다음상태})
-   curl(우선): Body: {"issue": {"status_id": {다음상태}}}
-
-4. InProgress 전환 시 start_date 함께 설정:
-   MCP(폴백): update_issue(issue_id={이슈번호}, status_id=2, start_date="{오늘날짜}")
-   curl(우선): Body: {"issue": {"status_id": 2, "start_date": "{오늘날짜}"}}
-```
-
-성공: `✅ Redmine #{이슈번호} → 진행 중 (start_date: {오늘날짜})`
-실패: 무시하고 계속 진행 (이슈 번호 없으면 이 단계 건너뜀)
-
 ### 3단계: 구현 Plan 작성 + AUTO_RUN 판정
 
 Plan을 작성한 뒤, 아래 6개 조건을 **기계적으로** 판정한다.
@@ -140,15 +100,15 @@ Plan을 작성한 뒤, 아래 6개 조건을 **기계적으로** 판정한다.
 |---|---|
 | `standard` (기본) | 아래 6조건 그대로 |
 | `strict` | AUTO_RUN을 쓰지 않는다. 항상 Plan 출력 후 [PAUSE] |
-| `relaxed` | 조건 1을 "≤ 6개", 조건 5를 "예상 이슈 1건 이하"로 완화.<br>**조건 2·3·4·6은 완화하지 않는다** — 공용 유닛·DB 스키마·신규 유닛·반려 재진입은<br>파급 범위나 사람의 판단이 이미 개입된 지점이라 자동화 대상이 아니다 |
+| `relaxed` | 조건 1을 "≤ 6개", 조건 5를 "예상 이슈 1건 이하"로 완화.<br>**조건 2·3·4·6은 완화하지 않는다** — 공용 모듈·DB 스키마·신규 파일·반려 재진입은<br>파급 범위나 사람의 판단이 이미 개입된 지점이라 자동화 대상이 아니다 |
 
 ```
 [AUTO_RUN 조건 — 전부 ☑ 이어야 자동 진행]
   1. 수정 예상 파일 ≤ 3개
-  2. 신규 .pas / .dfm 생성 없음 (= .dproj 변경 없음)
-  3. 공용 유닛 미수정
-     — Common/, CommonBL/, CommonV7/, ComUnit/, PackageBL/ 경로 일체
-       (참조 프로젝트가 다수이므로 파급 범위 확인이 필수)
+  2. 신규 소스 파일 생성 없음 (= 프로젝트/빌드 설정 파일 변경 없음)
+  3. 공용 모듈 미수정
+     — CLAUDE.md "프로젝트 구조"에 공용으로 표시된 경로 일체
+       (common/, shared/, lib/ 등 — 참조 모듈이 다수이므로 파급 범위 확인이 필수)
   4. DB 스키마 변경 없음 (테이블/컬럼 추가·변경·삭제 DDL 없음)
   5. Plan의 '예상 이슈' 0건
   6. FEEDBACK.md 재진입이 아님
@@ -169,8 +129,8 @@ Plan을 작성한 뒤, 아래 6개 조건을 **기계적으로** 판정한다.
 │                                     │
 │ [AUTO_RUN 판정]                     │
 │  ☑ 수정 파일 3개 이하 ({N}개)       │
-│  ☑ 신규 .pas/.dfm 없음              │
-│  ☑ 공용 유닛 미수정                 │
+│  ☑ 신규 소스 파일 없음              │
+│  ☑ 공용 모듈 미수정                 │
 │  ☑ DB 스키마 변경 없음              │
 │  ☑ Plan 예상 이슈 0건               │
 │  ☑ FEEDBACK 재진입 아님             │
@@ -213,9 +173,9 @@ GOAL.md 체크리스트 항목 수를 파악하고, 각 항목에 대해 아래 
 Agent tool (subagent_type=implementer)로 디스패치:
 - 항목 전체 텍스트 (GOAL.md 해당 항목 원문)
 - 맥락: CURRENT_SPRINT, WORKSPACE_DIR, 직전 완료 항목
-- YSR 필수 규칙 포함 (CP949, TtsQuery, GOAL.md 범위 엄수, 컴파일 확인 의무)
+- 필수 규칙 포함 (CLAUDE.md 코딩 원칙, GOAL.md 범위 엄수, 빌드 확인 의무)
 - `{함정 카테고리}` 치환: 이 항목의 작업 영역으로 카테고리를 식별해 넘긴다
-  (기본 A·B / SQL이면 C / DFM·UI면 D / 빌드·패키지면 E / git·셸이면 F —
+  (기본 B / 인코딩·파일 I/O면 A / SQL이면 C / UI·리소스면 D / 빌드·패키지면 E / git·셸이면 F —
    `.claude/rules/pitfalls-index.md`의 "빠른 매핑" 표 기준)
 
 subagent 보고에서 **함정 후보**를 항목별로 수집해 둔다 (0건 보고도 그대로 기록).
@@ -259,7 +219,7 @@ Agent tool (general-purpose)로 디스패치:
 
 **공통 규칙:**
 - GOAL.md(또는 PRD 검증 계약) 범위 밖 발견 시 → `{OUT_OF_SCOPE_FILE}`에 기록하고 건너뜀
-- .pas 파일 수정 시 .dfm 동기화 (Implementer prompt에 명시)
+- 소스와 짝을 이루는 리소스·정의 파일(UI 정의, 스키마, 설정 등)이 있으면 함께 동기화 (Implementer prompt에 명시)
 - Implementer subagent 병렬 디스패치 금지 (코드 충돌 위험, 직렬 순차 실행)
 - Implementer에서 오류 시 `.claude/skills/systematic-debugging/SKILL.md` Phase 1부터 시작.
   재시도 전 `loop_state.py bump --scope review:{항목번호}` 로 카운터를 올리고,
@@ -280,8 +240,9 @@ Agent tool (general-purpose)로 디스패치:
 모든 기능 완료 후:
 
 1. GOAL.md의 **완료 조건** 섹션 체크
-2. 최종 빌드 재실행 — 이번 스프린트에서 변경된 .dproj 대상 `build.bat debug` 실행 및 결과(에러 0건) 출력
-   (각 기능 완료 시 컴파일 확인했더라도 최종 통합 빌드를 다시 실행해야 함)
+2. 최종 빌드 재실행 — `python .claude/scripts/harness_config.py run build` 실행 및 결과(에러 0건) 출력
+   (각 기능 완료 시 빌드 확인했더라도 최종 통합 빌드를 다시 실행해야 함.
+    build.cmd 미설정이면 "검증기 부재"로 보고 — 실패로 치지 않되 사람 확인 필요를 명시)
 
 ### 5.5단계: 함정 회고 캡처 (건너뛸 수 없음)
 
@@ -385,7 +346,7 @@ Agent tool (general-purpose)로 디스패치:
 - **GOAL.md가 Single Source of Truth**: 문서에 명시되지 않은 작업은 하지 않는다.
 - **계획과 다른 결정이 필요하면 사용자에게 확인**한다.
 - **CLAUDE.md의 코딩 원칙 준수**
-- **구현 패턴은 `.claude/rules/delphi2007-patterns.md`를 먼저 확인**한다. 동일 패턴이 이미 문서화돼 있으면 직접 재발명하지 말고 해당 섹션을 인용·적용한다.
+- **구현 패턴은 프로젝트 패턴 문서(CLAUDE.md에 명시된 경우)를 먼저 확인**한다. 동일 패턴이 이미 문서화돼 있으면 직접 재발명하지 말고 해당 섹션을 인용·적용한다.
 
 ## 금지 사항
 
@@ -394,5 +355,5 @@ Agent tool (general-purpose)로 디스패치:
 - ❌ {WORKSPACE_DIR}/plan.md, ROADMAP.md 수정 (참조는 가능)
 - ❌ git push (Validator 완료 후 처리)
 - ❌ 아키텍처 변경 (Orchestrator 결정 사항)
-- ❌ 기능 검증·통합 테스트 (Validator 담당) — 단, 컴파일 확인(build.bat)은 implementer 의무이며 예외
+- ❌ 기능 검증·통합 테스트 (Validator 담당) — 단, 빌드 확인(harness_config.py run build)은 implementer 의무이며 예외
 - ❌ 추측성 기능, 불필요한 추상화, 주변 코드 "개선"

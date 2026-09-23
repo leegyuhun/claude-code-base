@@ -1,0 +1,7 @@
+{
+  "source_globs": [],
+  "build": { "cmd": "", "timeout": 600 },
+  "test": { "cmd": "", "timeout": 900 },
+  "fast_check": { "cmd": "", "timeout": 60 },
+  "error_pattern": ""
+}

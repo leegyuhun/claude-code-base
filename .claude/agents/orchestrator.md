@@ -16,7 +16,7 @@ color: blue
 
 ```
 1. .claude/ACTIVE_ISSUE 읽기 → ACTIVE_ISSUE 값 획득
-2. 없으면 git branch --show-current 출력에서 #(\d+) 추출
+2. 없으면 git branch --show-current 출력에서 #([A-Za-z0-9-]+) 추출
 3. 모두 실패 시 → .claude/rules/active-issue.md의 3단계 메시지 출력 후 종료
 4. WORKSPACE_DIR = workspace/{ACTIVE_ISSUE}
 5. STATUS_FILE = {WORKSPACE_DIR}/STATUS.md
@@ -63,12 +63,12 @@ PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
 ### PHASE 1 — PRD 분석
 
 ```
-1-0. Redmine 이슈 번호 확인 + ACTIVE_ISSUE 갱신
-     사용자 요청에 #이슈번호 패턴이 있으면:
-     → redmine 스킬로 이슈 조회 (제목, 설명, 버전, 카테고리를 plan.md 작성에 활용)
-     → .claude/ACTIVE_ISSUE 현재값과 이슈 번호가 다르면 갱신
-     → workspace/{이슈번호}/ 디렉토리 없으면 생성
-     → 이슈 조회 실패 시 사용자 제공 정보로 대체, 계속 진행
+1-0. 이슈 ID 확인 + ACTIVE_ISSUE 갱신
+     사용자 요청에 이슈 ID(자유 형식: #123, PROJ-45, exp_login 등)가 있으면:
+     → 트래커 키(PROJ-45)는 `#PROJ-45`로 정규화한다 (prd.md 추출 규칙과 동일)
+     → .claude/ACTIVE_ISSUE 현재값과 이슈 ID가 다르면 갱신
+     → workspace/{이슈ID}/ 디렉토리 없으면 생성
+     → 이슈 상세(제목·설명)는 사용자 제공 정보와 PRD로 파악한다 (이슈 트래커 연동 없음)
 
 1-1. PRD 파일 탐색: {PRD_FILE} 우선, 없으면 docs/PRD_*.md 검색 (Glob 사용)
      → 1개 발견 → 해당 파일을 PRD로 사용 (PRD_FILE 값 갱신)
@@ -210,7 +210,7 @@ PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
        아래 질문에 답해주세요:
 
        1. 프로젝트 초기화가 이미 되어 있나요?
-          (예: .dpr, package.json, pyproject.toml 등 프로젝트 파일 존재 여부)
+          (예: package.json, pyproject.toml, go.mod, *.csproj, pom.xml 등 프로젝트 파일 존재 여부)
           → '예' / '아니오'
 
        2. '아니오'라면, 어떤 방식으로 초기화할까요?
@@ -246,17 +246,12 @@ PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
                ---
                # CLAUDE.md
 
-               ## 인코딩 규칙 (필수)
+               ## 기술 스택
+               (언어·프레임워크·런타임 버전·DB 등 기입)
 
-               이 프로젝트는 `.pas`/`.dfm` 파일이 CP949 인코딩입니다.
-               파일 수정 전 반드시 `.claude/rules/encoding-critical.md` 를 확인하세요.
-               규칙 요약:
-               - `.pas`/`.dfm` 파일에 Write 도구 절대 사용 금지
-               - Edit 도구 사용 시 old_string/new_string 범위에 한글 포함 줄 금지
-               - 한글 주석 추가 시 Python encoding='cp949' 방식만 사용
-
-               ## 빌드 & 실행
-               (프로젝트 기반으로 빌드/실행/테스트 명령 기입)
+               ## 빌드·테스트 명령
+               (프로젝트 기반으로 빌드/실행/테스트/린트 명령 기입 —
+                .claude/harness.json 의 cmd 값과 일치시킬 것)
 
                ## 프로젝트 구조
                ({PRD_FILE} 기반으로 주요 폴더 구조 기입)
@@ -268,19 +263,27 @@ PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
 4.5-5. CLAUDE.md 존재 최종 확인
        → 미존재 → [PAUSE] "CLAUDE.md가 필요합니다. 위 옵션 중 하나를 선택해주세요."
 
-4.5-5.1. CLAUDE.md에 encoding-critical 룰 참조 삽입 (필수)
-       CLAUDE.md를 읽어 아래 내용이 없으면 파일 상단(첫 번째 섹션 앞)에 추가:
+4.5-5.1. 기술 스택 감지 + .claude/harness.json 채우기 (필수)
+       프로젝트 파일(package.json / pyproject.toml / go.mod / Cargo.toml /
+       *.csproj / pom.xml / build.gradle / Makefile 등)로 기술 스택을 감지하고:
 
-       ## 인코딩 규칙 (필수)
-
-       이 프로젝트는 `.pas`/`.dfm` 파일이 CP949 인코딩입니다.
-       파일 수정 전 반드시 `.claude/rules/encoding-critical.md` 를 확인하세요.
-       규칙 요약:
-       - `.pas`/`.dfm` 파일에 Write 도구 절대 사용 금지
-       - Edit 도구 사용 시 old_string/new_string 범위에 한글 포함 줄 금지
-       - 한글 주석 추가 시 Python encoding='cp949' 방식만 사용
-
-       → 이미 존재하면 생략
+       - CLAUDE.md에 "기술 스택" · "빌드·테스트 명령" · "코딩 원칙" 섹션이
+         없으면 추가한다 (이미 있으면 보존)
+       - .claude/harness.json 의 cmd 값을 채운다 (이미 값이 있으면 덮어쓰지 않음):
+           {
+             "source_globs": ["src/**/*"],          ← 소스 위치
+             "build":      { "cmd": "<빌드 명령>", "timeout": 600 },
+             "test":       { "cmd": "<테스트 명령>", "timeout": 900 },
+             "fast_check": { "cmd": "<린트/타입체크 명령, {files} 치환 가능>", "timeout": 60 },
+             "error_pattern": "<빌드 에러 파일:줄 추출 정규식 (선택)>"
+           }
+         예: npm run build / npm test / npx eslint {files}
+             dotnet build / dotnet test
+             python -m compileall src / pytest / ruff check {files}
+       - 감지가 불확실한 cmd는 비워 둔다 — 빈 cmd는 "검증기 부재"로 통과하며
+         실패로 치지 않는다. 대신 완료 출력에 "미설정 cmd: {목록}"을 명시한다
+       - 채운 뒤 `python .claude/scripts/harness_config.py run build` 로 1회 실행해
+         명령이 실제로 동작하는지 확인한다 (실패 시 사용자에게 보고)
 
        → 완료 → {STATUS_FILE} PHASE=5 업데이트, ORCHESTRATOR=done
 
@@ -288,6 +291,7 @@ PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
        "✅ Orchestrator 완료
         - {ROADMAP_FILE}: N개 스프린트 계획됨
         - CLAUDE.md: 생성 완료
+        - .claude/harness.json: build/test/fast_check 설정 (미설정 cmd: {목록})
 
         다음 단계: .claude/agents/planner.md 실행
         명령어: '.claude/agents/planner.md를 읽고 sprint-01 계획 수립해줘'"

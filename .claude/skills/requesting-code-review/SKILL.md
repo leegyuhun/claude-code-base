@@ -3,7 +3,7 @@ name: requesting-code-review
 description: 구현 완료 후 또는 main 병합 전에 코드 리뷰 Subagent를 디스패치하여 문제가 커지기 전에 잡아낸다.
 ---
 
-# Requesting Code Review (YSR)
+# Requesting Code Review
 
 구현 완료 후 독립된 Code Reviewer subagent를 디스패치한다.
 Reviewer는 현재 세션 히스토리가 아닌 **정확히 제작된 컨텍스트**만 받는다.
@@ -23,7 +23,7 @@ Reviewer는 현재 세션 히스토리가 아닌 **정확히 제작된 컨텍스
 **선택 (가치 있음):**
 - 막혔을 때 (새로운 시각)
 - 복잡한 버그 수정 후
-- 공유 유닛(Common/ComUnit/CommonBL) 수정 포함 시
+- 공유 모듈(CLAUDE.md 목록) 수정 포함 시
 
 ---
 
@@ -32,7 +32,7 @@ Reviewer는 현재 세션 히스토리가 아닌 **정확히 제작된 컨텍스
 **1. Git SHA 확보:**
 ```bash
 # 스프린트 브랜치 분기점
-BASE_SHA=$(git merge-base HEAD master)
+BASE_SHA=$(git merge-base HEAD main)
 HEAD_SHA=$(git rev-parse HEAD)
 ```
 
@@ -54,18 +54,17 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 ---
 
-## YSR 특이사항
+## 특이사항
 
-### CP949 특별 주의
-리뷰어는 `.pas`/`.dfm` 파일에 Write 도구 사용 흔적을 반드시 확인한다.
-git diff에서 한글 인코딩이 깨진 패턴(`\xef\xbf\xbd`, `???`) 이 보이면 즉시 Critical 보고.
+### 인코딩 손상 주의
+git diff에서 비ASCII 문자가 깨진 패턴(`\xef\xbf\xbd`, `???`)이나 의도치 않은 파일 전체 재인코딩이 보이면 즉시 Critical 보고.
 
-### 공유 유닛 변경 주의
-`Common/`, `ComUnit/`, `CommonBL/` 변경은 **전체 영향 범위**를 반드시 보고.
-GOAL.md에 명시되지 않은 공유 유닛 변경은 High 이상으로 보고.
+### 공유 모듈 변경 주의
+CLAUDE.md에 명시된 공유 모듈 변경은 **전체 영향 범위**를 반드시 보고.
+GOAL.md에 명시되지 않은 공유 모듈 변경은 High 이상으로 보고.
 
-### DBMS 분기 확인
-새 SQL이 포함된 경우 Sybase/PG 호환성 또는 UsingPg 분기 존재 여부 확인.
+### DBMS 호환 확인
+프로젝트가 여러 DBMS를 지원하면(CLAUDE.md), 새 SQL이 모든 대상에서 동작하는지 또는 프로젝트 표준 분기 방식을 따르는지 확인.
 
 ---
 

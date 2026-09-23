@@ -27,7 +27,7 @@ paths:
 파일이 존재하고 비어있지 않으면 그 값을 ACTIVE_ISSUE로 사용한다.
 
 형식:
-  - 이슈번호: `#NNNNNN` (예: `#208801`)
+  - 이슈 ID: `#` + 영숫자·하이픈 (예: `#208801`, `#PROJ-45`)
   - 임시 ID: `^[a-z][a-z0-9_]{2,30}$` (예: `exp_login`)
 
 ### 2단계 — (폴백) git 브랜치명에서 추출
@@ -38,8 +38,8 @@ paths:
 git branch --show-current
 ```
 
-출력에서 `#(\d+)` 패턴을 매칭한다.
-예: `main_delphi_#208801_sprint-01` → `#208801`
+출력에서 `#([A-Za-z0-9-]+)` 패턴을 매칭한다.
+예: `main_#208801_sprint-01` → `#208801`
 
 ### 3단계 — (실패) 사용자 안내 후 중단
 
@@ -71,7 +71,7 @@ WORKSPACE_DIR = workspace/{ACTIVE_ISSUE}
 - `.claude/ACTIVE_ISSUE`에 임시 ID 그대로 기록 (`#` 접두사 없음)
 - WORKSPACE_DIR = `workspace/{임시ID}` (예: `workspace/exp_login`)
 - **브랜치명에는 임시 ID를 쓰지 않는다.** 브랜치는 `{현재브랜치}_sprint-{NN}` 으로 만든다
-  (prd.md Phase 4-1). `main_delphi_exp_login` 같은 이름은 `pretooluse-bash-guard.py`의
+  (prd.md Phase 4-1). `main_exp_login` 같은 이름은 `pretooluse-bash-guard.py`의
   명명 규칙에 없어 차단된다 — 워크스페이스 격리와 브랜치 명명은 별개 축이다.
 - 청소: 작업 완료 후 `workspace/{임시ID}/` 디렉토리 수동 삭제 (브랜치 정리 시 함께 처리 권장)
 
@@ -79,9 +79,9 @@ WORKSPACE_DIR = workspace/{ACTIVE_ISSUE}
 
 `/status` 실행 시 자동 감지한다:
 
-ACTIVE_ISSUE 값이 `#NNNNNN` 형식일 때만 검사한다. 임시 ID(`#` 접두사 없음)는 검사 대상 외.
+ACTIVE_ISSUE 값이 `#` 접두사 형식(`#208801`, `#PROJ-45`)일 때만 검사한다. 임시 ID(`#` 접두사 없음)는 검사 대상 외.
 
-`.claude/ACTIVE_ISSUE`의 이슈 번호와 현재 브랜치명에서 추출한 이슈 번호(`#(\d+)`)가 다르면:
+`.claude/ACTIVE_ISSUE`의 이슈 번호와 현재 브랜치명에서 추출한 이슈 번호(`#([A-Za-z0-9-]+)`)가 다르면:
 
 ```
 ⚠️ ACTIVE_ISSUE(#208801) ≠ 브랜치 이슈(#208900)

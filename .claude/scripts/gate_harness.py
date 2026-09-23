@@ -1,12 +1,11 @@
 """
 층 A — 하네스 무결성 검증기.
 
-이 레포에는 Delphi 빌드 대상이 없다 (`_D7/` 없음, `Tests/Source/` 비어 있음).
-따라서 루프의 종료 조건으로 쓸 수 있는 유일한 검증기는 하네스 자체의 무결성이다.
-설계 근거: docs/Upgrade_loop.md STEP 1-1 "층 A".
+하네스 자체가 깨지면 루프의 모든 판정이 의미를 잃는다. 그래서 프로젝트 빌드
+(층 B, .claude/harness.json)와 별개로, 이 검사는 PHASE와 무관하게 항상 돈다.
 
 검사 항목
-  1. JSON 파싱        — settings.json / settings.local.json.sample / .mcp.json.example
+  1. JSON 파싱        — settings.json / settings.local.json.sample / harness.json
   2. 훅·스크립트 문법 — .claude/{hooks,scripts}/*.py (ast) · *.sh (bash -n)
   3. 내부 참조 무결성 — 문서가 가리키는 .claude/** 경로가 실재하는가
 
@@ -15,7 +14,7 @@
   1 = 검사 실패 — 하네스가 깨졌다
 
   ※ exit 2는 쓰지 않는다. Stop 훅이 이 스크립트의 1을 2로 번역한다.
-    "검증기 부재"와 "검증 실패"를 섞지 않기 위함 — Upgrade_loop.md STEP 2-4 참조.
+    "검증기 부재"와 "검증 실패"를 섞지 않기 위함.
 
 사용법
   python .claude/scripts/gate_harness.py
@@ -48,7 +47,7 @@ JSON_TARGETS = [
     (".claude/settings.json", False),
     (".claude/settings.local.json.sample", False),
     (".claude/settings.local.json", True),   # gitignore 대상
-    (".mcp.json.example", False),
+    (".claude/harness.json", False),         # 프로젝트 어댑터 — 깨지면 빌드 게이트가 조용히 부재가 된다
     (".mcp.json", True),                     # gitignore 대상
 ]
 
@@ -57,11 +56,9 @@ JSON_TARGETS = [
 REF_WHITELIST = {
     ".claude/ACTIVE_ISSUE",
     ".claude/settings.local.json",
-    ".claude/projects",
 }
 
 # 아직 만들지 않은 파일을 의도적으로 나열하는 문서 — 참조 검사에서 제외.
-# (Upgrade_loop.md는 시공 완료 후 실재 파일만 참조하므로 2026-09-22에 제외를 해제했다)
 SCAN_EXCLUDE: set[str] = set()
 
 REF_PATTERN = re.compile(r"\.claude/[A-Za-z0-9_][A-Za-z0-9_./\-]*")

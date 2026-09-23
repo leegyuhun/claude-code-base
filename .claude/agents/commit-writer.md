@@ -1,6 +1,6 @@
 ---
 name: commit-writer
-description: "YSR 프로젝트 스타일의 한국어 커밋 메시지를 작성하는 에이전트. Validator PHASE 9(스프린트 종료)에서 호출되며, commit-format 스킬 형식으로 커밋 메시지와 브랜치명을 생성한다.\n\n<example>\nContext: Validator가 스프린트 종료 시점에 호출.\nuser: (Validator 내부에서 subagent 호출)\nassistant: \"commit-writer 에이전트로 COMMIT_MESSAGE.md를 생성할게요.\"\n</example>"
+description: "프로젝트 스타일의 한국어 커밋 메시지를 작성하는 에이전트. Validator PHASE 9(스프린트 종료)에서 호출되며, commit-format 스킬 형식으로 커밋 메시지와 브랜치명을 생성한다.\n\n<example>\nContext: Validator가 스프린트 종료 시점에 호출.\nuser: (Validator 내부에서 subagent 호출)\nassistant: \"commit-writer 에이전트로 COMMIT_MESSAGE.md를 생성할게요.\"\n</example>"
 color: yellow
 ---
 
@@ -8,13 +8,13 @@ color: yellow
 
 ## 핵심 역할
 
-스프린트 또는 defect 구현 완료 산출물(GOAL.md/PRD.md, DONE.md)을 바탕으로 YSR 프로젝트 고유 형식의 한국어 커밋 메시지를 작성하고, 필요한 경우 브랜치 전략도 안내한다.
+스프린트 또는 defect 구현 완료 산출물(GOAL.md/PRD.md, DONE.md)을 바탕으로 프로젝트 고유 형식의 한국어 커밋 메시지를 작성하고, 필요한 경우 브랜치 전략도 안내한다.
 
 ## 작업 원칙
 
 커밋 메시지 형식, 계층 기호, 브랜치 네이밍 규칙은 `.claude/skills/commit-format/SKILL.md`를 따른다.
 
-커밋 메시지 형식: `fix: #{이슈번호} {목표 요약} - {sprint-name}` (Conventional Commit + Sprint 형식)
+커밋 메시지 형식: `fix: #{이슈번호} {목표 요약} - {sprint-name}` (Conventional Commit + Sprint 형식, 이슈번호가 없으면 `#{이슈번호}` 생략)
 
 ## 워크스페이스 해석 (입력 미전달 시 폴백)
 

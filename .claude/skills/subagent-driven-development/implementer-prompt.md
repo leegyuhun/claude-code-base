@@ -1,4 +1,4 @@
-# Implementer Subagent Prompt Template (YSR)
+# Implementer Subagent Prompt Template
 
 sprint-dev.md 4단계에서 항목별 Implementer subagent를 디스패치할 때 사용.
 
@@ -7,7 +7,7 @@ Agent tool:
   subagent_type: implementer
   description: "구현 — {항목 번호}: {항목 제목}"
   prompt: |
-    당신은 YSR EMR Delphi 구현 엔지니어입니다.
+    당신은 이 프로젝트의 구현 엔지니어입니다. 기술 스택과 코딩 규칙은 CLAUDE.md를 따릅니다.
 
     ## 구현할 항목
 
@@ -20,36 +20,34 @@ Agent tool:
     - 직전 완료 항목: {이전 항목 제목 또는 "없음"}
     - GOAL.md 전체 항목 수: {N}개 중 {M}번째
 
-    ## YSR 필수 규칙 (위반 시 즉시 중단)
+    ## 필수 규칙 (위반 시 즉시 중단)
 
-    1. **CP949 인코딩 보호**
-       - `.pas` / `.dfm` 파일에 Write 도구 절대 사용 금지
-       - Edit 도구 사용 시 old_string/new_string 경계에 한글 줄 포함 금지
-       - 한글 주석 추가 필요 시: Python `encoding='cp949'` 방식만 허용
+    1. **프로젝트별 금지 사항 준수**
+       - CLAUDE.md "코딩 규칙"에 명시된 금지 사항(파일 인코딩, 생성 파일 수정 금지 등)을 먼저 확인
+       - 기존 파일의 인코딩·줄바꿈을 바꾸지 말 것
 
     2. **GOAL.md 범위 엄수**
        - 명세에 없는 기능 구현 금지
        - 범위 밖 발견 사항은 {OUT_OF_SCOPE_FILE}에 기록하고 건너뜀
 
     3. **공용 유틸 우선 참조**
-       - 문자열: `Common\Class\MString.pas`
-       - 범용 함수: `Common\Func\MUtil.pas`, `MCOMFunction.pas`, `MyFunc.pas`
-       - DB 쿼리: `TtsQuery` 클래스 (SQL.Add 방식, QuotedStr 사용, Named Parameter 금지)
-       - Sybase/PG 동시 지원: 분기 필요 시 `TtsQuery.UsingPg` 사용
+       - GOAL.md "공용 유틸 참조" 섹션과 CLAUDE.md의 공유 모듈 목록을 먼저 확인
+       - DB 쿼리는 프로젝트 표준 방식(CLAUDE.md)을 따를 것
 
-    4. **컴파일 확인 (완료 선언 전 필수)**
-       - 변경된 .pas/.dfm이 속한 .dproj로 `build.bat debug` 실행
+    4. **빌드 확인 (완료 선언 전 필수)**
+       - `python .claude/scripts/harness_config.py run build` 실행
        - 결과(에러 0건) 출력 첨부 없이는 완료 선언 금지
+       - "검증기 부재"(build.cmd 미설정)면 그 사실을 보고에 명시
 
     5. **파일 동기화**
-       - .pas 수정 시 해당 .dfm 도 확인 및 동기화
+       - 짝을 이루는 파일(코드 ↔ UI 정의·스키마·테스트)이 있으면 확인 및 동기화
 
     6. **함정 사전 점검 (구현 진입 전 필수)**
        - 이번 항목 해당 카테고리: {함정 카테고리}
        - `.claude/rules/pitfalls-index.md`에서 해당 카테고리의 함정 번호를 확인하고,
          그 번호만 `.claude/refs/pitfalls.md`에서 Grep 또는 부분 Read 한다. **본문 통독 금지**
-       - 카테고리 기준: 거의 모든 작업 A(인코딩)·B(Delphi 언어) /
-         SQL 수정 시 C / DFM·UI 작업 시 D / 빌드·패키지 작업 시 E / git·셸 작업 시 F
+       - 카테고리 기준: 파일 I/O·인코딩 A / 코드 작성 B(언어·프레임워크) /
+         SQL 수정 시 C / UI·리소스 작업 시 D / 빌드·패키지 작업 시 E / git·셸 작업 시 F
 
     ## 시작 전 질문
 
@@ -65,7 +63,7 @@ Agent tool:
     ## 할 일
 
     1. 항목 명세대로 정확히 구현
-    2. 컴파일 확인 (build.bat debug 실행 + 출력 확인)
+    2. 빌드 확인 (`harness_config.py run build` 실행 + 출력 확인)
     3. 자기 리뷰 (아래 체크리스트)
     4. 보고
 
@@ -77,9 +75,9 @@ Agent tool:
     - 처리하지 않은 엣지 케이스는?
 
     **품질:**
-    - Delphi 네이밍 규칙 준수? (T-클래스, F-멤버, A-파라미터, S_-상수)
-    - try..finally, FreeAndNil 빠진 곳 없는가?
-    - TDataSet.State 체크 후 Post/Cancel 했는가?
+    - 프로젝트 네이밍 규칙(CLAUDE.md) 준수?
+    - 예외 경로에서도 리소스가 해제되는가?
+    - 편집 중 상태를 저장/취소로 명시 처리했는가?
 
     **절제:**
     - GOAL.md 범위 밖 것을 구현하지 않았는가?
@@ -92,7 +90,7 @@ Agent tool:
     완료 시 다음을 보고하세요:
     - **상태:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
     - 구현 내용 (또는 시도한 내용, BLOCKED 시)
-    - build.bat debug 실행 결과 (에러 건수 명시)
+    - 빌드 실행 결과 (에러 건수 명시, 검증기 부재면 그렇다고 명시)
     - 변경된 파일 목록
     - 자기 리뷰 결과
     - 우려사항 (있다면)

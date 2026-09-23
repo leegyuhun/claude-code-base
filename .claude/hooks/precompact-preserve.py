@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Claude Code PreCompact Hook — 컴팩션 후에도 이어받을 수 있게 좌표만 남긴다.
 
-설계 근거: docs/Upgrade_loop.md STEP 5-3.
-
 왜 내용이 아니라 경로인가
   파일 내용을 통째로 뱉으면 그 자체가 컨텍스트를 다시 채운다. 컴팩션의 목적을
   스스로 무너뜨리는 셈이다. 어디를 보면 되는지와 현재 좌표만 남기고,

@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """루프 상태 — 이터레이션 카운터 · 벽시계 · 헛돌기 감지의 단일 소스.
 
-설계 근거: docs/Upgrade_loop.md STEP 0-F, STEP 2-3, STEP 5-2, STEP 6.
-
 왜 필요한가
   하네스에는 이미 재시도 루프가 4개 있다 (validator 7-2 빌드 재시도, 7-6 FEEDBACK
   왕복, 8-6 수정 재시도, sprint-dev 리뷰 왕복). 그런데 "최대 3회"는 모델이
@@ -22,7 +20,7 @@
 
 사용법 (에이전트가 Bash로 호출한다)
   python .claude/scripts/loop_state.py status
-  python .claude/scripts/loop_state.py bump --scope build --signature "E2003:Treat.pas:412" --note "uses 절 추가 시도"
+  python .claude/scripts/loop_state.py bump --scope build --signature "build:E0425:service.rs:412" --note "import 추가 시도"
   python .claude/scripts/loop_state.py reset --scope build
   python .claude/scripts/loop_state.py halt --reason "빌드 상한 도달"
   python .claude/scripts/loop_state.py clear-halt
@@ -47,6 +45,7 @@ REPO = Path(__file__).resolve().parents[2]
 # scope별 이터레이션 상한. 기존 하네스의 "최대 3회"와 맞춘다.
 SCOPE_LIMITS = {
     "build": 3,      # validator 7-2
+    "test": 3,       # validator 7-2 테스트 실행
     "feedback": 3,   # validator 7-6 <-> implementer 왕복
     "manual": 3,     # validator 8-6 수정 재시도
     "review": 3,     # sprint-dev 4단계 Spec/Quality 리뷰 왕복
@@ -93,7 +92,7 @@ def resolve_active_issue() -> str | None:
             value = ""
         if value:
             return value
-    match = re.search(r"#(\d+)", git("branch", "--show-current"))
+    match = re.search(r"#([A-Za-z0-9-]+)", git("branch", "--show-current"))
     return f"#{match.group(1)}" if match else None
 
 
@@ -173,7 +172,7 @@ def new_state(status: dict[str, str]) -> dict:
 # PHASE가 바뀌면 지워도 되는 scope — 그 PHASE 안에서만 의미가 있는 것들.
 # feedback / manual / review:* 는 PHASE를 넘나드는 왕복을 세는 카운터라 여기 없다.
 # (7→6→7 왕복마다 전부 리셋하면 그 왕복은 영원히 계수되지 않는다 — 감사 결함 ①)
-PHASE_BOUND_SCOPES = {"build", "contract"}
+PHASE_BOUND_SCOPES = {"build", "test", "contract"}
 
 
 def load_state(ws: Path, status: dict[str, str]) -> tuple[dict, str]:

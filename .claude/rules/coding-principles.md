@@ -1,197 +1,74 @@
----
-paths:
-  - "**/*.pas"
-  - "**/*.dfm"
----
+# 코딩 원칙 (언어 무관)
 
-# 코딩 원칙 (Delphi 2007 / Object Pascal)
-
-## 기술 스택
-- Delphi 2007 (BDS 5.0), VCL
-- TtsQuery: 커스텀 DB 쿼리 컴포넌트 (TsQuery.pas)
-- TJGrid: 커스텀 그리드 컴포넌트
-- superobject: JSON 처리 라이브러리
+> 언어·프레임워크별 규칙은 이 파일에 넣지 않는다.
+> 프로젝트 초기화(Orchestrator PHASE 4.5) 시 CLAUDE.md의 "기술 스택 / 코딩 규칙" 섹션에 기록한다.
 
 ## 핵심 규칙
 
 ### 1. 코딩 전에 생각하라
 - 가정을 명시적으로 밝혀라. 불확실하면 물어봐라.
-- .dfm 변경이 필요한지 먼저 파악하라.
+- 변경이 코드 외 리소스(설정, 스키마, UI 정의 파일 등)에도 번지는지 먼저 파악하라.
 
 ### 2. 단순함 우선
 - 요청한 것 이상의 기능을 만들지 마라.
-- VCL 표준 컴포넌트로 해결 가능하면 서드파티 불필요.
+- 표준 라이브러리로 해결 가능하면 서드파티 불필요.
 
 ### 3. 수술적 변경
-- 요청과 관련된 유닛/폼만 건드려라.
-- .pas 수정 시 해당 .dfm 파일과 싱크를 유지하라.
-- 기존 스타일을 따라라.
+- 요청과 관련된 모듈/파일만 건드려라.
+- 짝을 이루는 파일(코드 ↔ 리소스/스키마/테스트)이 있으면 싱크를 유지하라.
+- 기존 스타일을 따라라. 명명·포맷·에러 처리 관례는 주변 코드가 기준이다.
 
-### 4. 메모리 관리 (중요)
-- 생성한 객체는 반드시 해제하라: FreeAndNil(Obj)
-- try..finally 블록으로 리소스 보호
-- TComponent 계층에 속하면 Owner가 해제 담당
+### 4. 리소스 관리 (중요)
+- 연 것은 반드시 닫아라: 파일 핸들, DB 커넥션, 소켓, 락, 트랜잭션.
+- 예외 경로에서도 해제가 보장되는 구문을 사용하라 (try/finally, using, with, defer, RAII 등).
+- 소유권이 불분명한 객체는 누가 해제하는지 명시하라.
 
-## 명명 규칙
-- 클래스: TMyClassName
-- 폼: TfrmLogin, TfrmMain
-- 데이터모듈: TdmMain
-- 변수: 지역변수 AVarName, 멤버변수 FVarName, 전역변수 GVarName, 매개변수 MParam
-  - **주의**: 매개변수는 반드시 M 접두사 (MParam). A는 지역변수 전용. AParam 금지.
-- 상수: S_CONST_NAME
-- 프로시저: DoSomething, HandleClick
+### 5. 재진입·동시성
+- 이벤트 핸들러/요청 핸들러가 처리 중 다시 호출될 수 있으면 재진입 가드를 둔다.
+- 백그라운드 스레드/작업에서 UI나 공유 상태를 직접 건드리지 마라. 프레임워크가 제공하는 마샬링 수단을 쓴다.
 
-## DBMS
- - Sybase와 PostgreSQL을 모두 사용중입니다.
-  가능하다면 두 DBMS에서 모두 동작할 수 있는 SQL을 작성합니다.
-  불가피하게 분기해야할 경우, TtsQuery.UsingPG 프로퍼티를 이용해 SQL을 분기합니다.
-  TsQuery.pas 내 정의된 SQL 문법 관련 메소드를 적극적으로 활용합니다.
+### 6. 상태 보존
+- 저장·커밋 누락은 조용히 데이터를 날린다. 편집 중 상태는 닫기 전에 명시적으로 처리(저장 또는 취소)하라.
 
- - 트랜잭션은 DBBeginTrans / DBCommitTrans / DBRollbackTrans 커스텀 함수를 사용합니다.
-  직접 dmMain.Database.StartTransaction 등을 호출하지 않습니다.
+### 7. 경계에서만 변환
+- 문자열 인코딩, 시간대, 단위, 직렬화 형식 변환은 I/O·API 경계에서만 명시적으로 수행한다.
+- 내부에서 암묵적 변환에 기대지 마라.
 
-### 5. Application.ProcessMessages 재진입 방지 (중요)
-- 버튼/액션 핸들러에서 ProcessMessages 호출 전 재진입 가드 필수
-```pascal
-procedure TfrmMain.btnProcessClick(Sender: TObject);
-begin
-  if FIsProcessing then Exit;
-  FIsProcessing := True;
-  btnProcess.Enabled := False;
-  try
-    // 작업 + Application.ProcessMessages
-  finally
-    FIsProcessing := False;
-    btnProcess.Enabled := True;
-  end;
-end;
-```
+### 8. 디버그 코드 격리
+- 디버그 로그/계측 코드는 빌드 구성이나 로그 레벨로 격리한다. 릴리스에 새지 않게 하라.
 
-### 6. TDataSet 상태 관리 (중요)
-- 폼 종료/닫기 전 반드시 State 확인
-```pascal
-// FormClose, 저장 전 공통 패턴
-if Dataset.State in [dsEdit, dsInsert] then
-begin
-  if MessageDlg('저장하시겠습니까?', mtConfirmation, [mbYes, mbNo], 0) = mrYes then
-    Dataset.Post
-  else
-    Dataset.Cancel;
-end;
-```
-- `Post` 누락은 조용히 데이터를 날린다. 반드시 명시적으로 처리.
+### 9. 관심사 분리
+- 비즈니스 로직과 데이터 접근은 UI/핸들러와 분리한다.
+- 핸들러는 입력 해석과 결과 표시만 담당하게 하라.
 
-### 7. TThread UI 접근 금지
-- 백그라운드 쓰레드에서 VCL 컴포넌트 직접 접근 금지
-- 반드시 `Synchronize` 사용
-```pascal
-// 금지
-procedure TWorkerThread.Execute;
-begin
-  lblStatus.Caption := '완료'; // 크래시/오염
-end;
+## 공유 모듈 변경 주의 (CRITICAL)
 
-// 필수
-procedure TWorkerThread.Execute;
-begin
-  Synchronize(UpdateUI);
-end;
-procedure TWorkerThread.UpdateUI;
-begin
-  lblStatus.Caption := '완료';
-end;
-```
+여러 모듈이 공유하는 코드(공용 라이브러리, 공통 유틸, 공유 스키마)는 **영향 범위가 크다**.
+수정 전 반드시 사용자에게 영향 범위를 확인하고 승인을 받을 것. 공유 모듈 경로는 CLAUDE.md에 명시한다.
 
-### 8. GDI 핸들 관리
-- CreateFont, CreatePen, CreateBrush 등 GDI 생성 후 반드시 DeleteObject
-```pascal
-var hFont: HFONT; hOld: HGDIOBJ;
-begin
-  hFont := CreateFont(...);
-  try
-    hOld := SelectObject(Canvas.Handle, hFont);
-    // 그리기
-    SelectObject(Canvas.Handle, hOld);
-  finally
-    DeleteObject(hFont);
-  end;
-end;
-```
-
-### 9. AnsiString / WideString 혼용 금지
-- Delphi 2007의 String은 AnsiString(CP949). WideString과 암묵적 변환 금지
-- DB/파일/API 경계에서만 명시적 변환 수행
-```pascal
-// 금지: 암묵적 변환
-s := ws; // WideString → AnsiString, 한글 손실 가능
-
-// 허용: 명시적 변환
-s := AnsiString(WideCharToString(PWideChar(ws)));
-```
-
-### 10. BeginUpdate / EndUpdate 패턴
-- TListView, TTreeView, TStringList 대량 업데이트 시 필수
-```pascal
-lvwList.Items.BeginUpdate;
-try
-  for i := 0 to Count - 1 do
-    lvwList.Items.Add.Caption := Data[i];
-finally
-  lvwList.Items.EndUpdate;
-end;
-```
-
-### 11. IFDEF 전략
-- 디버그 로그는 반드시 `{$IFDEF DEBUG}` 블록 안에
-- 프로젝트 옵션에서 DEBUG/RELEASE 조건부 컴파일 심볼 분리 관리
-```pascal
-{$IFDEF DEBUG}
-  OutputDebugString(PChar('SQL: ' + qry.SQL.Text));
-{$ENDIF}
-```
-
-### 12. TDataModule 분리 원칙
-- 비즈니스 로직, DB 쿼리는 TDataModule에. 폼에 직접 작성 금지
-- TfrmXxx는 UI 이벤트 처리와 화면 표시만 담당
-- 복잡한 폼은 TFrame으로 분해하여 재사용
-
-## 공유 유닛 변경 주의 (CRITICAL)
-
-`ComUnit/`, `Common/`, `CommonBL/`, `CommonV7/` 하위 파일은 **수십 개 모듈이 공유**합니다.
-수정 전 반드시 사용자에게 영향 범위를 확인하고 승인을 받을 것.
-
-- 공유 유닛 변경 시 기존 인터페이스(함수 시그니처, 프로퍼티)를 절대 제거/변경하지 말 것
+- 공유 모듈 변경 시 기존 인터페이스(함수 시그니처, 공개 필드/프로퍼티)를 절대 제거/변경하지 말 것
 - 새 기능은 추가만 허용 (기존 코드는 유지)
 - 변경이 불가피하면 사용자에게 영향 모듈 목록을 제시하고 확인 후 진행
 
 ## 이슈 추적 주석 (모든 수정에 필수)
 
-코드를 추가/수정/삭제할 때 **반드시** 해당 Redmine 이슈 번호와 변경이유 주석으로 남긴다.
+코드를 추가/수정/삭제할 때 **반드시** 해당 이슈 ID와 변경이유를 주석으로 남긴다.
 임시 코드뿐 아니라 버그 수정, 기능 추가, 리팩토링 등 모든 변경에 적용한다.
+이슈 ID는 자유 형식이다 (`#123`, `PROJ-45`, `exp_login`).
 
-```pascal
-// (#208215) 명세서 생성 시 invalid pointer operation - double-free 방지
-procedure TInDate.ClearOldTrList;
+```
+// #208215 저장 시 이중 해제 방지
+function clearOldList() { ... }
 
-  delTr.Free; // #208215 누수 방지
+  item.release(); // #208215 누수 방지
 ```
 
 규칙:
-- 형식: `// #이슈번호 변경 이유 한 줄`
+- 형식: `{언어의 주석 기호} #이슈ID 변경 이유 한 줄`
 - 위치: 변경된 코드 바로 위(블록 수정) 또는 같은 줄 끝(한 줄 수정)
-- CP949 .pas 파일에 한글 주석 추가 시 반드시 Python cp949 방식 사용											 
+
 ## 임시 코드
 - 임시 코드 사용 시 TODO 주석 필수
-  // TODO: [tech-debt] 임시처리 - 이유
-- 이슈 추적 주석은 이슈 번호를 명시
-  // #이슈번호 설명 (예: #193862 접수파트 결핵 본인부담 처리)
-
-## .dfm / .pas 동기화
-- 폼 컴포넌트 추가/삭제 시 반드시 .dfm도 함께 커밋
-- 텍스트 .dfm 형식 권장 (IDE: Edit → Form as Text)
-
-## 구현 패턴 레퍼런스
-
-구체적인 구현 패턴(재진입 가드, TDataSet, TThread, SQL 패턴 등 코드 예시)은 `.claude/rules/delphi2007-patterns.md`를 참조하세요.
-이 파일은 자동 로드되지 않으므로 필요 시 명시적으로 읽어야 합니다: `Read .claude/rules/delphi2007-patterns.md`
-
+  `TODO: [tech-debt] 임시처리 - 이유`
+- 이슈 추적 주석은 이슈 ID를 명시
+  `#이슈ID 설명 (예: #193862 결제 모듈 반올림 처리)`

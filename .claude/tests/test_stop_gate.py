@@ -1,10 +1,8 @@
-"""Stop 훅 — PHASE 게이팅 · 검증기 부재 구분 · 무한루프 방지 · 탈출.
-
-docs/Upgrade_loop.md STEP 7 검수 시나리오에 대응한다.
-"""
+"""Stop 훅 — PHASE 게이팅 · 검증기 부재 구분 · 무한루프 방지 · 탈출."""
 
 from __future__ import annotations
 
+import hashlib
 import sys
 from pathlib import Path
 
@@ -12,7 +10,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _harness import Result, run_py, status_field, temp_repo, write_status  # noqa: E402
 
 HOOK_NAME = "stop-loop-gate.py"
-NEEDED_SCRIPTS = ("gate_harness.py", "loop_state.py")
+NEEDED_SCRIPTS = ("gate_harness.py", "loop_state.py", "harness_config.py")
+PY = f'"{sys.executable}"'
+# 실패하면 컴파일러처럼 "파일:줄: 코드 메시지"를 찍는 가짜 빌드
+FAIL_BUILD = f'{PY} -c "print(\'src/app.py:12: E42 undefined name\'); raise SystemExit(1)"'
+OK_BUILD = f'{PY} -c "print(\'build ok\')"'
+ERROR_PATTERN = r"(?P<file>[\w./-]+):(?P<line>\d+): (?P<code>E\d+)"
+
+
+def build_harness(cmd: str, pattern: str = "") -> dict:
+    return {"source_globs": ["src/**/*.py"], "build": {"cmd": cmd, "timeout": 120},
+            "error_pattern": pattern}
 ISSUE = "#208801"
 
 GOAL_TMPL = """# sprint-01 상세 계획
@@ -21,8 +29,8 @@ GOAL_TMPL = """# sprint-01 상세 계획
 테스트
 
 ## 검증 계약 (Validator가 이 기준으로 채점)
-- [{a}] 빌드: build.bat debug 0 error (자동)
-- [{b}] 환자 조회: 목록에 10건 표시 (수동)
+- [{a}] 빌드: harness_config.py run build 통과 (자동)
+- [{b}] 목록 조회: 목록에 10건 표시 (수동)
 
 ## 수동 테스트 시나리오
 1. 없음
@@ -103,19 +111,42 @@ def main() -> int:
     # 검증기 부재는 실패가 아니다 (이걸 exit 2로 처리하면 루프가 영원히 헛돈다)
     with temp_repo(**common, git=True) as root:
         setup(root, phase="6")
-        (root / "dummy.pas").write_bytes(b"unit d;\n")
+        (root / "src").mkdir()
+        (root / "src" / "app.py").write_text("x = 1\n", encoding="utf-8")
         rc, err = fire(root)
-        rep.case("build.bat 없음 -> 부재로 통과", 0, rc, "검증기 부재" in err, err)
+        rep.case("build.cmd 없음 -> 부재로 통과", 0, rc, "검증기 부재" in err, err)
 
-    with temp_repo(**common, git=True) as root:
+    with temp_repo(**common, git=True, harness=build_harness("no-such-build-tool-xyz")) as root:
         setup(root, phase="6")
-        (root / "build.bat").write_text(
-            "@echo off\necho [Error] rsvars.bat not found\nexit /b 1\n", encoding="utf-8")
-        (root / "sub").mkdir()
-        (root / "sub" / "P.dproj").write_text("<Project/>", encoding="utf-8")
-        (root / "sub" / "a.pas").write_bytes(b"unit a;\n")
+        (root / "src").mkdir()
+        (root / "src" / "app.py").write_text("x = 1\n", encoding="utf-8")
         rc, err = fire(root)
-        rep.case("빌드환경 없음 -> 부재로 통과", 0, rc, "검증기 부재" in err, err)
+        rep.case("빌드 도구 없음 -> 부재로 통과", 0, rc, "검증기 부재" in err, err)
+
+    with temp_repo(**common, git=True, harness=build_harness(FAIL_BUILD)) as root:
+        setup(root, phase="6")
+        (root / "docs").mkdir()
+        (root / "docs" / "a.md").write_text("x\n", encoding="utf-8")
+        rc, err = fire(root)
+        rep.case("소스 변경 없음 -> 빌드 생략", 0, rc, err.strip() == "", err)
+
+    with temp_repo(**common, git=True, harness=build_harness(OK_BUILD)) as root:
+        setup(root, phase="6")
+        (root / "src").mkdir()
+        (root / "src" / "app.py").write_text("x = 1\n", encoding="utf-8")
+        rc, err = fire(root)
+        rep.case("빌드 성공 -> 통과", 0, rc, err.strip() == "", err)
+
+    with temp_repo(**common, git=True, harness=build_harness(FAIL_BUILD, ERROR_PATTERN)) as root:
+        workspace = setup(root, phase="6")
+        (root / "src").mkdir()
+        (root / "src" / "app.py").write_text("x = 1\n", encoding="utf-8")
+        rc, err = fire(root)
+        rep.case("빌드 실패 -> 차단", 2, rc, "E42 undefined name" in err, err)
+        counter = (workspace / ".loop" / "counter.json").read_text(encoding="utf-8")
+        # loop_state는 시그니처를 sha1 앞 12자리로 저장한다
+        digest = hashlib.sha1(b"build:E42:app.py:12").hexdigest()[:12]
+        rep.case("error_pattern 시그니처", True, digest in counter, counter)
 
     # 반복 실패 -> 탈출 (차단을 풀고 사람에게 넘긴다)
     with temp_repo(**common) as root:

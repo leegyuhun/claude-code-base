@@ -20,23 +20,24 @@ description: "PRD.md 생성. 구조화된 인터뷰 → GAP 분석 → 문서 �
                 PROJECT_NAME은 경로의 마지막 디렉토리명으로 자동 설정
 
   PROJECT_NAME  #이슈번호·절대경로가 아닌 첫 번째 의미 있는 토큰
-                예: "FwChart", "환자예약모듈"
+                예: "billing", "예약모듈"
                 없으면 PROJECT_PATH의 마지막 디렉토리명, 둘 다 없으면 "전체"
 
-  ISSUE_NUMBERS #숫자 패턴 (여러 개 가능)
-                예: #1234, #207500
-                있으면 Phase 1에서 redmine 스킬로 자동 조회
+  ISSUE_NUMBERS 이슈 ID 패턴 (여러 개 가능)
+                `#`로 시작하는 토큰(#1234, #PROJ-45) 또는 트래커 키 형식(`[A-Z][A-Z0-9]*-\d+`, 예: PROJ-45)
+                저장 시 `#` 접두사를 붙여 통일한다 (PROJ-45 → #PROJ-45)
+                있으면 Phase 1 경로 A(이슈 본문 붙여넣기)로 진행
 
   EXTRA_CONTEXT 위 세 가지 이외의 나머지 텍스트 (자유 설명)
                 예: "원인파악해줘", "로그인 관련", "긴급"
                 Phase 1 인터뷰의 초기 컨텍스트로 활용
 
 예시:
-  /prd FwChart, #1234, 원인파악해줘
-    → PROJECT_NAME=FwChart  ISSUE_NUMBERS=[#1234]  EXTRA_CONTEXT="원인파악해줘"
+  /prd billing, #1234, 원인파악해줘
+    → PROJECT_NAME=billing  ISSUE_NUMBERS=[#1234]  EXTRA_CONTEXT="원인파악해줘"
 
-  /prd E:/Source/ysr #207500
-    → PROJECT_PATH=E:/Source/ysr  PROJECT_NAME=ysr  ISSUE_NUMBERS=[#207500]
+  /prd E:/Source/myapp PROJ-45
+    → PROJECT_PATH=E:/Source/myapp  PROJECT_NAME=myapp  ISSUE_NUMBERS=[#PROJ-45]
 
   /prd
     → PROJECT_NAME="전체"  PROJECT_PATH=현재 디렉토리
@@ -56,7 +57,7 @@ workspace/{ACTIVE_ISSUE}/STATUS.md가 존재하면 PHASE 값을 확인한다.
 아래 중 하나라도 참이면 이슈 전환이 아니므로 [PAUSE] 없이 계속 진행한다.
   - ACTIVE_ISSUE == 입력된 ISSUE_NUMBERS[0]
   - `git branch --show-current` 출력에 입력된 #이슈번호가 포함됨
-    (예: 현재 브랜치 `main_delphi_#213378`, 입력 `/prd #213378`)
+    (예: 현재 브랜치 `main_#213378`, 입력 `/prd #213378`)
 → 아래 한 줄만 출력하고 Phase 0으로 진행:
   "ℹ️ 동일 이슈 재진입 (#{이슈번호}, PHASE={N}) — 확인 생략하고 계속합니다."
 
@@ -81,8 +82,8 @@ ISSUE_NUMBERS가 있으면:
 ISSUE_NUMBERS가 없으면:
   Phase 1 인터뷰의 "핵심 문제" 응답을 받은 뒤
   요구사항 내용에서 핵심 키워드 2~3개로 네이밍:
-  예: "환자 예약 현황 조회" → PRD_환자예약현황.md
-      "FwChart 로그인 오류" → PRD_FwChart_로그인.md
+  예: "예약 현황 조회" → PRD_예약현황.md
+      "billing 로그인 오류" → PRD_billing_로그인.md
       PROJECT_NAME만 있고 내용 없음 → PRD_{PROJECT_NAME}.md
 ```
 
@@ -185,84 +186,64 @@ python .claude/scripts/policy.py init \
 
 ## Phase 1: 요구사항 수집
 
-### 경로 A — Redmine 이슈 기반 (ISSUE_NUMBERS 있을 때)
+### 경로 A — 이슈 기반 (ISSUE_NUMBERS 있을 때)
 
-**1-A-1. 이슈 즉시 조회 (인터뷰 전)**
+> 이슈 트래커 연동은 없다. 이슈 본문은 사용자가 붙여넣은 텍스트(또는 EXTRA_CONTEXT)로 받는다.
 
-`ISSUE_NUMBERS`가 있으면 인터뷰를 시작하기 전에 `redmine` 스킬로 전부 조회한다.
-여러 이슈면 공통 맥락을 추출한다.
+**1-A-1. 이슈 본문 수집 [PAUSE]**
 
-조회 결과를 **원본 형식 그대로** 출력한다 (redmine 스킬 출력 형식 사용):
-
-```
-## Redmine 이슈 #{번호}
-
-**제목:** {subject}
-**상태:** {status} | **우선순위:** {priority}
-**담당자:** {assigned_to} | **버전:** {fixed_version}
-**카테고리:** {category}
-
-### 설명
-{description 전문}
-```
-
----
-
-**1-A-2. 이슈 내용 확인 및 보완 [PAUSE]**
-
-이슈 원본을 출력한 직후 사용자에게 보완 기회를 준다:
+`ISSUE_NUMBERS`가 있으면 인터뷰를 시작하기 전에 이슈 본문을 요청한다.
+EXTRA_CONTEXT에 이미 충분한 설명이 있으면 이 단계를 생략한다.
 
 ```
 ─────────────────────────────────────────────
-위 이슈 내용에 추가하거나 수정할 내용이 있나요?
-  예) 누락된 배경·제약·완료 기준
-      이슈 설명의 오류·오해 정정
-      관련 화면·인접 기능 등 참고 정보
+📥 이슈 #{번호} 의 제목·설명을 붙여넣어 주세요.
+  (이슈 트래커 화면 내용 그대로 복사해도 됩니다)
+  추가로 알려줄 배경·제약·완료 기준이 있으면 함께 적어주세요.
 
-→ 보완 내용을 입력하거나, 없으면 '없음' 입력
+→ 붙여넣을 내용이 없으면 '없음' 입력 (경로 B 인터뷰로 전환)
 ─────────────────────────────────────────────
 ```
 
-- 입력값을 `ADDITIONAL_CONTEXT`로 저장한다.
-- '없음' 입력 시 `ADDITIONAL_CONTEXT = ""` 로 두고 다음 단계로 진행한다.
+- 입력값을 `ISSUE_TEXT`로 저장한다. 여러 이슈면 공통 맥락을 추출한다.
+- '없음' 입력 시 경로 B로 전환한다.
 
 ---
 
-**1-A-3. 자동 추출 및 기술 분석**
+**1-A-2. 자동 추출 및 기술 분석**
 
-자동 추출 대상 텍스트 = **이슈 description + ADDITIONAL_CONTEXT** 통합본.
+자동 추출 대상 텍스트 = **ISSUE_TEXT + EXTRA_CONTEXT** 통합본.
 
 분석 결과를 출력한다:
 
 ```
-📥 Redmine 이슈 분석 결과 {ADDITIONAL_CONTEXT가 있을 때: (※ 사용자 보완 메모 반영됨)}
+📥 이슈 분석 결과
 
 이슈: #{번호} — {제목}
-카테고리: {category} | 우선순위: {priority}
 
 자동 추출된 PRD 항목:
-  ✅ 핵심 문제: {이슈 설명 + ADDITIONAL_CONTEXT에서 추출}
-  ✅ 대상 사용자: {담당자·카테고리 기반 추정}
+  ✅ 핵심 문제: {이슈 본문에서 추출}
+  ✅ 대상 사용자: {본문 기반 추정}
   ✅ 핵심 기능: {설명에서 추출된 기능 목록}
   ⬜ 완료 기준: (이슈에서 확인 불가 — 확인 필요)
   ⬜ 제약 조건: (이슈에서 확인 불가 — 확인 필요)
   ⬜ 제외 범위: (명시 없음)
 ```
 
-이어서 Delphi/VCL 관점으로 기술 분석한다:
-- 변경 예상 파일 목록 (.pas / .dfm)
-- 공유 유닛(`ComUnit/`, `Common/`, `CommonBL/`, `CommonV7/`) 변경 여부
+이어서 프로젝트 기술 스택(CLAUDE.md "기술 스택") 관점으로 기술 분석한다:
+- 변경 예상 파일 목록
+- 공용 모듈(CLAUDE.md "프로젝트 구조"에 공용으로 표시된 경로) 변경 여부
 - DB 스키마 변경 여부
 
 ```
 📊 기술 분석 결과
 
 변경 예상 파일: {목록}
-공유 유닛 변경: 있음 / 없음
+공용 모듈 변경: 있음 / 없음
 DB 변경: 있음 / 없음
 ```
 
-공유 유닛이나 DB 변경이 있으면:
+공용 모듈이나 DB 변경이 있으면:
 ```
 ⚠️ 사전 확인 필요 항목
 | 항목 | 내용 |
@@ -272,10 +253,10 @@ DB 변경: 있음 / 없음
 
 ---
 
-**1-A-4. GAP만 질문**
+**1-A-3. GAP만 질문**
 
 ✅ 항목은 건너뛰고, ⬜ 항목만 질문한다.
-(이슈 설명이 충분하거나 ADDITIONAL_CONTEXT로 보완된 항목도 ✅ 처리하여 생략)
+(이슈 본문이나 EXTRA_CONTEXT로 이미 파악된 항목도 ✅ 처리하여 생략)
 
 ```
 📋 추가 확인 (이슈에서 파악되지 않은 항목만)
@@ -307,11 +288,11 @@ DB 변경: 있음 / 없음
 
 1. 핵심 문제
    이 기능/프로젝트가 해결하려는 문제나 목적은 무엇인가요?
-   (예: "환자 예약 현황을 한 화면에서 볼 수 없어 업무 효율이 낮다")
+   (예: "예약 현황을 한 화면에서 볼 수 없어 업무 효율이 낮다")
 
 2. 대상 사용자
    누가 이 기능을 사용하나요? (역할/부서/권한 등)
-   (예: "원무과 직원, 의사, 관리자")
+   (예: "운영 담당자, 일반 사용자, 관리자")
 
 3. 핵심 기능 (반드시 있어야 할 것)
    MVP에 꼭 포함되어야 할 기능을 나열해주세요.
@@ -325,7 +306,7 @@ DB 변경: 있음 / 없음
 
 6. 제약 조건
    기술, 일정, 연동, 권한 등 지켜야 할 제약이 있나요?
-   (예: "기존 DB 스키마 변경 불가", "Delphi 2007로만 구현")
+   (예: "기존 DB 스키마 변경 불가", "현재 프레임워크 버전 유지")
 
 7. 하지 않을 것
    이번 작업 범위에서 명시적으로 제외할 것은?
@@ -393,11 +374,11 @@ GAP이 있으면:
 
 [Defect 조건 체크 — 모두 충족 시 Defect 제안]
   ☑/☐ 프로덕션 장애·버그·긴급 수정
-       (tracker, priority, 이슈 제목·설명 키워드 기반 추정)
+       (이슈 제목·설명 키워드 기반 추정)
   ☑/☐ 변경 예상 파일 ≤ 3개  ({추정 파일 수}개)
   ☑/☐ 변경 코드량 ≤ 50줄   (추정)
   ☑/☐ DB 스키마 변경 없음
-  ☑/☐ 새 .pas 파일 없음 (dproj 변경 없음)
+  ☑/☐ 신규 소스 파일 없음 (프로젝트/빌드 설정 변경 없음)
 
 → 판정: Defect 트랙 제안 / Sprint 트랙 제안
 ```
@@ -445,7 +426,7 @@ ISSUE_NUMBERS 없을 때:
 
 [자동 판정 — 확인 생략]
 현재 브랜치명에 입력된 `#{이슈번호}` 패턴이 이미 포함되어 있으면
-(예: 현재 `main_delphi_#213378`, 입력 `#213378`)
+(예: 현재 `main_#213378`, 입력 `#213378`)
 → 이미 해당 이슈의 브랜치이므로 [2]를 자동 선택하고 아래 한 줄만 출력한다:
   "ℹ️ 현재 브랜치가 이미 이슈 브랜치입니다 ({현재 브랜치명}) — 그대로 사용합니다."
 
@@ -462,35 +443,6 @@ Phase 0.5의 `branch` 정책을 따른다 (`policy.py get branch`). **[PAUSE] �
 > 정책으로 옮겼다.
 
 [1] 선택 시: `git checkout -b {브랜치명}`
-
-**4-3. Redmine 상태 업데이트 (ISSUE_NUMBERS 있을 때만)**
-
-워크플로우: New(1) → Confirmed(11)
-단계를 건너뛸 수 없으므로 현재 상태부터 순차 전환한다.
-
-```
-전환 순서 맵: 1→11
-목표 상태: Confirmed (status_id=11)
-
-1. 현재 사용자 ID 조회 (assigned_to_id 설정에 필요)
-   MCP: 없음 → curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/users/current.json
-   → user.id 추출하여 {MY_USER_ID} 로 저장
-
-2. 현재 상태 조회
-   MCP(폴백): get_issue(issue_id={이슈번호})
-   curl(우선): curl -s -H "X-Redmine-API-Key: $REDMINE_API_KEY" $REDMINE_URL/issues/{이슈번호}.json
-
-3. 현재 status_id에서 11까지 순서대로 호출
-   - 현재=1:  → 11(Confirmed) with assigned_to_id
-   - 현재=11: 생략
-
-   ※ status_id=11(Confirmed) 전환 시 assigned_to_id 필수:
-   MCP(폴백): update_issue(issue_id={이슈번호}, status_id=11, assigned_to_id={MY_USER_ID})
-   curl(우선): Body: {"issue": {"status_id": 11, "assigned_to_id": {MY_USER_ID}}}
-```
-
-성공: `✅ Redmine #{이슈번호} → 확인됨`
-실패: 무시하고 계속 진행
 
 ---
 
@@ -572,5 +524,4 @@ STATUS.md 경로: `{PROJECT_PATH}/workspace/{ACTIVE_ISSUE}/STATUS.md`
 |------|------|
 | `$ARGUMENTS`가 경로인데 존재하지 않음 | [PAUSE] "경로가 존재하지 않습니다. 생성할까요?" |
 | 인터뷰 응답이 너무 짧음 (1~2단어) | Phase 2에서 해당 항목 집중 보완 질의 |
-| Redmine 조회 실패 | 사용자 입력으로 대체, 계속 진행 |
 | docs/ 쓰기 권한 없음 | "경로에 쓸 수 없습니다. 다른 경로를 입력해주세요." |

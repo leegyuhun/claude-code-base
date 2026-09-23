@@ -1,32 +1,8 @@
-# Delphi 2007 컴파일 산출물
-*.dcu
-*.exe
-*.dll
-*.bpl
-*.bpi
-*.dcp
-*.map
-*.dsk
-*.local
-*.identcache
-*.tvsconfig
-__history/
-
-# 빌드 출력 디렉토리 (내용만 무시, 폴더 유지)
-Lib/*.dcu
-Output/Debug/
-Output/Release/
-
-# Delphi IDE 파일
-*.~pas
-*.~dfm
-*.bak
-
 # 기타
 .DS_Store
 Thumbs.db
 
-# MCP 설정 (토큰 포함 — .mcp.json.example 참고)
+# MCP 설정 (로컬 — 토큰 포함 가능)
 .mcp.json
 
 # Claude Code 로컬 설정 (토큰 포함 — .claude/settings.local.json.sample 참고)

@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Claude Code Stop Hook — 긴 루프 게이트.
 
-설계 근거: docs/Upgrade_loop.md STEP 2.
-
 동작 순서
   1. stop_hook_active 가 true면 즉시 통과 (무한루프 방지 — 이 분기가 없으면 실패한 구현이다)
   2. 층 A: 하네스 무결성 (gate_harness.py). PHASE와 무관하게 항상 검사한다.
@@ -10,7 +8,7 @@
   3. 상태 해석: ACTIVE_ISSUE -> STATUS.md. 없으면 루프 대상이 아니므로 통과.
   4. LOOP=halted 면 통과 (이미 사람 판단 대기 중)
   5. PHASE 게이팅 (아래 PHASE_GATES)
-  6. 층 B: PHASE 6 = 빌드 / PHASE 7 = 검증 계약 잔여
+  6. 층 B: PHASE 6 = 빌드 (.claude/harness.json의 build.cmd) / PHASE 7 = 검증 계약 잔여
   7. 실패면 카운터를 올리고, 상한/헛돌기면 탈출(exit 0), 아니면 exit 2
 
 종료 코드
@@ -21,14 +19,13 @@
 절대 지켜야 할 것
   - PHASE 8은 무조건 통과시킨다. 사람의 수동 UI 테스트 대기 상태이므로
     여기서 막으면 사용자가 빠져나갈 수 없다.
-  - "검증기 부재"를 "검증 실패"로 보고하지 않는다. build.bat이 없거나 .dproj를
-    못 찾은 것은 exit 0 + 경고다. exit 2로 처리하면 루프가 영원히 헛돈다.
+  - "검증기 부재"를 "검증 실패"로 보고하지 않는다. build.cmd가 비어 있거나
+    명령을 찾지 못한 것은 exit 0 + 경고다. exit 2로 처리하면 루프가 영원히 헛돈다.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import re
 import subprocess
 import sys
@@ -44,16 +41,19 @@ try:
 except Exception:  # pragma: no cover - loop_state가 없으면 루프를 돌릴 수 없다
     loop_state = None
 
+try:
+    import harness_config  # noqa: E402
+except Exception:  # pragma: no cover - 어댑터가 없으면 빌드 게이트는 부재다
+    harness_config = None
+
 # PHASE별 게이트. 여기 없는 PHASE는 통과시킨다.
 PHASE_GATES = {"6": "build", "7": "contract"}
 
 # 검증기 부재를 나타내는 표식 (실패가 아니다)
 MISSING = object()
 
-BUILD_ERROR = re.compile(r"([\w./\\-]+\.pas)\((\d+)\)\s*(?:Error:)?\s*(\w\d+)?(.*)", re.I)
 # goal-format.md의 수동 항목 표기: "(⚠️ 수동)" 또는 "(수동)"
 MANUAL_TAG = re.compile(r"\(\s*(?:⚠️\s*)?수동\s*\)")
-MISSING_MARKERS = ("rsvars.bat not found", "Project file not found", "not recognized")
 
 
 def emit(text: str) -> None:
@@ -72,12 +72,9 @@ def emit(text: str) -> None:
             pass
 
 
-def run(cmd: list[str], cwd: Path, timeout: int,
-        env: dict[str, str] | None = None) -> tuple[int, str]:
+def run(cmd: list[str], cwd: Path, timeout: int) -> tuple[int, str]:
     try:
-        proc = subprocess.run(
-            cmd, cwd=cwd, capture_output=True, timeout=timeout, env=env
-        )
+        proc = subprocess.run(cmd, cwd=cwd, capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return -1, "(timeout)"
     except OSError as exc:
@@ -106,67 +103,27 @@ def gate_harness() -> tuple[bool, str]:
 # ── 층 B ────────────────────────────────────────────────────────────
 
 
-def changed_sources() -> list[str]:
-    code, out = run(["git", "status", "--porcelain", "--untracked-files=all"], REPO, 30)
-    if code != 0:
-        return []
-    files = []
-    for line in out.splitlines():
-        if len(line) < 4:
-            continue
-        path = line[3:].strip().strip('"')
-        if " -> " in path:
-            path = path.split(" -> ", 1)[1]
-        if path.lower().endswith((".pas", ".dfm")):
-            files.append(path)
-    return files
-
-
-def find_dproj(rel_path: str) -> Path | None:
-    directory = (REPO / rel_path).parent
-    for _ in range(6):
-        found = sorted(directory.glob("*.dproj"))
-        if found:
-            return found[0]
-        if directory == REPO or directory.parent == directory:
-            break
-        directory = directory.parent
-    return None
-
-
 def gate_build(_status: dict):
-    """PHASE 6: 컴파일. (None=통과 / MISSING=검증기 부재 / (요약, 시그니처)=실패)"""
-    build_bat = REPO / "build.bat"
-    if not build_bat.exists():
-        return MISSING, "build.bat 없음"
+    """PHASE 6: 빌드. (None=통과 / MISSING=검증기 부재 / (요약, 시그니처)=실패)
 
-    changed = changed_sources()
-    if not changed:
+    무엇으로 빌드할지는 .claude/harness.json이 정한다. 이 훅은 언어를 모른다.
+    """
+    if harness_config is None:
+        return MISSING, "harness_config.py 없음"
+    config = harness_config.load()
+    cmd, _ = harness_config.command(config, "build")
+    if not cmd:
+        return MISSING, ".claude/harness.json에 build.cmd 없음"
+
+    if not harness_config.changed_sources(config):
         return None, ""  # 검사할 변경이 없다
 
-    dproj = find_dproj(changed[0])
-    if dproj is None:
-        return MISSING, ".dproj를 찾지 못함"
-
-    # DPROJ는 환경변수로 넘긴다. `set X && build.bat` 형태로 조립하면 셸 파싱에
-    # 의존하게 되고, build.bat이 DPROJ를 무조건 덮어쓰면 오버라이드가 먹지 않는다.
-    env = dict(os.environ)
-    env["DPROJ"] = str(dproj)
-    code, out = run(["cmd", "/c", str(build_bat), "debug"], REPO, 600, env=env)
-
-    # 9009 = 명령을 찾을 수 없음. 배치 실행 자체가 불가능한 상태도 "부재"다.
-    if code in (-1, -2, 9009) or any(m.lower() in out.lower() for m in MISSING_MARKERS):
-        return MISSING, "빌드 환경 없음 (rsvars/msbuild 또는 프로젝트 파일)"
+    code, out = harness_config.run("build", None, config)
+    if code is None:
+        return MISSING, out
     if code == 0:
         return None, ""
-
-    for line in out.splitlines():
-        match = BUILD_ERROR.search(line)
-        if match:
-            unit, lineno, code_id = match.group(1), match.group(2), match.group(3) or "E?"
-            return (line.strip()[:200], f"{code_id}:{Path(unit).name}:{lineno}")
-    tail = [ln.strip() for ln in out.splitlines() if ln.strip()][-1:]
-    return (tail[0][:200] if tail else f"build.bat exit {code}", f"build:exit{code}")
+    return harness_config.signature("build", out, code, config)
 
 
 def goal_file(status: dict, issue: str) -> Path | None:
@@ -220,8 +177,8 @@ def gate_contract(status: dict, issue: str):
 
 NEXT_STEPS = {
     "build": (
-        "  1. 해당 유닛의 uses 절과 선언을 먼저 확인한다\n"
-        "  2. .claude/refs/pitfalls.md 카테고리 B (Delphi 언어 함정)\n"
+        "  1. 에러가 가리키는 파일·줄과 그 선언/import를 먼저 확인한다\n"
+        "  2. .claude/refs/pitfalls.md 카테고리 B·E (언어·빌드 함정)\n"
         "  3. 증상만 보고 고치지 말 것 — .claude/skills/systematic-debugging/SKILL.md Phase 1부터\n"
     ),
     "contract": (

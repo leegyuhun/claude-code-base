@@ -41,15 +41,15 @@ def main() -> int:
         rep.case("초기 status", "continue", action)
 
         action, _ = call(script, root, "bump", "--scope", "build",
-                         "--signature", "E2003:A.pas:10", "--note", "uses 추가")
+                         "--signature", "build:E1:a.py:10", "--note", "import 추가")
         rep.case("bump 1/3", "continue", action)
 
         action, _ = call(script, root, "bump", "--scope", "build",
-                         "--signature", "E2010:B.pas:20", "--note", "타입 수정")
+                         "--signature", "build:E2:b.py:20", "--note", "타입 수정")
         rep.case("bump 2/3 (다른 실패)", "continue", action)
 
         action, out = call(script, root, "bump", "--scope", "build",
-                           "--signature", "E2100:C.pas:30", "--note", "재시도")
+                           "--signature", "build:E3:c.py:30", "--note", "재시도")
         rep.case("bump 3/3 -> 상한 halt", "halt", action, "이터레이션 상한" in out, out)
         rep.case("STATUS.md LOOP=halted", "halted", status_field(workspace, "LOOP"))
         rep.case("HALT_REASON 기록", True, bool(status_field(workspace, "HALT_REASON")))
@@ -61,9 +61,9 @@ def main() -> int:
     with temp_repo(scripts=(SCRIPT_NAME,)) as root:
         script = root / ".claude" / "scripts" / SCRIPT_NAME
         workspace = setup(root)
-        call(script, root, "bump", "--scope", "feedback", "--signature", "SAME:X.pas:99", "--note", "1차")
+        call(script, root, "bump", "--scope", "feedback", "--signature", "SAME:x.py:99", "--note", "1차")
         action, out = call(script, root, "bump", "--scope", "feedback",
-                           "--signature", "SAME:X.pas:99", "--note", "2차")
+                           "--signature", "SAME:x.py:99", "--note", "2차")
         rep.case("동일 시그니처 2회 -> 헛돌기 halt", "halt", action, "헛돌기" in out, out)
 
         action, _ = call(script, root, "reset", "--scope", "feedback")

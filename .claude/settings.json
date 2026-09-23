@@ -3,10 +3,6 @@
     "allow": [
       "Bash(git *)",
       "Bash(gh *)",
-      "Bash(glab *)",
-      "Bash(build.bat*)",
-      "Bash(run_tests.bat*)",
-      "Bash(msbuild*)",
       "Bash(cmd /c *)",
       "Bash(mkdir *)",
       "Bash(ls *)",
@@ -30,16 +26,6 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 .claude/hooks/pretooluse-cp949-guard.py",
-            "statusMessage": "CP949 파일 보호 검사 중..."
-          }
-        ]
-      },
-      {
         "matcher": "Bash",
         "hooks": [
           {
@@ -57,7 +43,7 @@
           {
             "type": "command",
             "command": "python3 .claude/hooks/posttooluse-fast-gate.py",
-            "statusMessage": "CP949 무결성 검사 중..."
+            "statusMessage": "빠른 검사(fast_check) 중..."
           }
         ]
       }

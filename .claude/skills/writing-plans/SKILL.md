@@ -3,12 +3,12 @@ name: writing-plans
 description: GOAL.md / plan.md / ROADMAP.md 같은 계획 문서를 작성할 때 사용. "컨텍스트 없는 엔지니어가 이 문서만으로 구현 가능한가?" 자기검증까지 포함.
 ---
 
-# Writing Plans (YSR)
+# Writing Plans
 
 ## 핵심 원칙
 
 계획 문서를 작성할 때 **컨텍스트 없는 엔지니어**를 독자로 가정한다.
-도구·도메인·코드베이스에 대해 아무것도 모르는 숙련된 Delphi 개발자가
+도구·도메인·코드베이스에 대해 아무것도 모르는 숙련된 개발자(해당 언어 숙련자)가
 이 문서 하나만 보고 대화 없이 구현할 수 있어야 한다.
 
 ---
@@ -17,9 +17,9 @@ description: GOAL.md / plan.md / ROADMAP.md 같은 계획 문서를 작성할 �
 
 구현 시작 전에 어떤 파일이 생성/수정되는지 명확히 나열한다.
 
-- 정확한 경로 (예: `FwChart\Forms\TreatForm.pas`, `FwBohum\BL\BohumBL.pas`)
+- 정확한 경로 (예: `src/order/checkout_service.py`, `src/billing/invoice_repository.ts`)
 - 새 파일 vs 기존 파일 수정 구분
-- 폼은 `.pas` + `.dfm` 쌍으로 나열
+- 짝을 이루는 파일(코드 + UI 정의/스키마/테스트)은 쌍으로 나열
 
 ---
 
@@ -45,12 +45,12 @@ description: GOAL.md / plan.md / ROADMAP.md 같은 계획 문서를 작성할 �
 
 ---
 
-## YSR 계획 문서별 필수 포함 항목
+## 계획 문서별 필수 포함 항목
 
 ### GOAL.md
 - 수정/신규 파일 목록 (정확한 경로)
-- 공용 유틸 참조 명시 (MUtil.pas, MCOMFunction.pas, TtsQuery 등)
-- CP949 주의사항 (Write 금지, Edit 한글 줄 우회)
+- 공용 유틸 참조 명시 (재사용할 모듈·함수를 경로와 함께)
+- 구현 주의사항 (CLAUDE.md "코딩 규칙"의 프로젝트별 금지 사항 중 해당하는 것)
 - 검증 계약 (측정 가능한 기준)
 - 수동 테스트 시나리오 (PHASE 8용)
 
@@ -81,7 +81,7 @@ PRD(또는 요구사항)의 각 요구사항을 훑으며 계획 문서에 대�
 
 ### 3. 경로 일관성 확인
 초반에 나열한 파일 경로가 나중 섹션에서도 같은 이름으로 쓰이는지 확인.
-`TreatForm.pas`가 한 곳에서 `TreatmentForm.pas`로 다르게 쓰이면 버그.
+`checkout_service.py`가 한 곳에서 `checkout_svc.py`로 다르게 쓰이면 버그.
 
 ### 4. 구현 가능성 테스트
 "지금 Implementer에게 이 문서를 넘기면, 추가 질문 없이 구현할 수 있는가?"

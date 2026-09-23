@@ -3,7 +3,7 @@
 ## 워크스페이스 해석
 
 1. `.claude/ACTIVE_ISSUE` 읽기 → ACTIVE_ISSUE 값 획득
-2. 없으면 `git branch --show-current` 출력에서 `#(\d+)` 추출 (폴백)
+2. 없으면 `git branch --show-current` 출력에서 `#([A-Za-z0-9-]+)` 추출 (폴백)
 3. 모두 실패 시 → "`⚠️ 활성 이슈를 확인할 수 없습니다.`" 출력 후 종료
 
 WORKSPACE_DIR = `workspace/{ACTIVE_ISSUE}`

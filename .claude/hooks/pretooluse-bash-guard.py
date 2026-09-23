@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Claude Code PreToolUse Hook — Bash 위험 명령 차단.
 
-pretooluse-bash-guard.sh의 python 포팅. 6규칙과 메시지는 원문 그대로 유지한다.
-바뀐 것은 실행 언어뿐이다.
+pretooluse-bash-guard.sh의 python 포팅. 규칙은 cd 체이닝 / 보호 브랜치 push /
+force push / reset --hard / 브랜치 명명 5가지다. 보호 브랜치 목록은 RULES에서 고친다.
 
 왜 포팅했나 (이 환경 실측, Windows + Git Bash)
   bash -c true              1797 ms   <- 셸 기동만으로 이만큼
@@ -26,18 +26,18 @@ import sys
 
 # 브랜치 명명 규칙 — 하나라도 매칭되면 허용
 BRANCH_ALLOWED = (
-    re.compile(r"_#[0-9]+$"),            # {base}_#{이슈번호}
+    re.compile(r"_#[A-Za-z0-9-]+$"),     # {base}_#{이슈ID}  (#123, #PROJ-45)
     re.compile(r"_sprint-[0-9]+$"),      # {base}_sprint-{NN}
     re.compile(r"_hotfix_[a-z0-9-]+$"),  # {base}_hotfix_{설명}
-    # 하네스/툴링 작업 — 위 셋은 전부 제품 코드 작업 전제(Redmine 이슈·스프린트·핫픽스)라
+    # 하네스/툴링 작업 — 위 셋은 전부 제품 코드 작업 전제(이슈·스프린트·핫픽스)라
     # .claude/ 자체를 고치는 작업에 붙일 이름이 없었다.
     re.compile(r"_harness_[a-z0-9-]+$"),  # {base}_harness_{설명}
 )
 
-# (정규식, 차단 사유) — 원본 .sh의 규칙 1~5와 동일한 순서·패턴
+# (정규식, 차단 사유) — 원본 .sh의 규칙 순서를 따른다 (master/Release 두 규칙은 보호 브랜치 하나로 합침)
 # 정규식은 원본 .sh보다 넓다. 감사에서 확인된 우회 경로를 막기 위해서다:
 #   git push origin HEAD:master      refspec 뒤의 master       (원본은 `\s+master` 만 봄)
-#   git push origin +main_delphi     + 접두 force              (원본은 -f/--force 만 봄)
+#   git push origin +feature_x       + 접두 force              (원본은 -f/--force 만 봄)
 #   bash -c 'cd /x && ls' / (cd /x; ls)   줄 시작이 아닌 cd 체이닝
 #   git -C /x reset --hard           git 과 reset 사이의 옵션
 # 인용 구간을 벗기지 않는다 — 인용 안이라도 bash -c 로 실제 실행될 수 있다.
@@ -48,14 +48,10 @@ RULES = (
         "  → 절대 경로로 직접 명령을 실행하세요.",
     ),
     (
-        re.compile(r"git push(?:\s+\S+)*?\s+(?:\S+:)?master(?:\s|$)", re.M),
-        "master 브랜치 직접 push는 금지됩니다.\n"
-        "  → 브랜치 전략: Release → master PR을 통해 병합하세요.",
-    ),
-    (
-        re.compile(r"git push(?:\s+\S+)*?\s+(?:\S+:)?Release(?:\s|$)", re.M),
-        "Release 브랜치 직접 push는 금지됩니다.\n"
-        "  → 브랜치 전략: 정기 배포 브랜치(2026_정기_N차) → Release PR을 통해 병합하세요.",
+        # 보호 브랜치 — 팀 규칙이 다르면 이 목록만 고친다
+        re.compile(r"git push(?:\s+\S+)*?\s+(?:\S+:)?(?:main|master|[Rr]elease)(?:\s|$)", re.M),
+        "보호 브랜치(main/master/release) 직접 push는 금지됩니다.\n"
+        "  → 작업 브랜치를 push한 뒤 PR/MR을 통해 병합하세요.",
     ),
     (
         re.compile(r"git push.+?(?:-f\b|--force\b|--force-with-lease\b|\s\+\S)"),
@@ -148,12 +144,12 @@ def check_branch_name(command: str) -> str | None:
     return (
         f"브랜치 명명 규칙 위반: '{branch}'\n"
         "  허용 패턴:\n"
-        "    ✓ {base}_#{이슈번호}              예: main_delphi_#1234, 2026_정기5차_#207500\n"
-        "    ✓ {base}_sprint-{NN}              예: main_delphi_sprint-01\n"
-        "    ✓ {base}_hotfix_{영문소문자-설명}  예: main_delphi_hotfix_login-fix\n"
-        "    ✓ {base}_harness_{영문소문자-설명} 예: main_delphi_harness_loop (하네스/툴링 작업)\n"
+        "    ✓ {base}_#{이슈ID}                예: main_#1234, develop_#PROJ-45\n"
+        "    ✓ {base}_sprint-{NN}              예: main_sprint-01\n"
+        "    ✓ {base}_hotfix_{영문소문자-설명}  예: main_hotfix_login-fix\n"
+        "    ✓ {base}_harness_{영문소문자-설명} 예: main_harness_loop (하네스/툴링 작업)\n"
         "  허용되지 않는 패턴:\n"
-        "    ✗ 위 3가지에 해당하지 않는 임의 브랜치명"
+        "    ✗ 위 4가지에 해당하지 않는 임의 브랜치명"
     )
 
 
