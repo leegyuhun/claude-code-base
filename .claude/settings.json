@@ -26,23 +26,23 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/pretooluse-bash-guard.py",
-            "statusMessage": "Bash 위험 명령 검사 중..."
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pretooluse-bash-guard.py",
+            "statusMessage": "셸 위험 명령 검사 중..."
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash|Write|Edit|MultiEdit",
+        "matcher": "Bash|PowerShell|Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/posttooluse-fast-gate.py",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/posttooluse-fast-gate.py",
             "statusMessage": "빠른 검사(fast_check) 중..."
           }
         ]
@@ -53,7 +53,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/stop-loop-gate.py",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-loop-gate.py",
+            "timeout": 660,
             "statusMessage": "루프 게이트 검사 중..."
           }
         ]
@@ -64,7 +65,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/precompact-preserve.py",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/precompact-preserve.py",
             "statusMessage": "작업 좌표 보존 중..."
           }
         ]

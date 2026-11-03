@@ -64,7 +64,7 @@ color: red
 GOAL.md(또는 PRD 검증 계약) 범위 밖의 기능은 구현하지 마.
 ```
 
-> **TRACK=defect일 때**: `{GOAL_FILE}`은 `docs/PRD_{ACTIVE_ISSUE}.md`이며
+> **TRACK=defect일 때**: `{GOAL_FILE}`은 PRD 파일(STATUS `PRD_FILE=` 값, 키가 없으면 `docs/PRD_{ACTIVE_ISSUE}.md`)이며
 > PRD의 `## 검증 계약` 섹션을 체크리스트로 사용한다. GOAL.md를 별도로 탐색하지 않는다.
 
 ---

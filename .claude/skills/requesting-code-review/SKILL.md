@@ -29,11 +29,14 @@ Reviewer는 현재 세션 히스토리가 아닌 **정확히 제작된 컨텍스
 
 ## 요청 방법
 
-**1. Git SHA 확보:**
+**1. 리뷰 기준 확보:**
 ```bash
-# 스프린트 브랜치 분기점
-BASE_SHA=$(git merge-base HEAD main)
-HEAD_SHA=$(git rev-parse HEAD)
+# PR/MR 대상 브랜치와의 분기점 — main/master 기준 금지 (이슈 브랜치는 main이 아닌 상위 브랜치에서 갈라진다)
+# MR_TARGET 결정 규칙: .claude/rules/active-issue.md "STATUS.md 브랜치 필드"
+BASE_SHA=$(git merge-base HEAD {MR_TARGET})
+# 파이프라인은 push 직전에만 커밋하므로 리뷰 시점 변경은 대부분 미커밋 → 작업 트리 기준
+HEAD_SHA=WORKTREE
+UNTRACKED=$(git ls-files --others --exclude-standard)
 ```
 
 **2. code-reviewer subagent 디스패치:**
@@ -43,8 +46,9 @@ HEAD_SHA=$(git rev-parse HEAD)
 **플레이스홀더:**
 - `{DESCRIPTION}` — 구현 내용 요약 (GOAL.md 제목 활용)
 - `{PLAN_OR_REQUIREMENTS}` — GOAL.md 전체 또는 검증 계약 섹션
-- `{BASE_SHA}` — 분기 시작 커밋
-- `{HEAD_SHA}` — 현재 커밋
+- `{BASE_SHA}` — PR/MR 대상 브랜치와의 분기점
+- `{HEAD_SHA}` — `WORKTREE`(미커밋 포함, 기본) 또는 커밋 SHA
+- `{UNTRACKED}` — 신규 파일 목록 (git diff에 안 나오므로 리뷰어가 직접 Read)
 
 **3. 결과 처리:**
 - Critical 즉시 수정 → 재검증

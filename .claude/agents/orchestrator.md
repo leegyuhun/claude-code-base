@@ -20,7 +20,7 @@ color: blue
 3. 모두 실패 시 → .claude/rules/active-issue.md의 3단계 메시지 출력 후 종료
 4. WORKSPACE_DIR = workspace/{ACTIVE_ISSUE}
 5. STATUS_FILE = {WORKSPACE_DIR}/STATUS.md
-6. PRD_FILE = docs/PRD_{ACTIVE_ISSUE}.md
+6. PRD_FILE = STATUS `PRD_FILE=` 값, 키가 없으면 `docs/PRD_{ACTIVE_ISSUE}.md`
 7. workspace/{ACTIVE_ISSUE}/ 디렉토리 없으면 생성
 ```
 
@@ -136,18 +136,19 @@ PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
 3-2. 확인 방식은 정책을 따른다:
      python .claude/scripts/policy.py get plan_review
 
-     [notify] (기본) — [PAUSE] 없이 PHASE 4로 계속 진행한다.
-              요약 끝에 아래 한 줄을 덧붙인다:
-              "ℹ️ plan.md 검토 없이 진행합니다. 이의가 있으면 /rollback 3 으로 되돌리세요."
-
-     [pause]  — 기존대로 멈춘다:
+     [pause]  (기본) — 멈추고 승인을 기다린다:
               "plan.md를 확인해주세요.
                수정 있으면 직접 편집하거나 알려주세요.
                완료되면 '계속' 입력해주세요."
 
-     > notify가 기본인 이유: plan.md는 코드가 아니라 문서이고, 잘못돼도
-     > /rollback 으로 되돌릴 수 있다. 되돌릴 수 있는 결정에 매번 사람을 세우면
-     > 정작 되돌릴 수 없는 지점(PHASE 8 수동 테스트, MR 머지)의 주의력이 닳는다.
+     [notify] — [PAUSE] 없이 PHASE 4로 계속 진행한다.
+              요약 끝에 아래 한 줄을 덧붙인다:
+              "ℹ️ plan.md 검토 없이 진행합니다. 이의가 있으면 /rollback [1] 로 되돌리세요."
+              (/rollback 옵션 [1] = PHASE 2 Plan 다시 생성)
+
+     > pause가 기본인 이유: "선 계획 후 실행" — 계획은 승인받고 구현한다. plan.md는 이후
+     > ROADMAP·GOAL·구현 전부의 근거라서, 여기서 어긋나면 되돌리는 비용이 가장 크다.
+     > notify는 되돌리기(/rollback)에 익숙한 프로젝트가 명시적으로 고를 때만 쓴다.
 
 3-3. 완료 → {STATUS_FILE} PHASE=4 업데이트
 ```
@@ -200,10 +201,19 @@ PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
 
 ---
 
-### PHASE 4.5 — 프로젝트 초기화 & CLAUDE.md 생성 [PAUSE]
+### PHASE 4.5 — 프로젝트 초기화 & CLAUDE.md 생성 [조건부 PAUSE]
 
 ```
-4.5-1. 프로젝트 초기화 질의
+4.5-0. 자동 판정 (질의 전 먼저 수행 — 해당 항목은 질의 생략)
+      a. 프로젝트 파일 존재 확인: 프로젝트 루트에서 Glob
+         package.json, pyproject.toml, go.mod, Cargo.toml, *.sln, *.csproj, pom.xml, build.gradle, Makefile
+         → 1개 이상 발견 → 4.5-1·4.5-2 생략 (초기화 완료로 간주)
+      b. 프로젝트 루트에 CLAUDE.md 존재 확인
+         → 존재 → 4.5-3·4.5-4·4.5-5 생략, 4.5-5.1로 직행
+      a·b 모두 해당하면 아래 한 줄만 출력하고 4.5-5.1로 진행:
+        "ℹ️ 프로젝트 파일·CLAUDE.md 확인됨 — 초기화 질의 생략"
+
+4.5-1. 프로젝트 초기화 질의 (4.5-0 a 미해당 시에만)
 
       [PAUSE]
       "📋 프로젝트 초기화를 시작합니다.
@@ -222,7 +232,7 @@ PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
        - '아니오' + 구체적 명령 → 해당 안내 제공 후 4.5-3으로 진행
        - '아니오' + '알아서 해줘' → {PRD_FILE} 기반으로 최소 프로젝트 구조 스캐폴딩
 
-4.5-3. CLAUDE.md 생성 질의
+4.5-3. CLAUDE.md 생성 질의 (4.5-0 b 미해당 시에만)
 
       [PAUSE]
       "프로젝트 기본 구조가 준비되었습니다.
@@ -290,7 +300,7 @@ PRD의 `## 검증 계약` 섹션이 GOAL.md를 대체합니다.
 4.5-6. 완료 후 출력:
        "✅ Orchestrator 완료
         - {ROADMAP_FILE}: N개 스프린트 계획됨
-        - CLAUDE.md: 생성 완료
+        - CLAUDE.md: 생성 완료 / 기존 파일 사용
         - .claude/harness.json: build/test/fast_check 설정 (미설정 cmd: {목록})
 
         다음 단계: .claude/agents/planner.md 실행

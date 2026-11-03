@@ -113,7 +113,10 @@ def read_status(ws: Path) -> dict[str, str]:
         return {}
     found = {}
     for key in STATUS_KEYS:
-        match = re.search(rf"^{key}:\s*(.*)$", text, re.M)
+        # /prd·orchestrator는 `KEY=value`로 쓰고, 초기 하네스 문서는 `KEY: value`였다.
+        # 한쪽만 받으면 실제 STATUS.md를 못 읽어 루프 게이트 전체가 조용히 꺼진다
+        # (Stop 훅 PHASE 게이팅·PreCompact 미발동 — ysr 이식 시 실측).
+        match = re.search(rf"^{key}[ \t]*[:=][ \t]*(.*)$", text, re.M)
         if match:
             found[key] = match.group(1).strip()
     return found
@@ -129,17 +132,24 @@ def write_status_fields(ws: Path, fields: dict[str, str]) -> bool:
     except (OSError, UnicodeDecodeError):
         return False
 
+    # 파일이 이미 쓰는 구분자를 따른다 — 형식을 섞으면 다음 읽기에서 사람이 헷갈린다.
+    phase_sep = re.search(r"^PHASE[ \t]*([:=])", text, re.M)
+    sep = phase_sep.group(1) if phase_sep else "="
+
     for key, value in fields.items():
-        pattern = re.compile(rf"^({key}:\s*).*$", re.M)
+        pattern = re.compile(rf"^({key}[ \t]*[:=][ \t]*).*$", re.M)
         if pattern.search(text):
             text = pattern.sub(lambda m: f"{m.group(1)}{value}", text, count=1)
+            continue
+        if sep == ":":
+            insert = f"\n{key}:{' ' * max(1, 18 - len(key) - 1)}{value}"
         else:
-            phase = re.search(r"^PHASE:.*$", text, re.M)
-            if phase:
-                insert = f"\n{key}:{' ' * max(1, 18 - len(key) - 1)}{value}"
-                text = text[: phase.end()] + insert + text[phase.end():]
-            else:
-                text += f"\n{key}: {value}\n"
+            insert = f"\n{key}={value}"
+        phase = re.search(r"^PHASE[ \t]*[:=].*$", text, re.M)
+        if phase:
+            text = text[: phase.end()] + insert + text[phase.end():]
+        else:
+            text = text.rstrip("\n") + insert + "\n"
     try:
         path.write_text(text, encoding="utf-8")
     except OSError:

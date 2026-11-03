@@ -131,18 +131,22 @@ def temp_repo(scripts: tuple[str, ...] = (), hooks: tuple[str, ...] = (),
 
 
 def write_status(workspace: Path, phase: str = "7", sprint: str = "sprint-01",
-                 track: str = "sprint", loop: str = "running") -> None:
+                 track: str = "sprint", loop: str = "running", sep: str = "=") -> None:
+    """기본은 /prd·orchestrator가 실제로 쓰는 `KEY=value` 형식이다.
+
+    예전 fixture는 `KEY: value`만 써서, 파서가 `=` 형식을 못 읽는 결함을 가렸다.
+    sep=":"는 구형 STATUS 호환 회귀용이다.
+    """
     workspace.mkdir(parents=True, exist_ok=True)
-    (workspace / "STATUS.md").write_text(
-        "# STATUS.md\n\n## 현재 상태\n\n```\n"
-        f"PHASE:            {phase}\n"
-        f"LOOP:             {loop}\n"
-        "HALT_REASON:      -\n"
-        f"TRACK:            {track}\n"
-        f"CURRENT_SPRINT:   {sprint}\n"
-        "```\n",
-        encoding="utf-8",
-    )
+    fields = [("PHASE", phase), ("TRACK", track), ("CURRENT_SPRINT", sprint)]
+    if loop:
+        fields += [("LOOP", loop), ("HALT_REASON", "-")]
+    if sep == ":":
+        body = "".join(f"{k}:{' ' * (18 - len(k) - 1)}{v}\n" for k, v in fields)
+        text = f"# STATUS.md\n\n## 현재 상태\n\n```\n{body}```\n"
+    else:
+        text = "".join(f"{k}={v}\n" for k, v in fields)
+    (workspace / "STATUS.md").write_text(text, encoding="utf-8")
 
 
 def status_field(workspace: Path, key: str) -> str:
@@ -150,6 +154,7 @@ def status_field(workspace: Path, key: str) -> str:
     if not path.exists():
         return ""
     for line in path.read_text(encoding="utf-8-sig").splitlines():
-        if line.startswith(f"{key}:"):
-            return line.split(":", 1)[1].strip()
+        for sep in ("=", ":"):
+            if line.startswith(key) and line[len(key):].lstrip().startswith(sep):
+                return line[len(key):].lstrip()[1:].strip()
     return ""

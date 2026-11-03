@@ -38,7 +38,7 @@ Validator(PHASE 9)로부터 다음을 받는다:
 **TRACK=defect:**
 - `mode`: `defect`
 - `WORKSPACE_DIR`: 이슈별 산출물 루트 (예: `workspace/#208801`)
-- `PRD.md`: `docs/PRD_{ACTIVE_ISSUE}.md` — 수정 목적 및 검증 계약 파악용 (GOAL.md 대체)
+- `PRD.md`: 프롬프트로 전달받은 경로 (STATUS `PRD_FILE=` 값, 키가 없으면 `docs/PRD_{ACTIVE_ISSUE}.md`) — 수정 목적 및 검증 계약 파악용 (GOAL.md 대체)
 - `DONE.md`: `{WORKSPACE_DIR}/DONE.md` — 커밋 메시지 본문 작성용
 
 ## 출력 프로토콜

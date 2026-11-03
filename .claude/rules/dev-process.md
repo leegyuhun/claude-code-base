@@ -101,18 +101,24 @@ MVP 완료 후 신규 요구사항 발생 시:
 
 | 용도 | 패턴 | 예시 |
 |------|------|------|
-| 이슈 베이스 | `{현재브랜치}_#{이슈번호}` | `main_#1234` |
-| 스프린트 (이슈 있음) | `{현재브랜치}_#{이슈번호}_{CURRENT_SPRINT}` | `main_#1234_sprint-01` |
+| 이슈 베이스 (`ISSUE_BRANCH`) | `{PARENT_BRANCH}_#{이슈번호}` | `main_#1234` |
+| 스프린트 (`SPRINT_BRANCH`, 이슈 있음) | `{ISSUE_BRANCH}_{CURRENT_SPRINT}` | `main_#1234_sprint-01` |
 | 스프린트 (이슈 없음) | `{현재브랜치}_{CURRENT_SPRINT}` | `main_sprint-01` |
 | 핫픽스 | `{현재브랜치}_hotfix_{영문소문자-설명}` | `main_hotfix_login-fix` |
 | 하네스/툴링 | `{현재브랜치}_harness_{영문소문자-설명}` | `main_harness_loop` |
+| 릴리스/차수 (`/branch`) | `{연도}_{차수·릴리스명}` | `2026_release-1` |
 | 메인 | `main` | — |
 
 > 위 패턴은 `.claude/hooks/pretooluse-bash-guard.py`가 강제한다. 표를 고치면 훅도 함께 고칠 것.
 >
+> `PARENT_BRANCH`·`ISSUE_BRANCH`·`SPRINT_BRANCH`는 `/prd`·`/sprint-dev`가 STATUS.md에 기록하는 정본이다.
+> validator는 이 값으로 PR/MR 대상과 diff 기준을 정한다 — 브랜치명에서 다시 추론하지 않는다
+> (`active-issue.md` "STATUS.md 브랜치 필드").
+>
 > **임시 ID는 브랜치명에 쓰지 않는다.** 이슈번호 없이 `/prd`를 실행하면 임시 ID
 > (`exp_login` 등)가 `.claude/ACTIVE_ISSUE`와 `workspace/{임시ID}/` 에만 쓰이고,
-> 브랜치는 `{현재브랜치}_sprint-{NN}` 으로 만들어진다 (prd.md Phase 4-1).
+> 이슈 브랜치 없이 현재 브랜치가 `ISSUE_BRANCH`가 된다 (prd.md Phase 4-2 규칙 5).
+> Sprint 트랙이면 스프린트 브랜치는 `{현재브랜치}_sprint-{NN}` 으로 만들어진다.
 > 워크스페이스 격리와 브랜치 명명은 별개 축이다.
 
 ---
@@ -284,9 +290,9 @@ Sprint: {sprint-name}
 │       └── ...
 │
 ├── CLAUDE.md                           ← 기술 스택, 코딩 규칙 (Orchestrator PHASE 4.5 / claude /init)
-├── CHANGELOG.md                        ← 전체 변경 이력 (Validator가 스프린트 종료 시 자동 업데이트)
 ├── .gitignore
-├── setup_claude.bat                    ← 최초 설치 (git hook, settings.local)
+├── setup_claude.bat                    ← 최초 설치 (git hook, settings.local, .git/info/exclude)
+├── clone_claude_template.bat / .ps1    ← 템플릿 브랜치의 최신 .claude/ 를 현재 작업 트리로 동기화
 │
 ├── .githooks/
 │   └── commit-msg                      ← 커밋 메시지 형식 검증 hook
@@ -306,7 +312,7 @@ Sprint: {sprint-name}
     │   ├── gate_harness.py             ← 하네스 무결성 검사
     │   ├── loop_state.py               ← 루프 카운터·상한·헛돌기 감지
     │   └── policy.py                   ← 작업 정책 (loop-policy.json)
-    ├── tests/                          ← 하네스 회귀 테스트 (run_all.py)
+    ├── tests/                          ← 하네스 회귀 테스트 (run_all.py — 훅·scripts 수정 후 수동 실행)
     ├── agents/
     │   ├── orchestrator.md             ← PHASE 1~4.5
     │   ├── planner.md                  ← PHASE 5
@@ -387,8 +393,11 @@ Sprint: {sprint-name}
 
 ### 9.4 종료 단계 (PHASE 9~10)
 
-1. **DONE.md 생성 + push + PR/MR 초안 안내** (PHASE 9)
-2. **다음 스프린트 전환** (PHASE 10)
+1. **DONE.md 생성 + 로컬 커밋 → [PAUSE] push 확인 → PR/MR 초안 안내** (PHASE 9)
+   - DONE.md·OUT_OF_SCOPE.md는 리뷰가 모두 끝난 뒤 1회만 쓴다 (덧붙이기 금지)
+   - `git add .` 금지 — 이번 작업 파일만 선별 스테이징
+   - 로컬 커밋은 묻지 않는다. 원격 작업(push)만 확인한다
+2. **다음 스프린트 전환** (PHASE 10) — 모든 스프린트 완료 시 최종 PR/MR(ISSUE_BRANCH → PARENT_BRANCH) 안내
    - CURRENT_SPRINT 업데이트 → PHASE 5로 복귀
 
 ---

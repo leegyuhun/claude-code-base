@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Claude Code PreToolUse Hook — Bash 위험 명령 차단.
+"""Claude Code PreToolUse Hook — 셸 위험 명령 차단 (Bash · PowerShell).
 
 pretooluse-bash-guard.sh의 python 포팅. 규칙은 cd 체이닝 / 보호 브랜치 push /
 force push / reset --hard / 브랜치 명명 5가지다. 보호 브랜치 목록은 RULES에서 고친다.
@@ -10,8 +10,15 @@ force push / reset --hard / 브랜치 명명 5가지다. 보호 브랜치 목록
   python3 -c 인라인          754 ms
   이 훅은 모든 Bash 도구 호출마다 실행된다. 8초가 매번 붙는다.
 
-입력: stdin JSON {"tool_input": {"command": "..."}}
+입력: stdin JSON {"tool_name": "Bash"|"PowerShell", "tool_input": {"command": "..."}}
 종료: 0 = 허용 / 2 = 차단
+
+PowerShell 도구
+  같은 훅이 PowerShell 도구도 받는다 (settings.json matcher `Bash|PowerShell`).
+  git 규칙(보호 브랜치 push, force push, reset --hard)과 브랜치 명명은 그대로 적용하고,
+  cd 체이닝 규칙은 적용하지 않는다 — PowerShell의 `;`는 문장 구분자라 오탐만 난다.
+  (Bash 도구에서 cd 체이닝을 막는 이유: cwd가 바뀌면 상대 경로로 적힌 훅 경로 해석이
+  깨져 모든 Bash가 막힐 수 있다 — 2026-09-28 실측)
 
 실패 정책
   입력을 해석하지 못하면 통과시킨다(exit 0) — 원본 .sh와 동일하다.
@@ -32,6 +39,9 @@ BRANCH_ALLOWED = (
     # 하네스/툴링 작업 — 위 셋은 전부 제품 코드 작업 전제(이슈·스프린트·핫픽스)라
     # .claude/ 자체를 고치는 작업에 붙일 이름이 없었다.
     re.compile(r"_harness_[a-z0-9-]+$"),  # {base}_harness_{설명}
+    # 릴리스/차수 브랜치 — /branch 커맨드가 만드는 이름 (예: 2026_release-1, 2026_다빈도).
+    # 이 패턴이 없으면 /branch 예시가 전부 차단된다. 팀 규칙이 다르면 여기를 고친다.
+    re.compile(r"^20[0-9]{2}_\S+$"),     # {연도}_{차수·릴리스명}
 )
 
 # (정규식, 차단 사유) — 원본 .sh의 규칙 순서를 따른다 (master/Release 두 규칙은 보호 브랜치 하나로 합침)
@@ -39,11 +49,13 @@ BRANCH_ALLOWED = (
 #   git push origin HEAD:master      refspec 뒤의 master       (원본은 `\s+master` 만 봄)
 #   git push origin +feature_x       + 접두 force              (원본은 -f/--force 만 봄)
 #   bash -c 'cd /x && ls' / (cd /x; ls)   줄 시작이 아닌 cd 체이닝
+#   cd /x 2>/dev/null; ls            경로 뒤 리다이렉트·인자 뒤의 체이닝
 #   git -C /x reset --hard           git 과 reset 사이의 옵션
 # 인용 구간을 벗기지 않는다 — 인용 안이라도 bash -c 로 실제 실행될 수 있다.
 RULES = (
     (
-        re.compile(r"\bcd\s+[^\s&;|()]+\s*(?:&&|;)"),
+        # 경로 뒤 리다이렉트·인자(`cd /x 2>/dev/null; ...`)로 빠져나가지 못하게 같은 줄의 나머지 토큰을 허용한다.
+        re.compile(r"\bcd\s+[^\s&;|()]+(?:[ \t]+[^&;|()\n]*?)?\s*(?:&&|;)"),
         "디렉토리 체이닝(cd /path && ... / cd /path; ...)은 금지됩니다.\n"
         "  → 절대 경로로 직접 명령을 실행하세요.",
     ),
@@ -65,7 +77,10 @@ RULES = (
     ),
 )
 
-BRANCH_CMD = re.compile(r"git (?:checkout -b|switch -c)\s+(\S+)")
+CD_RULE_COUNT = 1  # RULES 앞쪽의 Bash 전용 규칙 수 (cd 체이닝)
+
+# `git -C /path checkout -b X` 처럼 git 과 하위 명령 사이의 전역 옵션도 허용한다 (2026-09-28 우회 실측)
+BRANCH_CMD = re.compile(r"\bgit(?:\s+-C\s+\S+|\s+-c\s+\S+)*\s+(?:checkout\s+-b|switch\s+-c)\s+(\S+)")
 
 
 def emit(text: str) -> None:
@@ -148,14 +163,16 @@ def check_branch_name(command: str) -> str | None:
         "    ✓ {base}_sprint-{NN}              예: main_sprint-01\n"
         "    ✓ {base}_hotfix_{영문소문자-설명}  예: main_hotfix_login-fix\n"
         "    ✓ {base}_harness_{영문소문자-설명} 예: main_harness_loop (하네스/툴링 작업)\n"
+        "    ✓ {연도}_{차수·릴리스명}           예: 2026_release-1 (/branch)\n"
         "  허용되지 않는 패턴:\n"
-        "    ✗ 위 4가지에 해당하지 않는 임의 브랜치명"
+        "    ✗ 위 패턴에 해당하지 않는 임의 브랜치명"
     )
 
 
 def main() -> int:
     try:
-        data = json.load(sys.stdin)
+        # stdin은 UTF-8이다. json.load(sys.stdin)은 로캘(cp949 등)로 디코드해서 한글 명령이 깨진다
+        data = json.loads(sys.stdin.buffer.read().decode("utf-8-sig"))
     except Exception:
         return 0  # 입력 불량 = 훅 문제. 명령을 막지 않는다.
 
@@ -168,7 +185,9 @@ def main() -> int:
     if not isinstance(command, str) or not command:
         return 0
 
-    for pattern, reason in RULES:
+    is_powershell = data.get("tool_name") == "PowerShell"
+    rules = RULES[CD_RULE_COUNT:] if is_powershell else RULES
+    for pattern, reason in rules:
         if pattern.search(command):
             return block(reason, command)
 

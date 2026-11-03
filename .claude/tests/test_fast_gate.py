@@ -92,6 +92,16 @@ def main() -> int:
         rc, out, err = run_py(hook, TOUCH, cwd=root)
         rep.case("비소스만 변경 -> 통과", 0, rc, err.strip() == "", err)
 
+    # 한글 경로 — git quotepath 기본값이면 "\354\247\204..." 로 escape되어 린터에 가짜 경로가 전달된다
+    with temp_repo(scripts=SCRIPTS, hooks=(HOOK_NAME,), git=True, harness=harness(LINT)) as root:
+        hook = root / ".claude" / "hooks" / HOOK_NAME
+        seed(root)
+        kdir = root / "src" / "진료"
+        kdir.mkdir()
+        (kdir / "모듈.py").write_text("BAD\n", encoding="utf-8")
+        rc, out, err = run_py(hook, TOUCH, cwd=root)
+        rep.case("한글 경로 소스 -> 실제 경로로 린트", 2, rc, "모듈.py: lint error" in err, err)
+
     # 도구가 없는 것은 실패가 아니다 (막으면 편집마다 헛돈다)
     missing = harness("definitely-not-a-linter-xyz {files}")
     with temp_repo(scripts=SCRIPTS, hooks=(HOOK_NAME,), git=True, harness=missing) as root:

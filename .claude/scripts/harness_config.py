@@ -100,8 +100,10 @@ def is_source(config: dict, rel_path: str) -> bool:
 def changed_files() -> list[str]:
     """작업 트리에서 바뀐 파일 (추적·미추적, 삭제 제외)."""
     try:
+        # quotepath=off: 기본값이면 한글 경로가 "\354\247\204..." 로 escape되어
+        # source_globs 판정과 {files} 전달이 모두 빗나간다 (Delphi 레포 실측 — 트리의 약 13%가 한글 경로)
         proc = subprocess.run(
-            ["git", "status", "--porcelain", "--untracked-files=all"],
+            ["git", "-c", "core.quotepath=off", "status", "--porcelain", "--untracked-files=all"],
             cwd=REPO, capture_output=True, timeout=30,
         )
     except (subprocess.TimeoutExpired, OSError):

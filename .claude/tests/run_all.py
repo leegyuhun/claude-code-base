@@ -31,6 +31,7 @@ MODULES = (
     "test_loop_state.py",
     "test_stop_gate.py",
     "test_policy.py",
+    "test_gate_harness.py",
 )
 
 

@@ -16,8 +16,8 @@
 사용법
   python .claude/scripts/policy.py show          # key=value 목록 (에이전트가 파싱)
   python .claude/scripts/policy.py get plan_review
-  python .claude/scripts/policy.py init branch=new plan_review=notify ...
-  python .claude/scripts/policy.py set plan_review=pause
+  python .claude/scripts/policy.py init branch=new plan_review=pause ...
+  python .claude/scripts/policy.py set plan_review=notify
 """
 
 from __future__ import annotations
@@ -42,20 +42,23 @@ SCHEMA: dict[str, tuple[tuple[str, ...], str, str]] = {
         "boundary",
         "TRACK(Sprint/Defect) 판정을 확인받을 시점. boundary=기준 경계일 때만",
     ),
+    # 기본 pause — 운영 원칙 "선 계획 후 실행(계획 승인 후 진행)". notify는 명시 선택 시만.
     "plan_review": (
         ("pause", "notify"),
-        "notify",
-        "plan.md 검토 방식. notify=요약만 출력하고 진행(이의 시 /rollback)",
+        "pause",
+        "plan.md 검토 방식. pause=멈추고 승인 대기, notify=요약만 출력하고 진행(이의 시 /rollback [1])",
     ),
     "auto_run": (
         ("standard", "strict", "relaxed"),
         "standard",
         "구현 자동 진행 기준. standard=sprint-dev의 AUTO_RUN 6조건",
     ),
+    # auto(확인 없이 append)는 두지 않는다 — pitfalls.md는 공유 자산이라 사람 확인 후에만 기록한다.
+    # 예전 정책 파일에 auto가 남아 있으면 load()가 허용값 밖으로 보고 기본값 ask로 되돌린다.
     "pitfall_capture": (
-        ("ask", "auto", "skip"),
+        ("ask", "skip"),
         "ask",
-        "함정 회고 기록 방식. auto=후보를 자동 append",
+        "함정 회고 기록 방식. ask=후보 제안 후 확인, skip=기록하지 않음",
     ),
 }
 

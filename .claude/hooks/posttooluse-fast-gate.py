@@ -69,7 +69,8 @@ def relative(file_path: str) -> str:
 
 def main() -> int:
     try:
-        data = json.load(sys.stdin)
+        # stdin은 UTF-8이다. json.load(sys.stdin)은 로캘(cp949 등)로 디코드해서 한글 경로가 깨진다
+        data = json.loads(sys.stdin.buffer.read().decode("utf-8-sig"))
     except Exception:
         return 0
     if not isinstance(data, dict):

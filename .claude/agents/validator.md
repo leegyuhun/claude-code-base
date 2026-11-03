@@ -36,13 +36,42 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
 - `FEEDBACK_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/FEEDBACK.md`
 - `OUT_OF_SCOPE_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md`
 - `TECH_DEBT_FILE` = `{WORKSPACE_DIR}/sprints/TECH_DEBT.md`
+- `COMMIT_MSG_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/COMMIT_MESSAGE.md`
 
 **TRACK=defect:**
-- `GOAL_FILE` = `docs/PRD_{ACTIVE_ISSUE}.md` (PRD의 `## 검증 계약` 섹션을 체크리스트로 사용)
+- `GOAL_FILE` = STATUS의 `PRD_FILE=` 값 (키가 없으면 `docs/PRD_{ACTIVE_ISSUE}.md`) — PRD의 `## 검증 계약` 섹션을 체크리스트로 사용
 - `DONE_FILE` = `{WORKSPACE_DIR}/DONE.md`
 - `FEEDBACK_FILE` = `{WORKSPACE_DIR}/FEEDBACK.md`
 - `OUT_OF_SCOPE_FILE` = `{WORKSPACE_DIR}/OUT_OF_SCOPE.md`
 - `TECH_DEBT_FILE` = `{WORKSPACE_DIR}/TECH_DEBT.md`
+- `COMMIT_MSG_FILE` = `{WORKSPACE_DIR}/COMMIT_MESSAGE.md`
+
+---
+
+## 브랜치·diff 기준 (TRACK 변수 정의 직후 — 7·9·10단계 공통)
+
+브랜치명은 현재 브랜치에서 sed로 재추론하지 않는다. STATUS의 `PARENT_BRANCH`·`ISSUE_BRANCH`·`SPRINT_BRANCH`를 읽는다
+(정의·PR/MR 대상 규칙·호환 폴백: `.claude/rules/active-issue.md` "STATUS.md 브랜치 필드").
+
+```
+MR_SOURCE = 현재 브랜치 (git branch --show-current)
+MR_TARGET = TRACK=sprint → ISSUE_BRANCH
+            TRACK=defect → PARENT_BRANCH
+
+DIFF_BASE = $(git merge-base HEAD {MR_TARGET})
+  (MR_TARGET이 빈 값이면 7단계에서는 DIFF_BASE만 [PAUSE]로 질의 — 9-5 PR/MR 대상 질의와 같은 답을 재사용)
+```
+
+**검증 대상 = 커밋된 변경 + 아직 커밋하지 않은 변경 + 새 파일.**
+커밋은 9-4(push 직전)에만 하므로, 7단계 시점의 변경은 대부분 미커밋 상태다.
+`git diff A...B`(커밋끼리 비교)를 쓰면 빈 결과가 나와 검사가 무조건 통과한다 — 쓰지 않는다.
+
+```
+변경 파일 목록:  git diff --name-only $DIFF_BASE ; git ls-files --others --exclude-standard
+신규 파일 목록:  git diff --name-only --diff-filter=A $DIFF_BASE ; git ls-files --others --exclude-standard
+변경 내용:       git diff $DIFF_BASE            (작업 트리 기준 — 미커밋 포함)
+                 + 신규(untracked) 파일은 diff에 안 나오므로 직접 Read
+```
 
 ---
 
@@ -72,8 +101,7 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
 7-1.5. 사전 자동 검사 (빌드 전)
 
        [1] 신규 파일 프로젝트 등록 확인 (해당 스택에만)
-           BASE=$(git branch --show-current | sed 's/_sprint-[0-9]*//')
-           git diff $BASE...HEAD --name-only --diff-filter=A
+           "브랜치·diff 기준"의 **신규 파일 목록**에서 소스 파일 추출
            → 신규 추가된 소스 파일 목록 추출
            → 스택이 명시적 등록을 요구하면(프로젝트 파일·모듈 목록·라우트 테이블·
              패키지 export 등, CLAUDE.md "프로젝트 구조" 기준) 등록 여부 확인
@@ -84,8 +112,8 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
            → 신규 파일 없거나 등록 불필요/모두 등록됨 → "✅ 신규 파일 등록: 확인 완료"
 
        [2] 날짜 하드코딩 검사
-           BASE=$(git branch --show-current | sed 's/_sprint-[0-9]*//')
-           git diff $BASE...HEAD | grep -nE "^\+.*['\"]20[0-9]{2}-[0-9]{2}-[0-9]{2}"
+           git diff $DIFF_BASE | grep -nE "^\+.*['\"]20[0-9]{2}-[0-9]{2}-[0-9]{2}"
+           + 신규(untracked) 파일은 같은 패턴으로 파일 내용 직접 grep
            → 발견 시 (테스트 픽스처는 제외하고 판단):
              ⚠️ 날짜 하드코딩 발견 — 상수 또는 파라미터 사용 권장
                {파일명}:{줄} : {코드}
@@ -117,6 +145,10 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
        ACTION=halt     → 재시도를 중단하고 [PAUSE]. 사유는 출력에 있다
                          (상한 도달 / 동일 실패 반복 / 벽시계 초과)
                          "빌드 실패, 확인 필요합니다" + 실패 요약을 사용자에게 보고
+                         재개: 사용자가 방향(수정 방침)을 주고 재개를 승인한 경우에만
+                           python .claude/scripts/loop_state.py clear-halt
+                         실행 후 재시도한다. halt 상태로 bump하면 곧바로 다시 halt된다.
+                         승인 없이 clear-halt 금지 (halt는 사람 판단을 부르는 장치다).
      → 빌드 성공 시 카운터를 되돌린다:
        python .claude/scripts/loop_state.py reset --scope build
 
@@ -136,9 +168,10 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
 7-4. 코드 리뷰 Subagent 디스패치
      > 참조: `.claude/skills/requesting-code-review/SKILL.md`
 
-     1. Git SHA 확보:
-        BASE_SHA=$(git merge-base HEAD master)   — 스프린트 브랜치 분기점
-        HEAD_SHA=$(git rev-parse HEAD)
+     1. 리뷰 기준 확보 ("브랜치·diff 기준" 참조 — main/master 기준 금지):
+        BASE_SHA=$DIFF_BASE                       — PR/MR 대상 브랜치와의 분기점
+        HEAD_SHA=WORKTREE                         — 미커밋 포함 작업 트리 기준 (커밋은 9-4에서만 함)
+        UNTRACKED=$(git ls-files --others --exclude-standard)   — 신규 파일 목록
 
      2. code-reviewer subagent 디스패치:
         `.claude/skills/requesting-code-review/code-reviewer.md` 템플릿 사용
@@ -147,7 +180,8 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
         {DESCRIPTION}: {GOAL.md 제목 + 구현 항목 목록 요약}
         {PLAN_OR_REQUIREMENTS}: {GOAL.md 검증 계약 섹션 전문}
         {BASE_SHA}: 위에서 확보한 값
-        {HEAD_SHA}: 위에서 확보한 값
+        {HEAD_SHA}: WORKTREE
+        {UNTRACKED}: 위에서 확보한 신규 파일 목록
 
      3. 결과 수집 및 요약 출력:
         ┌──────────────────────────────────────┐
@@ -192,6 +226,8 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
 
        ACTION=halt 이면 되돌리지 않는다. 같은 지점에서 왕복만 반복하는 상태이므로
        [PAUSE] 후 사용자에게 보고하고 판단을 받는다 (FEEDBACK.md는 남겨둔다).
+       사용자가 재개를 승인하면 `python .claude/scripts/loop_state.py clear-halt` 후 아래를 진행한다
+       (승인 없이 clear-halt 금지 — 7-2와 같다).
 
        ACTION=continue 일 때만 아래를 진행한다:
        {STATUS_FILE} PHASE=6 으로 리셋
@@ -199,9 +235,8 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
        "Implementer 재실행 필요 — FEEDBACK.md 확인 후 타겟 수정
         아래 명령어를 실행하세요:
 
-        .claude/agents/implementer.md와 {STATUS_FILE}를 읽고
-        {FEEDBACK_FILE} 기준으로 타겟 수정해줘.
-        FEEDBACK.md에 없는 항목은 수정하지 마."
+        /sprint-dev
+        (FEEDBACK.md 재진입으로 인식해 해당 항목만 타겟 수정 → 최종 검증까지 진행)"
 
 7-7. 전체 통과 → {STATUS_FILE} PHASE=8 업데이트
 ```
@@ -247,6 +282,8 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
 
      ACTION=halt 이면 재시도하지 않는다. 같은 항목이 반복 반려되는 상태이므로
      [PAUSE] 후 사용자에게 보고하고 판단을 받는다.
+     사용자가 재개를 승인하면 `python .claude/scripts/loop_state.py clear-halt` 후 아래를 진행한다
+     (승인 없이 clear-halt 금지 — 7-2와 같다).
 
      ACTION=continue 일 때:
      경미한 수정 → 직접 수정 후 {STATUS_FILE} PHASE=7 업데이트 → PHASE 7부터 재시도
@@ -257,9 +294,8 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
        "대규모 수정 필요 — Implementer 재실행이 필요합니다.
         아래 명령어를 실행하세요:
 
-        .claude/agents/implementer.md와 {STATUS_FILE}를 읽고
-        {FEEDBACK_FILE} 기준으로 타겟 수정해줘.
-        FEEDBACK.md에 없는 항목은 수정하지 마."
+        /sprint-dev
+        (FEEDBACK.md 재진입으로 인식해 해당 항목만 타겟 수정 → 최종 검증까지 진행)"
 ```
 
 ---
@@ -270,13 +306,26 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
 9-1. DONE.md 생성
      경로: `{DONE_FILE}` (TRACK=sprint: `sprints/{CURRENT_SPRINT}/DONE.md` / TRACK=defect: `{WORKSPACE_DIR}/DONE.md`)
 
+     ⚠️ **1회 작성 원칙 — 미리 만들고 나중에 고치지 말 것.**
+     DONE.md는 **모든 리뷰(PHASE 7-4)와 그 수정·재리뷰가 종료된 뒤** 한 번에 작성한다.
+     리뷰 결과가 나올 때마다 Edit로 덧붙이면 같은 내용을 여러 번 기록하게 되고,
+     그 전부가 컨텍스트에 누적되어 이후 모든 호출의 프리필에 얹힌다.
+     (실측: 최초 Write 6,863자 뒤 Edit 6회로 6,174자 추가 — 약 1,500~2,000토큰 + 호출 6회 낭비)
+     PHASE 7~8이 끝나기 전에는 결과를 메모리(대화)에만 두고, 파일로 쓰지 않는다.
+     OUT_OF_SCOPE.md도 동일 — 발견 시점마다 갱신하지 말고 종료 시 1회 정리한다.
+
+     > 분량 자체는 줄이지 않는다. "다음 담당자가 반드시 알아야 할 결정"과 기존 코드베이스
+     > 결함 기록은 보존 가치가 크다. 줄이는 대상은 **같은 내용을 쓰는 횟수**다.
+
      # {CURRENT_SPRINT} 완료 보고
 
      ## 완료된 기능
      (GOAL.md 체크박스 [x] 항목 정리)
 
      ## 생성/수정된 파일 목록
-     (git diff --name-only 결과, 짝을 이루는 리소스 파일 포함)
+     (아직 커밋 전이므로 작업 트리 기준 — "브랜치·diff 기준"의 **변경 파일 목록**, 신규(untracked) 파일 포함.
+      `git diff --name-only`만 쓰면 새로 만든 파일이 빠져 DONE.md와 커밋 관련파일이 모두 누락한다.
+      짝을 이루는 리소스 파일 포함)
 
      ## 추가된 모듈 / 화면
      
@@ -285,14 +334,7 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
 
      ## 다음 스프린트 주의사항
 
-9-2. CHANGELOG.md 업데이트
-     - 루트의 CHANGELOG.md 읽기 (없으면 새로 생성)
-     - 맨 위에 새 항목 추가:
-       ## [{CURRENT_SPRINT}] {목표 요약} — {YYYY-MM-DD}
-       ### 추가
-       - 완료된 기능 목록 (GOAL.md [x] 항목)
-       ### 기술 부채
-       - OUT_OF_SCOPE.md 항목 요약
+     (9-2 CHANGELOG.md 단계는 제거했다 — 변경 이력은 git 로그와 DONE.md가 맡는다. 번호는 유지)
 
 9-3. `{TECH_DEBT_FILE}` 업데이트
      - 없으면 새로 생성
@@ -322,28 +364,55 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
        prompt: ".claude/agents/commit-writer.md와 .claude/skills/commit-format/SKILL.md를 읽고
                 defect 모드로 커밋 메시지를 작성해줘.
                 mode: defect
-                PRD.md: docs/PRD_{ACTIVE_ISSUE}.md
+                PRD.md: {GOAL_FILE}
                 DONE.md: {DONE_FILE}"
      })
 
-     commit-writer가 `{WORKSPACE_DIR}/COMMIT_MESSAGE.md`에 저장한 메시지로 커밋:
-     git add .
+     commit-writer가 `{COMMIT_MSG_FILE}`에 저장한 메시지로 커밋 (경로는 TRACK별 — commit-writer.md 저장 위치와 동일):
+     ⛔ `git add .` / `git add -A` 금지 — 작업과 무관한 변경(다른 이슈·.claude 상태 파일·untracked 실험 파일)이 섞인다.
+     스테이징 대상 = "브랜치·diff 기준"의 **변경 파일 목록** 중 이번 작업 파일만 (DONE.md "생성/수정된 파일 목록"과 대조, 짝 파일 포함)
+       git add -- {고른 파일 목록}
+       git status --porcelain 로 남은 변경이 있으면 목록을 출력하고 이번 작업과 무관한지 한 줄로 판정해 둔다
      git commit -m "$(COMMIT_MESSAGE.md의 '## 커밋 메시지' 섹션)"
+     (로컬 커밋은 묻지 않는다 — 원격 작업만 9-5에서 확인한다)
 
-9-5. 브랜치 푸시 및 base 브랜치 결정
-     현재 브랜치에서 _{CURRENT_SPRINT} suffix 제거 → BASE_BRANCH
-     예: develop_sprint-01 → develop
-     BASE_BRANCH=$(git branch --show-current | sed 's/_sprint-[0-9]*//')
-     git push -u origin $(git branch --show-current)
+9-5. PR/MR 대상 확정 및 브랜치 푸시
+     "브랜치·diff 기준"의 MR_SOURCE / MR_TARGET 사용 (sed 재추론 금지).
+
+     [대상 검사 — 하나라도 해당하면 PR/MR 안내를 만들지 않고 [PAUSE]]
+     - MR_TARGET이 빈 값 (--here·임시 작업·이미 이슈 브랜치에서 시작해 PARENT 판정 불가)
+     - MR_TARGET == MR_SOURCE
+     - MR_TARGET이 main / master
+     → "PR/MR 대상 브랜치를 확인해주세요. (source: {MR_SOURCE}, 현재 target: {MR_TARGET 또는 '없음'})
+        병합할 브랜치명을 입력해주세요."
+     → 입력값을 MR_TARGET으로 사용. TRACK=defect면 STATUS의 `PARENT_BRANCH=`에 기록 (다음부터 묻지 않음)
+       (main/master를 명시적으로 입력한 경우에만 main/master 대상 허용)
+
+     [PAUSE] push는 원격(외부 공개) 작업이다 — 실행 전 확인 (커밋은 9-4에서 묻지 않고 이미 완료):
+       "{MR_SOURCE} → origin push 후 {MR_TARGET} 대상 PR/MR 안내를 출력할까요? (1. 예 / 2. 아니오=로컬 커밋까지만)"
+       '2'·'아니오' → push·안내(9-6)를 건너뛰고 9-7 대신 "로컬 커밋 완료 — push는 지시 시" 출력 후 종료.
+
+     [push]
+     git push -u origin {MR_SOURCE}
+
+     [target 원격 존재 확인]
+     git ls-remote --heads origin {MR_TARGET} 출력이 없으면:
+     - TRACK=sprint (target=ISSUE_BRANCH): 로컬 ISSUE_BRANCH를 먼저 push → `git push -u origin {ISSUE_BRANCH}`
+       (원격에 없는 신규 이슈 베이스 브랜치라 덮어쓸 대상이 없음)
+     - TRACK=defect (target=PARENT_BRANCH): [PAUSE] "PR/MR 대상 {MR_TARGET}이(가) 원격에 없습니다. 브랜치명을 확인해주세요."
+
+     BASE_BRANCH = MR_TARGET   (9-6 이하 기존 변수명 호환)
 
 9-6. PR/MR 생성 안내 (호스팅 중립)
 
      > 자동 생성하지 않는다. 호스팅 서비스(GitHub/GitLab/Bitbucket 등)와 무관하게
      > 제목·본문 초안만 출력하고, 생성과 머지는 사람이 한다.
+     > ⚠️ git push 출력에 뜨는 호스팅 링크는 target이 기본 브랜치(main/master)로 잡힌다 — 그 링크로 만들지 말고
+     >   아래 Source/Target을 직접 지정한다.
 
      다음 변수를 먼저 준비:
-       CURRENT_BRANCH=$(git branch --show-current)
-       BASE_BRANCH 는 9-5에서 결정된 값
+       CURRENT_BRANCH = MR_SOURCE (9-5)
+       BASE_BRANCH = MR_TARGET (9-5)
        PR_TITLE="fix: #{이슈번호} {목표 요약} - {CURRENT_SPRINT}"
        (이슈번호/요약은 GOAL.md 또는 COMMIT_MESSAGE.md에서 추출; 이슈번호가 없으면 "fix: {DONE.md 한줄 요약} - {CURRENT_SPRINT}")
 
@@ -419,6 +488,12 @@ TRACK 값에 따라 분기:
 10-3. 남은 스프린트 없으면
       {STATUS_FILE}에 PHASE=10 유지 + `PIPELINE=mvp_done` 기록
       (모든 스프린트 완료 표식 — /next가 이 값을 보고 "MVP 완료" 분기로 라우팅한다)
+
+      [최종 PR/MR — 이슈 브랜치 → 상위 브랜치]
+      스프린트 PR/MR은 ISSUE_BRANCH로만 모였으므로, ISSUE_BRANCH → PARENT_BRANCH PR/MR이 남아 있다.
+      - PARENT_BRANCH가 빈 값이거나 main/master이면 9-5와 같은 대상 질의를 먼저 한다.
+      - 9-6 형식으로 source=ISSUE_BRANCH, target=PARENT_BRANCH 안내를 출력한다 (생성·병합은 사람이 한다).
+        [PAUSE] "최종 PR/MR({ISSUE_BRANCH} → {PARENT_BRANCH})을 호스팅 화면에서 생성해주세요. 생성 후 '계속'을 입력하세요."
 
       "🎉 모든 스프린트 완료! MVP 달성" 출력 후 아래 경로 안내하고 종료:
       - 프로덕션 배포:

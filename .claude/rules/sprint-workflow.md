@@ -54,7 +54,7 @@ workspace/{ACTIVE_ISSUE}/
 └── FEEDBACK.md    (검증 실패 시)
 ```
 
-PRD는 양 모드 공통 `docs/PRD_{ACTIVE_ISSUE}.md`. Defect 트랙에서 PRD가 GOAL.md를 대체한다.
+PRD는 양 모드 공통 — 경로는 STATUS `PRD_FILE=` 값, 키가 없으면 `docs/PRD_{ACTIVE_ISSUE}.md`. Defect 트랙에서 PRD가 GOAL.md를 대체한다.
 
 ---
 

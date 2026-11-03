@@ -21,13 +21,19 @@ Agent tool:
     ## 리뷰할 Git 범위
 
     **Base:** {BASE_SHA}
-    **Head:** {HEAD_SHA}
+    **Head:** {HEAD_SHA}  (`WORKTREE`면 아직 커밋하지 않은 작업 트리 기준)
+    **신규 파일:** {UNTRACKED}
 
     먼저 변경 범위를 파악하세요:
     ```
+    # HEAD_SHA = WORKTREE (validator 기본 — 커밋은 push 직전에만 하므로 변경 대부분이 미커밋)
+    git diff --stat {BASE_SHA}
+    git diff {BASE_SHA}
+    # HEAD_SHA가 커밋 SHA인 경우에만
     git diff --stat {BASE_SHA}..{HEAD_SHA}
     git diff {BASE_SHA}..{HEAD_SHA}
     ```
+    신규 파일({UNTRACKED})은 git diff에 나오지 않으므로 파일을 직접 Read해서 리뷰하세요.
 
     ## 검토 기준
 

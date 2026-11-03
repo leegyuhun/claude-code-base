@@ -1,0 +1,26 @@
+{
+  "_comment": "clone_claude_template.ps1 설정. 이 파일은 프로젝트 소유다(템플릿 동기화 대상이 아님). 브랜치명·경로는 프로젝트에 맞게 고친다.",
+  "remote": "origin",
+  "default": "common",
+  "mirrorDirs": [
+    ".claude/agents",
+    ".claude/commands",
+    ".claude/hooks",
+    ".claude/rules",
+    ".claude/skills",
+    ".claude/templates"
+  ],
+  "mirrorFiles": [
+    ".claude/settings.json"
+  ],
+  "templates": {
+    "common": {
+      "branch": "main_common_harness_loop",
+      "paths": [".claude", "setup_claude.bat", ".githooks", "docs/STATUS.md", "docs/구조.md", "docs/프로세스.md", "docs/흐름도.html"],
+      "fillOnly": [".claude/harness.json"],
+      "localOnly": [],
+      "detectPath": "",
+      "runSetup": true
+    }
+  }
+}

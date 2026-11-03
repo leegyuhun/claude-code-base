@@ -16,6 +16,13 @@
   0 = 통과 / 루프 대상 아님 / 검증기 부재 / 탈출
   1 = 이 스크립트 자체의 버그 (Claude Code가 경고만 표시하고 흐름은 유지)
 
+빌드 게이트(PHASE 6)는 기본 꺼짐
+  매 턴 종료마다 전체 빌드를 돌리면 턴이 수십 초~수 분씩 늘어나고, 훅 timeout에 걸리면
+  게이트가 조용히 사라진다 (Delphi 레포 실측). 켜려면 환경변수 HARNESS_STOP_BUILD_GATE=1 을
+  설정한다 (settings.json Stop 훅 timeout 660s와 짝이다 — .claude/settings.local.json 의
+  "env" 블록에 넣으면 이 프로젝트에서만 켜진다). 꺼져 있으면 PHASE 6은 통과시키고
+  빌드 판정은 Validator 7-2가 맡는다. PHASE 7 검증 계약 게이트는 영향 없다.
+
 절대 지켜야 할 것
   - PHASE 8은 무조건 통과시킨다. 사람의 수동 UI 테스트 대기 상태이므로
     여기서 막으면 사용자가 빠져나갈 수 없다.
@@ -26,6 +33,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -205,7 +213,8 @@ def block(kind: str, phase: str, summary: str, attempts: str = "") -> int:
 
 def main() -> int:
     try:
-        data = json.load(sys.stdin)
+        # stdin은 UTF-8이다. json.load(sys.stdin)은 로캘(cp949 등)로 디코드한다
+        data = json.loads(sys.stdin.buffer.read().decode("utf-8-sig"))
     except Exception:
         return 0
     if not isinstance(data, dict):
@@ -241,6 +250,8 @@ def main() -> int:
     kind = PHASE_GATES.get(phase)
     if kind is None:
         return 0
+    if kind == "build" and os.environ.get("HARNESS_STOP_BUILD_GATE") != "1":
+        return 0  # 기본 꺼짐 — 모듈 docstring "빌드 게이트는 기본 꺼짐" 참고
 
     # 6) 층 B
     if kind == "build":

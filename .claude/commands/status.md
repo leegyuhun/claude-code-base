@@ -35,7 +35,7 @@ STATUS_FILE = `{WORKSPACE_DIR}/STATUS.md`
 │ 담당:    {에이전트명}               │
 │                                     │
 │ 산출물 위치: {WORKSPACE_DIR}/       │
-│  PRD: docs/PRD_{ACTIVE_ISSUE}.md   │
+│  PRD: {STATUS PRD_FILE 값}         │
 │  DONE.md: {WORKSPACE_DIR}/DONE.md  │
 │   (GOAL.md/sprints/ 없음)          │
 │                                     │
@@ -70,4 +70,5 @@ STATUS_FILE = `{WORKSPACE_DIR}/STATUS.md`
 
 추가로:
 - Sprint 트랙이면: CURRENT_SPRINT의 GOAL.md(`{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/GOAL.md`) 존재 여부, 체크리스트 진행률도 표시
+- `PARENT_BRANCH` · `ISSUE_BRANCH` · `SPRINT_BRANCH` 값이 있으면 한 줄로 표시 (PR/MR 대상: TRACK=sprint면 SPRINT→ISSUE, defect면 ISSUE→PARENT)
 - LAST_COMMIT, LAST_PR 값이 있으면 마지막 줄에 표시

@@ -10,7 +10,7 @@ description: "PRD.md 생성. 구조화된 인터뷰 → GAP 분석 → 문서 �
 
 ## 인수 처리 (`$ARGUMENTS`)
 
-`$ARGUMENTS`에서 아래 세 가지를 독립적으로 추출한다. 순서와 구분자(공백·쉼표·혼합)는 무관하다.
+`$ARGUMENTS`에서 아래 항목을 독립적으로 추출한다. 순서와 구분자(공백·쉼표·혼합)는 무관하다.
 
 ```
 추출 규칙:
@@ -28,7 +28,9 @@ description: "PRD.md 생성. 구조화된 인터뷰 → GAP 분석 → 문서 �
                 저장 시 `#` 접두사를 붙여 통일한다 (PROJ-45 → #PROJ-45)
                 있으면 Phase 1 경로 A(이슈 본문 붙여넣기)로 진행
 
-  EXTRA_CONTEXT 위 세 가지 이외의 나머지 텍스트 (자유 설명)
+  FLAG_HERE     `--here` 토큰 존재 여부 (Phase 4 브랜치 자동 생성 대신 현재 브랜치 사용 — 이번 호출에만 적용)
+
+  EXTRA_CONTEXT 위 항목 이외의 나머지 텍스트 (자유 설명)
                 예: "원인파악해줘", "로그인 관련", "긴급"
                 Phase 1 인터뷰의 초기 컨텍스트로 활용
 
@@ -38,6 +40,9 @@ description: "PRD.md 생성. 구조화된 인터뷰 → GAP 분석 → 문서 �
 
   /prd E:/Source/myapp PROJ-45
     → PROJECT_PATH=E:/Source/myapp  PROJECT_NAME=myapp  ISSUE_NUMBERS=[#PROJ-45]
+
+  /prd #1234 --here
+    → ISSUE_NUMBERS=[#1234]  FLAG_HERE=true (브랜치 생성 없이 현재 브랜치 사용)
 
   /prd
     → PROJECT_NAME="전체"  PROJECT_PATH=현재 디렉토리
@@ -61,11 +66,17 @@ workspace/{ACTIVE_ISSUE}/STATUS.md가 존재하면 PHASE 값을 확인한다.
 → 아래 한 줄만 출력하고 Phase 0으로 진행:
   "ℹ️ 동일 이슈 재진입 (#{이슈번호}, PHASE={N}) — 확인 생략하고 계속합니다."
 
+[완료 이슈 전환 — 확인 생략]
+위 조건에 해당하지 않고 PHASE=10 (다른 이슈의 작업 완료 — 다음 스프린트 없음 / Defect 완료 / MVP 완료)이면
+전환 질문 없이 아래 안내만 출력하고 새 이슈로 진행한다:
+  "ℹ️ 이전 이슈({ACTIVE_ISSUE})는 완료 상태(PHASE=10)입니다 — 새 이슈({입력된 이슈})로 전환합니다.
+     기존 이슈 작업은 workspace/{ACTIVE_ISSUE}/에 그대로 보존됩니다."
+
 [이슈 전환 판정 — 확인 필요]
-위 조건에 해당하지 않고 PHASE가 5~10 (다른 이슈의 스프린트 진행 중)이면:
+위 조건에 해당하지 않고 PHASE가 5~9 (다른 이슈의 스프린트 진행 중)이면:
   ⚠️ "현재 이슈({ACTIVE_ISSUE})의 스프린트가 진행 중입니다 (PHASE={N}).
    /prd 실행 시 새 이슈({입력된 이슈})로 전환됩니다. 기존 이슈 작업은 그대로 보존됩니다.
-   계속하시겠습니까? (예/아니오)"
+   계속하시겠습니까? (1. 예 / 2. 아니오)"
   → '아니오' → 종료
   → '예' → 새 이슈로 계속 진행
 ```
@@ -114,7 +125,7 @@ ISSUE_NUMBERS가 없으면:
     ```
   - 입력 검증: `^[a-z][a-z0-9_]{2,30}$` 패턴 매칭. 실패 시 재입력 요청.
   - 검증 통과 시: `.claude/ACTIVE_ISSUE`에 임시 ID 기록 (`#` 접두사 없이), `workspace/{임시ID}/` 디렉토리 없으면 생성.
-- 동일 파일명이 이미 있으면 [PAUSE]: "기존 {PRD_FILENAME}이 있습니다. 덮어쓸까요? (예/아니오/수정)"
+- 동일 파일명이 이미 있으면 [PAUSE]: "기존 {PRD_FILENAME}이 있습니다. 덮어쓸까요? (1. 예 / 2. 아니오 / 3. 수정)"
   - '수정' → 기존 파일을 읽어 Phase 1 인터뷰 응답의 초기값으로 사용
 
 ---
@@ -146,9 +157,10 @@ python .claude/scripts/policy.py show
 │    [3] 항상 자동 판정                                     │
 │                                                          │
 │ 3. plan.md 검토                                           │
-│    [1] 요약만 보고 계속 진행              (권장)          │
-│        — 이의가 있으면 /rollback 으로 되돌립니다          │
-│    [2] 멈추고 검토                                        │
+│    [1] 멈추고 검토 후 승인                (권장)          │
+│        — 선 계획 후 실행 원칙                             │
+│    [2] 요약만 보고 계속 진행                              │
+│        — 이의가 있으면 /rollback [1] 로 되돌립니다        │
 │                                                          │
 │ 4. 구현 자동 진행                                          │
 │    [1] AUTO_RUN 6조건 충족 시 자동        (권장)          │
@@ -157,8 +169,8 @@ python .claude/scripts/policy.py show
 │                                                          │
 │ 5. 함정 회고 기록                                          │
 │    [1] 후보가 있으면 확인 후 기록         (권장)          │
-│    [2] 자동 기록                                          │
-│    [3] 기록하지 않음                                      │
+│    [2] 기록하지 않음                                      │
+│        (확인 없는 자동 기록은 없다 — pitfalls.md는 공유 자산) │
 └──────────────────────────────────────────────────────────┘
 
 `1,1,1,1,1` 처럼 한 줄로 답해도 되고, `전부 권장` 이라고 해도 됩니다.
@@ -170,9 +182,9 @@ python .claude/scripts/policy.py show
 |---|---|
 | 1 브랜치 | [1] `branch=new` / [2] `branch=current` |
 | 2 트랙 | [1] `track_confirm=boundary` / [2] `always` / [3] `never` |
-| 3 plan | [1] `plan_review=notify` / [2] `pause` |
+| 3 plan | [1] `plan_review=pause` / [2] `notify` |
 | 4 구현 | [1] `auto_run=standard` / [2] `strict` / [3] `relaxed` |
-| 5 함정 | [1] `pitfall_capture=ask` / [2] `auto` / [3] `skip` |
+| 5 함정 | [1] `pitfall_capture=ask` / [2] `skip` |
 
 ```bash
 python .claude/scripts/policy.py init \
@@ -253,19 +265,45 @@ DB 변경: 있음 / 없음
 
 ---
 
-**1-A-3. GAP만 질문**
+이어서 Phase 2.5의 **트랙 판정 체크(☑/☐ 5개)를 이 시점에 미리 수행**하고, 정책(`track_confirm`)에 따라
+확인이 필요한지(`always`, 또는 `boundary`에서 3~4/5 충족)를 판정해 둔다.
 
-✅ 항목은 건너뛰고, ⬜ 항목만 질문한다.
+---
+
+**1-A-3. 통합 확인 [PAUSE] — 경로 A의 유일한 인터뷰 질의**
+
+보완 요청 · GAP 질문 · 트랙 제안을 **한 화면에 묶어 한 번만** 묻는다.
+⬜ 항목만 질문하며(1~3개로 최소화), ✅ 항목은 건너뛴다.
 (이슈 본문이나 EXTRA_CONTEXT로 이미 파악된 항목도 ✅ 처리하여 생략)
 
 ```
-📋 추가 확인 (이슈에서 파악되지 않은 항목만)
+─────────────────────────────────────────────
+📋 확인 (한 번에 답해주세요)
 
-{⬜ 항목별 질문 — 1~3개로 최소화}
+1. 이슈 보완 (선택)
+   누락된 배경·제약·완료 기준, 이슈 설명의 오류 정정, 관련 화면 등
+   → 없으면 비워두기
 
-답변 후 즉시 PRD.md를 생성합니다.
-(모두 괜찮으면 '건너뜀' 입력)
+2. 추가 확인 (이슈에서 파악되지 않은 항목만)
+   {⬜ 항목별 질문 — 1~3개}
+
+3. 트랙: {Defect / Sprint} 제안  (체크 {N}/5 충족)        ← 정책상 확인이 필요할 때만 표시
+   [A] Defect — Orchestrator·Planner 스킵, PRD `## 검증 계약` 기준 직접 구현
+   [B] Sprint — Orchestrator(PHASE 1~4.5) → Planner(5) → Implementer(6)
+   → 제안대로면 언급 불필요, 바꾸려면 A/B 입력
+
+모두 괜찮으면 '건너뜀' 입력 → 제안 트랙으로 즉시 PRD 생성
+─────────────────────────────────────────────
 ```
+
+- 1번 응답 → `ADDITIONAL_CONTEXT`로 저장 (없으면 `""`). 2번 응답과 함께 PRD 항목에 반영한다.
+- 1번 보완 내용으로 이미 해결된 2번 질문은 답이 없어도 ✅ 처리한다.
+- 3번은 정책상 확인이 필요할 때만 표시한다. 표시하지 않았거나 응답이 없으면 제안 트랙을 `SELECTED_TRACK`으로 확정한다 (A → `defect` / B → `sprint`).
+  자동 확정 시 `ℹ️ 트랙 자동 판정: {Sprint|Defect} (조건 {N}/5 충족) — 변경하려면 /rollback` 한 줄을 출력한다.
+- ⬜ 항목이 0개이고 3번도 표시할 필요가 없으면 이 [PAUSE]를 생략하고 판정 한 줄만 출력한 뒤 Phase 3으로 간다.
+- 경로 A는 이 응답 후 **Phase 2·Phase 2.5를 건너뛰고** Phase 3으로 직행한다.
+  (단, 1번 보완 내용으로 DB 변경·파일 수 증가 등 트랙 판정 근거가 바뀌었는데
+   사용자가 트랙을 지정하지 않았으면 Phase 2.5 체크를 다시 계산해 결과만 한 줄 출력)
 
 ---
 
@@ -314,9 +352,11 @@ DB 변경: 있음 / 없음
 
 ---
 
-## Phase 2: GAP 분석 및 보완 질의
+## Phase 2: GAP 분석 및 보완 질의 (경로 B 전용)
 
-인터뷰 응답을 받은 후 아래 항목을 점검하고 **비어있거나 불명확한 것만** 추가 질의한다.
+> 경로 A는 1-A-3에서 GAP 질의를 이미 마쳤으므로 이 Phase를 실행하지 않는다 (중복 질의 금지).
+
+경로 B 인터뷰 응답을 받은 후 아래 항목을 점검하고 **비어있거나 불명확한 것만** 추가 질의한다.
 
 ```
 GAP 체크리스트:
@@ -332,22 +372,33 @@ GAP 체크리스트:
 `{PROJECT_PATH}/CLAUDE.md`가 있으면 읽어서 기술 스택, 빌드 방식, 코딩 원칙을
 PRD의 "제약 조건" 및 "기술 고려사항"에 자동 반영한다.
 
-GAP이 있으면:
+GAP 질의 전에 Phase 2.5의 트랙 판정 체크를 먼저 계산한다.
+
+GAP이 있으면 (정책상 트랙 확인이 필요하면 같은 화면에 포함 — 별도 PAUSE 없음):
 
 ```
 📌 추가 확인이 필요합니다
 
 {비어있는 항목만 질문}
 
+트랙: {Defect / Sprint} 제안  (체크 {N}/5 충족)        ← 정책상 확인이 필요할 때만 표시
+  [A] Defect / [B] Sprint — 제안대로면 언급 불필요, 바꾸려면 A/B 입력
+
 답변 후 PRD.md를 생성합니다.
 (모두 괜찮으면 '건너뜀' 입력)
 ```
 
+→ 트랙 응답이 없으면 제안 트랙으로 `SELECTED_TRACK` 확정, Phase 2.5 건너뜀.
+GAP이 없으면 → Phase 2.5로 진행.
+
 ---
 
-## Phase 2.5: 트랙 판정 (공통)
+## Phase 2.5: 트랙 판정 [조건부 PAUSE]
 
-수집된 이슈 정보와 기술 분석 결과를 종합하여 트랙을 자동 판정한다.
+> 경로 A(1-A-3) 또는 Phase 2 GAP 화면에서 이미 트랙이 확정됐으면 이 Phase를 건너뛴다.
+> 실질적으로 **경로 B + GAP 없음**일 때만 실행된다.
+
+수집된 정보와 기술 분석 결과를 종합하여 트랙을 자동 판정한다.
 
 **확인 여부는 Phase 0.5의 `track_confirm` 정책을 따른다** (`policy.py get track_confirm`):
 
@@ -414,35 +465,53 @@ PRD 생성 후 브랜치를 생성한다.
 
 ```
 ISSUE_NUMBERS 있을 때:
-  브랜치명 후보: `{현재브랜치}_#{이슈번호}` (이슈 베이스 브랜치)
-  → 이후 스프린트 브랜치: `{현재브랜치}_#{이슈번호}_sprint-{NN}`
-    (sprint-dev / implementer가 이 브랜치 위에서 자동 생성)
+  브랜치명 후보: `{현재브랜치}_#{이슈번호}` (이슈 베이스 브랜치 = ISSUE_BRANCH)
+  → 이후 스프린트 브랜치: `{ISSUE_BRANCH}_sprint-{NN}`
+    (/sprint-dev 2단계가 ISSUE_BRANCH 위에서 생성)
 
 ISSUE_NUMBERS 없을 때:
-  브랜치명 후보: `{현재브랜치}_sprint-{NN}` (다음 스프린트 번호)
+  후보 없음 — 임시 작업은 현재 브랜치 사용 (4-2 규칙 5)
 ```
 
-**4-2. 선택**
+**4-2. 자동 결정 (질의 없음)**
 
-[자동 판정 — 확인 생략]
-현재 브랜치명에 입력된 `#{이슈번호}` 패턴이 이미 포함되어 있으면
-(예: 현재 `main_#213378`, 입력 `#213378`)
-→ 이미 해당 이슈의 브랜치이므로 [2]를 자동 선택하고 아래 한 줄만 출력한다:
-  "ℹ️ 현재 브랜치가 이미 이슈 브랜치입니다 ({현재 브랜치명}) — 그대로 사용합니다."
+브랜치는 되돌리기 쉬운 결정이다(`/branch`, `git switch`). 매 이슈마다 묻지 않고
+아래 순서로 **첫 번째 해당 규칙**을 적용한다. 정책 `branch`(`policy.py get branch`)는 규칙 3에서 쓴다.
 
-[정책 적용 — 위 조건에 해당하지 않을 때]
+```
+1. 현재 브랜치명에 입력된 `#{이슈번호}`가 이미 포함됨
+   (예: 현재 `main_#213378`, 입력 `#213378`)
+   → 현재 브랜치 사용
+     "ℹ️ 현재 브랜치가 이미 이슈 브랜치입니다 ({현재 브랜치명}) — 그대로 사용합니다."
+   ISSUE_BRANCH = 현재 브랜치
+   PARENT_BRANCH = 현재 브랜치에서 끝의 `_#{이슈번호}`를 제거한 값 (예: `main`)
+                   — 끝이 `_#{이슈번호}`가 아니면 빈 값 (PR/MR 시점에 질의)
 
-Phase 0.5의 `branch` 정책을 따른다 (`policy.py get branch`). **[PAUSE] 없이 진행한다.**
+2. 현재 브랜치가 main / master
+   → FLAG_HERE·정책을 무시하고 반드시 새 브랜치 생성 (보호 브랜치 직접 커밋 금지 규칙)
+   detached HEAD(`git branch --show-current`가 빈 값)면 브랜치명을 만들 수 없으므로
+   [PAUSE] "detached HEAD 상태입니다. 이슈 브랜치를 만들 기준 브랜치명을 알려주세요." → 받은 이름으로 checkout 후 4번 규칙 적용
+   ISSUE_BRANCH = 생성한 브랜치, PARENT_BRANCH = 기준 브랜치 (main/master 또는 입력값)
 
-| 값 | 동작 | 출력 |
-|---|---|---|
-| `new` | `{브랜치명 후보}` 생성 | `ℹ️ 새 브랜치 생성: {브랜치명} — 변경하려면 /branch` |
-| `current` | 현재 브랜치 그대로 | `ℹ️ 현재 브랜치에서 작업: {현재 브랜치명}` |
+3. FLAG_HERE=true 또는 정책 `branch=current`
+   → 현재 브랜치 사용
+     "ℹ️ 현재 브랜치({현재 브랜치명})에서 작업합니다. (--here / 정책 branch=current)"
+   ISSUE_BRANCH = 현재 브랜치, PARENT_BRANCH = 빈 값 (PR/MR 시점에 질의)
 
-> 브랜치는 되돌리기 쉬운 결정이다(`/branch`, `git switch`). 매 이슈마다 물을 이유가 없어
-> 정책으로 옮겼다.
+4. ISSUE_NUMBERS 있음 (정책 `branch=new`)
+   → 새 브랜치 생성: `git checkout -b {브랜치명 후보}`
+     "ℹ️ 이슈 브랜치 생성: {브랜치명 후보} (현재 브랜치 유지하려면 다음부터 --here)"
+   ISSUE_BRANCH = {브랜치명 후보}, PARENT_BRANCH = 생성 직전의 현재 브랜치
 
-[1] 선택 시: `git checkout -b {브랜치명}`
+5. ISSUE_NUMBERS 없음 (임시 작업)
+   → 현재 브랜치 사용 (임시 ID 작업은 브랜치 분기 강제 안 함)
+     "ℹ️ 임시 작업 — 현재 브랜치({현재 브랜치명})에서 작업합니다."
+   ISSUE_BRANCH = 현재 브랜치, PARENT_BRANCH = 빈 값 (PR/MR 시점에 질의)
+```
+
+※ 같은 이름의 브랜치가 이미 존재하면 `git checkout {브랜치명}`으로 전환만 한다.
+※ 확정한 `ISSUE_BRANCH`·`PARENT_BRANCH`는 Phase 5에서 STATUS.md에 기록한다.
+  이후 단계(sprint-dev·validator)는 브랜치명을 다시 추론하지 않고 이 값을 읽는다 (`rules/active-issue.md` "STATUS.md 브랜치 필드").
 
 ---
 
@@ -477,6 +546,10 @@ TRACK=sprint
 CURRENT_SPRINT=
 ORCHESTRATOR=pending
 PRD=done
+PRD_FILE=docs/{PRD_FILENAME}
+PARENT_BRANCH={4-2에서 확정한 값, 없으면 빈 값}
+ISSUE_BRANCH={4-2에서 확정한 값}
+SPRINT_BRANCH=
 ```
 
 **SELECTED_TRACK = `defect` 인 경우:**
@@ -484,7 +557,13 @@ PRD=done
 PHASE=6
 TRACK=defect
 PRD=done
+PRD_FILE=docs/{PRD_FILENAME}
+PARENT_BRANCH={4-2에서 확정한 값, 없으면 빈 값}
+ISSUE_BRANCH={4-2에서 확정한 값}
 ```
+
+> `KEY=value` 형식을 유지한다. 루프 층(`loop_state.py`)은 `KEY=value`·`KEY: value` 둘 다 읽지만,
+> 한 파일 안에서 형식을 섞지 않는다.
 
 ---
 
@@ -514,7 +593,8 @@ Phase 2.5에서 Sprint 트랙을 이미 확정했으므로 실행 여부를 다�
 **STATUS.md 자동 생성 규칙:**
 STATUS.md 경로: `{PROJECT_PATH}/workspace/{ACTIVE_ISSUE}/STATUS.md`
 (ACTIVE_ISSUE는 Phase 0에서 이슈번호 또는 임시 ID로 이미 확정됨)
-해당 경로에 파일이 없으면 Phase 5에서 생성한다. 이미 있으면 건드리지 않는다.
+해당 경로에 파일이 없으면 Phase 5에서 생성한다. 이미 있으면 기존 값은 건드리지 않고,
+`PRD_FILE`·`PARENT_BRANCH`·`ISSUE_BRANCH` 중 **없는 키만** 끝에 덧붙인다 (기존 이슈 재진입 시 필드 보강).
 
 ---
 

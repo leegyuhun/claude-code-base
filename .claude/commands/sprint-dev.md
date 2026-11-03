@@ -28,7 +28,7 @@ STATUS_FILE에서 `TRACK` 값을 읽어 경로 변수를 결정한다:
 - `OUT_OF_SCOPE_FILE` = `{WORKSPACE_DIR}/sprints/{CURRENT_SPRINT}/OUT_OF_SCOPE.md`
 
 **TRACK=defect:**
-- `GOAL_FILE` = `docs/PRD_{ACTIVE_ISSUE}.md` (PRD의 `## 검증 계약` 섹션을 체크리스트로 사용)
+- `GOAL_FILE` = STATUS의 `PRD_FILE=` 값 (키가 없으면 `docs/PRD_{ACTIVE_ISSUE}.md`) — PRD의 `## 검증 계약` 섹션을 체크리스트로 사용
 - `DONE_FILE` = `{WORKSPACE_DIR}/DONE.md`
 - `FEEDBACK_FILE` = `{WORKSPACE_DIR}/FEEDBACK.md`
 - `OUT_OF_SCOPE_FILE` = `{WORKSPACE_DIR}/OUT_OF_SCOPE.md`
@@ -80,13 +80,31 @@ FEEDBACK.md 재진입 판단:
 
 ### 2단계: 브랜치 준비
 
+브랜치명은 현재 브랜치에서 재추론하지 않고 STATUS의 `ISSUE_BRANCH`·`SPRINT_BRANCH`를 쓴다
+(정의·호환 폴백: `.claude/rules/active-issue.md` "STATUS.md 브랜치 필드").
+
 TRACK=sprint:
-1. 현재 브랜치가 `{현재 브랜치명}_{CURRENT_SPRINT}`이 아니면:
-   - 현재 브랜치명을 확인(`git branch --show-current`)하여 `{현재 브랜치명}_{CURRENT_SPRINT}` 브랜치 생성
-2. 이미 해당 브랜치면 그대로 진행
+```
+TARGET = {ISSUE_BRANCH}_{CURRENT_SPRINT}
+
+1. 현재 브랜치 == TARGET → 그대로 진행 (재진입)
+2. 아니면:
+   a. 미커밋 변경 확인: `git status --porcelain` 출력이 있으면
+      [PAUSE] "커밋되지 않은 변경이 있어 브랜치를 전환할 수 없습니다. 처리 후 다시 실행해주세요." → 종료
+   b. 이슈 브랜치로 전환: `git checkout {ISSUE_BRANCH}`
+      원격에 있으면(`git ls-remote --heads origin {ISSUE_BRANCH}` 출력 있음) `git pull --ff-only`
+   c. 직전 스프린트 병합 확인 (STATUS의 SPRINT_BRANCH가 비어 있지 않고 TARGET과 다를 때):
+      `git merge-base --is-ancestor {직전 SPRINT_BRANCH} {ISSUE_BRANCH}` 실패 시
+      [PAUSE] "직전 스프린트({직전 SPRINT_BRANCH})가 {ISSUE_BRANCH}에 아직 병합되지 않았습니다.
+               PR/MR 병합 후 다시 실행하거나, '계속'이면 병합 없이 분기합니다."
+   d. TARGET 생성: `git checkout -b {TARGET}` (이미 있으면 `git checkout {TARGET}`)
+3. STATUS의 `SPRINT_BRANCH=` 를 TARGET으로 갱신
+```
+※ 직전 스프린트 브랜치 위에 덧붙여 `X_sprint-01_sprint-02`가 생기던 문제를 막기 위해 항상 ISSUE_BRANCH에서 분기한다.
 
 TRACK=defect:
-- 스프린트별 브랜치 분기 없음. 현재 브랜치(`{현재 브랜치명}`)에서 그대로 진행.
+- 스프린트별 브랜치 분기 없음. `ISSUE_BRANCH`에서 진행한다.
+  현재 브랜치가 `ISSUE_BRANCH`와 다르면 [PAUSE] "현재 브랜치({현재})가 이슈 브랜치({ISSUE_BRANCH})와 다릅니다. 전환할까요? (1. 예 / 2. 아니오)"
 
 ### 3단계: 구현 Plan 작성 + AUTO_RUN 판정
 
@@ -231,7 +249,7 @@ Agent tool (general-purpose)로 디스패치:
   "요구사항 변경이 감지되었습니다.
    변경 내용: {내용}
    영향받는 항목: {목록}
-   GOAL.md를 수정하고 계속할까요? (예/아니오)"
+   GOAL.md를 수정하고 계속할까요? (1. 예 / 2. 아니오)"
 - '예' → GOAL.md 수정 후 계속
 - '아니오' → 현재까지 완료된 항목만으로 5단계 진행
 
@@ -260,8 +278,9 @@ Agent tool (general-purpose)로 디스패치:
 | 값 | 동작 |
 |---|---|
 | `ask` (기본) | 아래 제안 후 [PAUSE] |
-| `auto` | [PAUSE] 없이 전 후보를 append 하고 결과만 한 줄 보고 |
 | `skip` | 기록하지 않고 후보 목록만 출력 후 6단계로 |
+
+> `auto`(확인 없는 append)는 두지 않는다. pitfalls.md는 공유 자산이라 사람 확인 후에만 기록한다.
 
 **`ask` — 제안 후 [PAUSE]:**
 

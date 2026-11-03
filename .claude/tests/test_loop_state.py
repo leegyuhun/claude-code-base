@@ -104,6 +104,30 @@ def main() -> int:
         action, out = call(script, root, "bump", "--scope", "feedback", "--signature", "F3", "--note", "x")
         rep.case("스프린트 변경 -> 전체 리셋", "continue", action, "전체 리셋" in out and "1/3" in out, out)
 
+    # /prd가 만드는 실제 STATUS(`KEY=value`, LOOP 필드 없음)에 halt를 써도 형식이 섞이지 않는다
+    with temp_repo(scripts=(SCRIPT_NAME,)) as root:
+        script = root / ".claude" / "scripts" / SCRIPT_NAME
+        (root / ".claude" / "ACTIVE_ISSUE").write_text(ISSUE, encoding="utf-8")
+        workspace = root / "workspace" / ISSUE
+        write_status(workspace, phase="7", loop="")
+        call(script, root, "halt", "--reason", "테스트")
+        text = (workspace / "STATUS.md").read_text(encoding="utf-8")
+        rep.case("= 형식 STATUS에 LOOP 삽입", True,
+                 "LOOP=halted" in text and "LOOP:" not in text, text)
+        action, out = call(script, root, "status")
+        rep.case("= 형식 STATUS 읽기 (phase=7)", "halt", action, "phase=7" in out, out)
+
+    # 구형 `KEY: value` STATUS는 그 구분자를 유지한다
+    with temp_repo(scripts=(SCRIPT_NAME,)) as root:
+        script = root / ".claude" / "scripts" / SCRIPT_NAME
+        (root / ".claude" / "ACTIVE_ISSUE").write_text(ISSUE, encoding="utf-8")
+        workspace = root / "workspace" / ISSUE
+        write_status(workspace, phase="7", loop="", sep=":")
+        call(script, root, "halt", "--reason", "테스트")
+        text = (workspace / "STATUS.md").read_text(encoding="utf-8")
+        rep.case(": 형식 STATUS에 LOOP 삽입", True,
+                 "LOOP:" in text and "halted" in text and "LOOP=" not in text, text)
+
     return rep.done()
 
 

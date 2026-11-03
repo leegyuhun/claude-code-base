@@ -1,9 +1,7 @@
----
-paths:
-  - always
----
-
 # 워크스페이스 해석 규칙 (Active Issue)
+
+> frontmatter `paths`를 두지 않는다 — `paths: always`는 유효한 글롭이 아니라서 이 규칙이 실제로는
+> 로드되지 않았다 (실측). 조건 없는 규칙 파일은 항상 로드된다.
 
 모든 에이전트/커맨드는 작업 시작 시 아래 순서로 ACTIVE_ISSUE와 WORKSPACE_DIR를 결정한다.
 
@@ -18,7 +16,22 @@ paths:
 | ROADMAP_FILE | `workspace/#208801/sprints/ROADMAP.md` | 스프린트 로드맵 |
 | TECH_DEBT_FILE | `workspace/#208801/sprints/TECH_DEBT.md` | 누적 기술 부채 |
 | SPRINT_DIR | `workspace/#208801/sprints/{CURRENT_SPRINT}` | 현재 스프린트 디렉토리 |
-| PRD_FILE | `docs/PRD_#208801.md` | 입력 문서 (docs/ 고정, 변경 없음) |
+| PRD_FILE | `docs/PRD_#208801.md` | 입력 문서. **STATUS.md의 `PRD_FILE=` 값을 우선 사용** (임시 ID·다중 이슈면 파일명이 `PRD_{ACTIVE_ISSUE}.md`와 다름). 키가 없을 때만 `docs/PRD_{ACTIVE_ISSUE}.md` |
+
+### STATUS.md 브랜치 필드 (정본 — 다른 파일은 브랜치명을 재추론하지 말고 이 값을 읽는다)
+
+| 키 | 기록 주체 | 의미 |
+|---|---|---|
+| `PARENT_BRANCH` | /prd Phase 4-2 | /prd 실행 시점의 브랜치 (이슈 브랜치의 분기 원천). 빈 값 가능 (`--here`·임시 작업·판정 불가) |
+| `ISSUE_BRANCH` | /prd Phase 4-2 | 이슈 작업 브랜치 (`{PARENT}_#{이슈ID}` 또는 현재 브랜치) |
+| `SPRINT_BRANCH` | /sprint-dev 2단계 | sprint 트랙 현재 스프린트 브랜치 `{ISSUE_BRANCH}_{CURRENT_SPRINT}` |
+
+**PR/MR 대상 (`MR_TARGET`) — validator 9-5/9-6 · 10-3이 사용:**
+- TRACK=sprint: source=`SPRINT_BRANCH` → target=`ISSUE_BRANCH` (스프린트 PR) / 모든 스프린트 완료 후 `ISSUE_BRANCH` → `PARENT_BRANCH` (최종 PR, 수동 확인)
+- TRACK=defect: source=`ISSUE_BRANCH` → target=`PARENT_BRANCH`
+- target이 빈 값이거나 source와 같거나 `main`/`master`이면 **PR/MR 안내를 만들지 않고 [PAUSE]로 대상 브랜치를 질의**한다.
+
+**키가 없는 기존 STATUS (호환 폴백):** 현재 브랜치명 끝의 `_sprint-NN`(`$` 앵커)을 떼면 `ISSUE_BRANCH`, 다시 끝의 `_#ID`를 떼면 `PARENT_BRANCH`로 추정하고, 추정한 값을 STATUS.md에 기록한다. 패턴이 맞지 않으면 [PAUSE]로 질의.
 
 ## 해석 순서
 
@@ -70,8 +83,9 @@ WORKSPACE_DIR = workspace/{ACTIVE_ISSUE}
 - 예: `exp_login`, `bug_repro_001`, `learn_async`
 - `.claude/ACTIVE_ISSUE`에 임시 ID 그대로 기록 (`#` 접두사 없음)
 - WORKSPACE_DIR = `workspace/{임시ID}` (예: `workspace/exp_login`)
-- **브랜치명에는 임시 ID를 쓰지 않는다.** 브랜치는 `{현재브랜치}_sprint-{NN}` 으로 만든다
-  (prd.md Phase 4-1). `main_exp_login` 같은 이름은 `pretooluse-bash-guard.py`의
+- **브랜치명에는 임시 ID를 쓰지 않는다.** 이슈 브랜치는 만들지 않고 현재 브랜치를
+  `ISSUE_BRANCH`로 쓴다 (prd.md Phase 4-2 규칙 5). Sprint 트랙이면 스프린트 브랜치는
+  `{현재브랜치}_sprint-{NN}` 으로 만든다. `main_exp_login` 같은 이름은 `pretooluse-bash-guard.py`의
   명명 규칙에 없어 차단된다 — 워크스페이스 격리와 브랜치 명명은 별개 축이다.
 - 청소: 작업 완료 후 `workspace/{임시ID}/` 디렉토리 수동 삭제 (브랜치 정리 시 함께 처리 권장)
 

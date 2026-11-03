@@ -56,7 +56,7 @@ CURRENT_SPRINT이 `-`이면:
 ### 읽을 파일
 
 - {STATUS_FILE} → PHASE 확인
-- `docs/PRD_{ACTIVE_ISSUE}.md` → 목적 요약, `## 검증 계약` 체크리스트
+- PRD 파일 (STATUS `PRD_FILE=` 값, 키가 없으면 `docs/PRD_{ACTIVE_ISSUE}.md`) → 목적 요약, `## 검증 계약` 체크리스트
 - `{WORKSPACE_DIR}/DONE.md` → 완료 보고 (있는 경우)
 
 ### 출력 형식

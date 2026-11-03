@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import sys
 from pathlib import Path
 
@@ -108,6 +109,25 @@ def main() -> int:
         rc, err = fire(root)
         rep.case("ACTIVE_ISSUE 없음 -> 통과", 0, rc, err.strip() == "", err)
 
+    # 구형 `KEY: value` STATUS도 계속 읽혀야 한다
+    with temp_repo(**common) as root:
+        workspace = setup(root, phase="7", goal=(" ", " "))
+        write_status(workspace, phase="7", sep=":")
+        rc, err = fire(root)
+        rep.case("구형 STATUS(:) -> 게이트 동작", 2, rc, "검증 계약 미충족" in err, err)
+
+    # 빌드 게이트는 기본 꺼짐 — 매 턴 전체 빌드 방지 (켜려면 HARNESS_STOP_BUILD_GATE=1)
+    with temp_repo(**common, git=True, harness=build_harness(FAIL_BUILD)) as root:
+        setup(root, phase="6")
+        (root / "src").mkdir()
+        (root / "src" / "app.py").write_text("x = 1\n", encoding="utf-8")
+        os.environ.pop("HARNESS_STOP_BUILD_GATE", None)
+        rc, err = fire(root)
+        rep.case("PHASE 6 빌드게이트 기본 off -> 통과", 0, rc, err.strip() == "", err)
+
+    # 이하 PHASE 6 케이스는 빌드 게이트를 켠 상태를 검증한다
+    os.environ["HARNESS_STOP_BUILD_GATE"] = "1"
+
     # 검증기 부재는 실패가 아니다 (이걸 exit 2로 처리하면 루프가 영원히 헛돈다)
     with temp_repo(**common, git=True) as root:
         setup(root, phase="6")
@@ -147,6 +167,8 @@ def main() -> int:
         # loop_state는 시그니처를 sha1 앞 12자리로 저장한다
         digest = hashlib.sha1(b"build:E42:app.py:12").hexdigest()[:12]
         rep.case("error_pattern 시그니처", True, digest in counter, counter)
+
+    os.environ.pop("HARNESS_STOP_BUILD_GATE", None)
 
     # 반복 실패 -> 탈출 (차단을 풀고 사람에게 넘긴다)
     with temp_repo(**common) as root:
