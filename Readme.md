@@ -36,7 +36,7 @@
   "default": "common",
   "templates": {
     "common": {
-      "branch": "main_common_harness_loop",
+      "branch": "main_common",
       "paths": [".claude", "setup_claude.bat", ".githooks", "docs/STATUS.md", "docs/구조.md", "docs/프로세스.md", "docs/흐름도.html"],
       "fillOnly": [".claude/harness.json"],
       "runSetup": true
