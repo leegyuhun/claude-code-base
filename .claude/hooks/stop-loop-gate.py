@@ -1,0 +1,314 @@
+#!/usr/bin/env python3
+"""Claude Code Stop Hook — 긴 루프 게이트.
+
+동작 순서
+  1. stop_hook_active 가 true면 즉시 통과 (무한루프 방지 — 이 분기가 없으면 실패한 구현이다)
+  2. 층 A: 하네스 무결성 (gate_harness.py). PHASE와 무관하게 항상 검사한다.
+     하네스가 깨진 채로 루프를 돌리면 모든 판정이 의미를 잃는다.
+  3. 상태 해석: ACTIVE_ISSUE -> STATUS.md. 없으면 루프 대상이 아니므로 통과.
+  4. LOOP=halted 면 통과 (이미 사람 판단 대기 중)
+  5. PHASE 게이팅 (아래 PHASE_GATES)
+  6. 층 B: PHASE 6 = 빌드 (.claude/harness.json의 build.cmd) / PHASE 7 = 검증 계약 잔여
+  7. 실패면 카운터를 올리고, 상한/헛돌기면 탈출(exit 0), 아니면 exit 2
+
+종료 코드
+  2 = 종료를 막는다. stderr가 다음 턴의 지시가 된다.
+  0 = 통과 / 루프 대상 아님 / 검증기 부재 / 탈출
+  1 = 이 스크립트 자체의 버그 (Claude Code가 경고만 표시하고 흐름은 유지)
+
+빌드 게이트(PHASE 6)는 기본 꺼짐
+  매 턴 종료마다 전체 빌드를 돌리면 턴이 수십 초~수 분씩 늘어나고, 훅 timeout에 걸리면
+  게이트가 조용히 사라진다 (Delphi 레포 실측). 켜려면 환경변수 HARNESS_STOP_BUILD_GATE=1 을
+  설정한다 (settings.json Stop 훅 timeout 660s와 짝이다 — .claude/settings.local.json 의
+  "env" 블록에 넣으면 이 프로젝트에서만 켜진다). 꺼져 있으면 PHASE 6은 통과시키고
+  빌드 판정은 Validator 7-2가 맡는다. PHASE 7 검증 계약 게이트는 영향 없다.
+
+절대 지켜야 할 것
+  - PHASE 8은 무조건 통과시킨다. 사람의 수동 UI 테스트 대기 상태이므로
+    여기서 막으면 사용자가 빠져나갈 수 없다.
+  - "검증기 부재"를 "검증 실패"로 보고하지 않는다. build.cmd가 비어 있거나
+    명령을 찾지 못한 것은 exit 0 + 경고다. exit 2로 처리하면 루프가 영원히 헛돈다.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+HOOK_DIR = Path(__file__).resolve().parent
+REPO = HOOK_DIR.parents[1]
+SCRIPTS = REPO / ".claude" / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+
+try:
+    import loop_state  # noqa: E402  (경로 주입 후 import)
+except Exception:  # pragma: no cover - loop_state가 없으면 루프를 돌릴 수 없다
+    loop_state = None
+
+try:
+    import harness_config  # noqa: E402
+except Exception:  # pragma: no cover - 어댑터가 없으면 빌드 게이트는 부재다
+    harness_config = None
+
+# PHASE별 게이트. 여기 없는 PHASE는 통과시킨다.
+PHASE_GATES = {"6": "build", "7": "contract"}
+
+# 검증기 부재를 나타내는 표식 (실패가 아니다)
+MISSING = object()
+
+# goal-format.md의 수동 항목 표기: "(⚠️ 수동)" 또는 "(수동)"
+MANUAL_TAG = re.compile(r"\(\s*(?:⚠️\s*)?수동\s*\)")
+
+
+def emit(text: str) -> None:
+    """stderr에 UTF-8 바이트로 직접 쓴다.
+
+    Windows 기본 인코딩(cp949)으로 내보내면 em dash나 이모지에서
+    UnicodeEncodeError가 나고, 그 exit 1은 게이트를 통째로 무력화한다.
+    """
+    try:
+        sys.stderr.buffer.write(text.encode("utf-8", errors="replace"))
+        sys.stderr.buffer.flush()
+    except Exception:
+        try:
+            sys.stderr.write(text.encode("ascii", "replace").decode("ascii"))
+        except Exception:
+            pass
+
+
+def run(cmd: list[str], cwd: Path, timeout: int) -> tuple[int, str]:
+    try:
+        proc = subprocess.run(cmd, cwd=cwd, capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return -1, "(timeout)"
+    except OSError as exc:
+        return -2, str(exc)
+    out = (proc.stdout + proc.stderr).decode("utf-8", errors="replace")
+    return proc.returncode, out
+
+
+# ── 층 A ────────────────────────────────────────────────────────────
+
+
+def gate_harness() -> tuple[bool, str]:
+    """(ok, detail). 검증기가 없으면 ok=True로 통과시킨다."""
+    script = SCRIPTS / "gate_harness.py"
+    if not script.exists():
+        return True, ""
+    code, out = run([sys.executable, str(script), "--quiet"], REPO, 120)
+    if code in (-1, -2):
+        return True, ""  # 검증기 실행 불가 = 부재. 실패로 치지 않는다
+    if code == 0:
+        return True, ""
+    fails = [ln.strip() for ln in out.splitlines() if ln.strip().startswith("FAIL")]
+    return False, "\n".join(f"  {f}" for f in fails[:5]) or out.strip()[:400]
+
+
+# ── 층 B ────────────────────────────────────────────────────────────
+
+
+def gate_build(_status: dict):
+    """PHASE 6: 빌드. (None=통과 / MISSING=검증기 부재 / (요약, 시그니처)=실패)
+
+    무엇으로 빌드할지는 .claude/harness.json이 정한다. 이 훅은 언어를 모른다.
+    """
+    if harness_config is None:
+        return MISSING, "harness_config.py 없음"
+    config = harness_config.load()
+    cmd, _ = harness_config.command(config, "build")
+    if not cmd:
+        return MISSING, ".claude/harness.json에 build.cmd 없음"
+
+    if not harness_config.changed_sources(config):
+        return None, ""  # 검사할 변경이 없다
+
+    code, out = harness_config.run("build", None, config)
+    if code is None:
+        return MISSING, out
+    if code == 0:
+        return None, ""
+    return harness_config.signature("build", out, code, config)
+
+
+def goal_file(status: dict, issue: str) -> Path | None:
+    workspace = REPO / "workspace" / issue
+    if status.get("TRACK") == "defect":
+        candidate = REPO / "docs" / f"PRD_{issue}.md"
+    else:
+        sprint = status.get("CURRENT_SPRINT", "")
+        if not sprint or sprint == "-":
+            return None
+        candidate = workspace / "sprints" / sprint / "GOAL.md"
+    return candidate if candidate.exists() else None
+
+
+def gate_contract(status: dict, issue: str):
+    """PHASE 7: 검증 계약에 미체크 항목이 남아있는가."""
+    path = goal_file(status, issue)
+    if path is None:
+        return MISSING, "GOAL.md(또는 PRD)를 찾지 못함"
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeDecodeError):
+        return MISSING, "GOAL.md를 읽지 못함"
+
+    section = re.search(r"^##\s*검증 계약.*?$(.*?)(?=^##\s|\Z)", text, re.M | re.S)
+    if not section:
+        return MISSING, "`## 검증 계약` 섹션 없음"
+
+    # 수동 항목은 PHASE 8에서 사람이 확인한다. PHASE 7에서 [ ]인 것이 정상이므로
+    # 여기서 세면 훅이 모델에게 "수동 항목을 [x]로 바꿔라"고 압박하는 꼴이 된다 —
+    # 자기채점을 유도하는 게이트는 없는 것보다 나쁘다.
+    pending = []
+    skipped_manual = 0
+    for ln in section.group(1).splitlines():
+        if not re.match(r"^\s*-\s*\[ \]", ln):
+            continue
+        if MANUAL_TAG.search(ln):
+            skipped_manual += 1
+            continue
+        pending.append(ln.strip())
+    if not pending:
+        return None, ""
+    listed = "\n".join(f"    {p}" for p in pending[:5])
+    more = f"\n    ... 외 {len(pending) - 5}건" if len(pending) > 5 else ""
+    note = f"\n    (수동 항목 {skipped_manual}건은 PHASE 8 대상 — 제외)" if skipped_manual else ""
+    return (f"검증 계약 미충족 {len(pending)}건\n{listed}{more}{note}", f"contract:{len(pending)}")
+
+
+# ── 본체 ────────────────────────────────────────────────────────────
+
+
+NEXT_STEPS = {
+    "build": (
+        "  1. 에러가 가리키는 파일·줄과 그 선언/import를 먼저 확인한다\n"
+        "  2. .claude/refs/pitfalls.md 카테고리 B·E (언어·빌드 함정)\n"
+        "  3. 증상만 보고 고치지 말 것 — .claude/skills/systematic-debugging/SKILL.md Phase 1부터\n"
+    ),
+    "contract": (
+        "  1. 각 항목을 실제로 검증하고 근거(파일:줄 또는 명령 출력)와 함께 [x]로 바꾼다\n"
+        "  2. 검증되지 않은 항목을 체크하지 말 것 — 자기 채점 금지\n"
+        "  3. 구현이 덜 됐으면 FEEDBACK.md를 만들고 PHASE=6으로 되돌린다\n"
+    ),
+    "harness": (
+        "  1. 위 FAIL 항목을 고친다 (JSON 문법 / 스크립트 문법 / 깨진 경로)\n"
+        "  2. python .claude/scripts/gate_harness.py 로 재확인한다\n"
+    ),
+}
+
+
+def block(kind: str, phase: str, summary: str, attempts: str = "") -> int:
+    emit(
+        f"\n[loop-gate] PHASE {phase} 검증 실패{attempts}\n\n"
+        f"실패: {kind}\n{summary}\n\n"
+        f"다음에 볼 곳:\n{NEXT_STEPS.get(kind, '')}\n"
+        "직전 시도와 같은 실패가 반복되면 접근을 바꿀 것. 같은 수정을 다시 하지 말 것.\n"
+    )
+    return 2
+
+
+def main() -> int:
+    try:
+        # stdin은 UTF-8이다. json.load(sys.stdin)은 로캘(cp949 등)로 디코드한다
+        data = json.loads(sys.stdin.buffer.read().decode("utf-8-sig"))
+    except Exception:
+        return 0
+    if not isinstance(data, dict):
+        return 0
+
+    # 1) 무한루프 방지 — 이 분기가 없으면 실패한 구현이다
+    if data.get("stop_hook_active"):
+        return 0
+
+    # 2) 층 A — 하네스 무결성
+    ok, detail = gate_harness()
+    if not ok:
+        return block("harness", "-", detail)
+
+    if loop_state is None:
+        return 0
+
+    # 3) 상태 해석
+    issue = loop_state.resolve_active_issue()
+    if not issue:
+        return 0
+    workspace = loop_state.workspace_dir(issue)
+    status = loop_state.read_status(workspace)
+    if not status:
+        return 0
+
+    # 4) 이미 중단된 루프는 건드리지 않는다
+    if status.get("LOOP") == "halted":
+        return 0
+
+    # 5) PHASE 게이팅 — 8은 절대 막지 않는다 (수동 테스트 대기)
+    phase = status.get("PHASE", "").strip()
+    kind = PHASE_GATES.get(phase)
+    if kind is None:
+        return 0
+    if kind == "build" and os.environ.get("HARNESS_STOP_BUILD_GATE") != "1":
+        return 0  # 기본 꺼짐 — 모듈 docstring "빌드 게이트는 기본 꺼짐" 참고
+
+    # 6) 층 B
+    if kind == "build":
+        result, note = gate_build(status)
+    else:
+        result, note = gate_contract(status, issue)
+
+    if result is MISSING:
+        emit(
+            f"\n[loop-gate] PHASE {phase} 검증기 부재 — 루프를 돌리지 않는다\n"
+            f"  사유: {note}\n"
+            "  이것은 검증 실패가 아니다. 환경을 갖추거나 사람이 직접 확인해야 한다.\n"
+        )
+        return 0
+
+    state, _ = loop_state.load_state(workspace, status)
+    scope = kind
+
+    if result is None:
+        # 통과 — 카운터를 되돌린다
+        if state["scopes"].pop(scope, None) is not None:
+            loop_state.save_state(workspace, state)
+        return 0
+
+    summary, signature = result, note
+    code, out = run(
+        [
+            sys.executable, str(SCRIPTS / "loop_state.py"), "bump",
+            "--scope", scope, "--signature", signature,
+            "--note", summary.splitlines()[0][:120],
+        ],
+        REPO, 60,
+    )
+    action = ""
+    for line in out.splitlines():
+        if line.startswith("ACTION="):
+            action = line.split("=", 1)[1].strip()
+
+    if action == "halt":
+        # loop_state 출력에 이미 사유·이력 경로·보존 지침이 들어있다. 덧붙이지 않는다.
+        detail = "\n".join(
+            ln for ln in out.strip().splitlines() if not ln.startswith("ACTION=")
+        )
+        emit(
+            f"\n[loop-gate] PHASE {phase} 루프 중단\n\n"
+            f"{detail}\n\n"
+            "  같은 방법으로 재시도하면 같은 결과가 나온다. 사람의 판단이 필요하다.\n"
+            "  재개: python .claude/scripts/loop_state.py clear-halt\n"
+        )
+        return 0
+
+    attempts = ""
+    match = re.search(r"attempts=(\d+/\d+)", out)
+    if match:
+        attempts = f" (시도 {match.group(1)})"
+    return block(kind, phase, summary, attempts)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

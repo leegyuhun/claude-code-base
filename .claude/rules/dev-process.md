@@ -1,0 +1,504 @@
+---
+paths:
+  - "workspace/**"
+  - "docs/PRD_*.md"
+  - ".claude/ACTIVE_ISSUE"
+---
+
+# 개발 프로세스
+
+> 이 문서는 프로젝트의 전체 개발 프로세스를 정의합니다.
+> 에이전트와 사용자 모두가 참조하는 프로세스 정책 문서입니다.
+
+---
+
+## 1. 프로젝트 라이프사이클
+
+```
+/prd [#이슈번호 | 인자 없음 → 임시 ID 입력 받음]
+  → TRACK 자동 판정 (Defect/Sprint) + [PAUSE] 확정 → STATUS.md에 TRACK 기록
+  → .claude/ACTIVE_ISSUE 갱신 + workspace/{ACTIVE_ISSUE}/ 생성 + docs/PRD_*.md 생성
+  (ACTIVE_ISSUE = `#123`·`PROJ-45` 같은 이슈 ID 또는 `exp_login` 같은 임시 ID — 자세한 규칙은 active-issue.md)
+
+[Sprint 트랙 — TRACK=sprint]
+  → Orchestrator (PHASE 1~4.5)
+    → PRD 분석 → workspace/#이슈번호/plan.md → ROADMAP.md → 프로젝트 초기화
+  → Planner (PHASE 5)
+    → workspace/#이슈번호/sprints/{sprint}/GOAL.md 생성
+  → Implementer (PHASE 6)
+    → GOAL.md 기준 구현
+  → Validator (PHASE 7~10)
+    → 검증 → 수동 테스트 → push + PR/MR 초안 안내 → 다음 스프린트
+  → deploy-prod
+    → 프로덕션 배포
+  → Orchestrator (PHASE 11) — MVP 이후 신규 요구사항
+    → PRD 재분석 → ROADMAP.md 갱신 → PHASE 5로 재진입
+
+[Defect 트랙 — TRACK=defect]
+  → Implementer (PHASE 6, PRD `## 검증 계약` 기준)
+  → Validator (PHASE 7~9)
+    → 검증 → 수동 테스트 → push + PR/MR 초안 안내 → 종료
+```
+
+### 전체 흐름도
+
+```
+┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌──────────┐    ┌──────────┐
+│   PRD   │ →  │  Plan   │ →  │  Plan   │ →  │ ROADMAP │ →  │  Init    │ →  │  GOAL    │
+│  분석   │    │  생성   │    │  리뷰   │    │  세분화 │    │ (4.5)    │    │  작성    │
+│ PHASE 1 │    │ PHASE 2 │    │ PHASE 3 │    │ PHASE 4 │    │ 초기화   │    │ PHASE 5  │
+└─────────┘    └─────────┘    └─────────┘    └─────────┘    └──────────┘    └──────────┘
+                                                                                   │
+                                                                                   ▼
+┌─────────┐    ┌─────────┐    ┌─────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  배포   │ ←  │  다음   │ ←  │ push+PR │ ←  │  수동    │ ←  │  자동    │ ←  │  구현    │
+│ deploy  │    │ Sprint  │    │  안내   │    │  테스트  │    │  검증    │    │  실행    │
+│         │    │ PHASE 10│    │ PHASE 9 │    │ PHASE 8  │    │ PHASE 7  │    │ PHASE 6  │
+└─────────┘    └─────────┘    └─────────┘    └──────────┘    └──────────┘    └──────────┘
+                    │                                                               ▲
+                    └── PHASE 5로 반복 ─────────────────────────────────────────────┘
+
+MVP 완료 후 신규 요구사항 발생 시:
+  Orchestrator (PHASE 11 Re-plan) → ROADMAP.md 갱신 → PHASE 5로 재진입
+
+[Defect 트랙] PRD → Implementer (PHASE 6) → Validator (PHASE 7→8→9) → 종료
+              Orchestrator·Planner·ROADMAP·GOAL 생략, PRD `## 검증 계약`이 GOAL 대체
+              (판정 기준 → sprint-workflow.md "트랙 정의" 섹션)
+```
+
+---
+
+## 2. Sprint 프로세스
+
+작업의 규모와 성격에 따라 **Sprint 트랙** 또는 **Defect 트랙**으로 처리합니다.
+트랙 판정 기준은 `sprint-workflow.md`의 "트랙 정의" 섹션을 참조하세요.
+
+**Sprint 트랙:**
+```
+1. Planner → GOAL.md 생성 (PHASE 5)
+2. Implementer → 구현 (PHASE 6)
+3. Validator → 검증 + push + PR/MR 초안 안내 (PHASE 7~10)
+4. deploy-prod → 프로덕션 배포
+```
+
+**Defect 트랙 (경량):**
+```
+1. Implementer → PRD 기준 구현 (PHASE 6)
+2. Validator → 검증 + push + PR/MR 초안 안내 (PHASE 7~9) → 종료
+```
+
+---
+
+## 3. Git 브랜치 전략
+
+### Sprint 흐름
+
+```
+{현재브랜치}_{CURRENT_SPRINT}  →  push + PR/MR  →  배포
+```
+
+### 브랜치 명명 규칙
+
+| 용도 | 패턴 | 예시 |
+|------|------|------|
+| 이슈 베이스 (`ISSUE_BRANCH`) | `{PARENT_BRANCH}_#{이슈번호}` | `main_#1234` |
+| 스프린트 (`SPRINT_BRANCH`, 이슈 있음) | `{ISSUE_BRANCH}_{CURRENT_SPRINT}` | `main_#1234_sprint-01` |
+| 스프린트 (이슈 없음) | `{현재브랜치}_{CURRENT_SPRINT}` | `main_sprint-01` |
+| 핫픽스 | `{현재브랜치}_hotfix_{영문소문자-설명}` | `main_hotfix_login-fix` |
+| 하네스/툴링 | `{현재브랜치}_harness_{영문소문자-설명}` | `main_harness_loop` |
+| 릴리스/차수 (`/branch`) | `{연도}_{차수·릴리스명}` | `2026_release-1` |
+| 메인 | `main` | — |
+
+> 위 패턴은 `.claude/hooks/pretooluse-bash-guard.py`가 강제한다. 표를 고치면 훅도 함께 고칠 것.
+>
+> `PARENT_BRANCH`·`ISSUE_BRANCH`·`SPRINT_BRANCH`는 `/prd`·`/sprint-dev`가 STATUS.md에 기록하는 정본이다.
+> validator는 이 값으로 PR/MR 대상과 diff 기준을 정한다 — 브랜치명에서 다시 추론하지 않는다
+> (`active-issue.md` "STATUS.md 브랜치 필드").
+>
+> **임시 ID는 브랜치명에 쓰지 않는다.** 이슈번호 없이 `/prd`를 실행하면 임시 ID
+> (`exp_login` 등)가 `.claude/ACTIVE_ISSUE`와 `workspace/{임시ID}/` 에만 쓰이고,
+> 이슈 브랜치 없이 현재 브랜치가 `ISSUE_BRANCH`가 된다 (prd.md Phase 4-2 규칙 5).
+> Sprint 트랙이면 스프린트 브랜치는 `{현재브랜치}_sprint-{NN}` 으로 만들어진다.
+> 워크스페이스 격리와 브랜치 명명은 별개 축이다.
+
+---
+
+## 4. 에이전트 사용 가이드
+
+### 에이전트별 역할
+
+| 에이전트 | PHASE | 역할 | Defect 트랙 |
+|----------|-------|------|-------------|
+| orchestrator | 1~4.5 | PRD 분석, plan.md, ROADMAP.md, 초기화 | ⏭️ 스킵 |
+| planner | 5 | GOAL.md 작성 | ⏭️ 스킵 |
+| implementer | 6 | 기능 구현 | PRD `## 검증 계약` 기준 구현 |
+| validator | 7~10 | 검증, push + PR/MR 초안 안내, 스프린트 전환 | PHASE 7~9, PHASE 10에서 종료 |
+| deploy-prod | 독립 | 프로덕션 배포 | 동일 |
+| commit-writer | 독립 | 커밋 메시지 작성 (Validator PHASE 9에서 호출) | PRD + 루트 DONE.md 기준 |
+
+### 에이전트 호출 방법
+
+에이전트는 **Agent 도구**로 호출합니다 (Skill 도구가 아님).
+
+```
+# 직접 실행 (각 에이전트가 ACTIVE_ISSUE를 자동 해석함)
+.claude/agents/{에이전트}.md를 읽고 ...
+
+# /next 스킬로 다음 단계 자동 안내
+/next
+```
+
+### 커맨드 사용
+
+```
+# Sprint 구현 오케스트레이터
+/sprint-dev sprint-01
+```
+
+---
+
+## 5. 검증 매트릭스
+
+| 검증 항목 | Sprint | Deploy | 수단 |
+|-----------|--------|--------|------|
+| 빌드 (0 error) | ✅ 자동 | ✅ 자동 | `harness.json`의 `build.cmd` — Stop 훅이 PHASE 6에서 강제 |
+| 빠른 검사 (린트/타입체크) | ✅ 자동 | — | `harness.json`의 `fast_check.cmd` — PostToolUse 빠른 게이트 (실패 시 exit 2) |
+| 하네스 무결성 | ✅ 자동 | — | `gate_harness.py` — Stop 훅이 매 턴 검사 |
+| 검증 계약 충족 | ✅ 자동 | — | Stop 훅이 PHASE 7에서 `- [ ]` 잔여 확인 |
+| 코드 리뷰 | ✅ 자동 | — | `code-reviewer` subagent (Validator 7-4) |
+| 단위 테스트 | ⬜ 프로젝트별 | ⬜ 프로젝트별 | `harness.json`의 `test.cmd` — 비어 있으면 미구축 |
+| 런타임 동작 | ⚠️ 수동 | ⚠️ 수동 | PHASE 8 — 런타임을 검증하는 **유일한** 수단 |
+
+범례:
+- ✅ 자동: 에이전트 또는 훅이 자동 실행
+- ⚠️ 경고: 탐지하되 진행을 막지 않음
+- ⚠️ 수동: 사용자가 직접 수행
+- ⬜ 프로젝트별: `harness.json`에 명령을 채워야 동작 (비어 있으면 "검증기 부재"로 통과 — 실패 아님)
+- —: 해당 없음
+
+> **자동 테스트가 없으면 런타임 커버리지는 0%다.** 빌드가 통과해도 실행 중 크래시나
+> 잘못된 동작은 아무도 잡지 못한다. PHASE 8 수동 테스트를 건너뛰면 검증이
+> 사실상 없는 것과 같다 — 루프가 PHASE 8을 절대 자동 통과시키지 않는 이유다.
+>
+> `test.cmd`를 실제로 채우기 전까지 이 표의 "단위 테스트" 행은 ⬜ 로 유지할 것.
+> 있지도 않은 검증을 있다고 적으면 그 표를 근거로 판단하는 쪽이 잘못 판단한다.
+
+---
+
+## 6. 코드 리뷰 체크리스트
+
+### Critical (배포 차단)
+- [ ] 보안 취약점 (하드코딩된 시크릿, SQL injection, XSS)
+- [ ] 데이터 유실 가능성
+- [ ] 인증/권한 우회
+
+### High (수정 권장)
+- [ ] 성능 이슈 (N+1 쿼리, 불필요한 루프)
+- [ ] 에러 핸들링 누락 (외부 API 호출, DB 연결)
+- [ ] 테스트 커버리지 부족
+- [ ] 리소스 해제 누락 (파일·커넥션·락 — 예외 경로 포함)
+- [ ] 백그라운드 작업에서 UI/공유 상태 직접 접근
+- [ ] 이벤트/요청 핸들러 재진입 가드 없음
+- [ ] 편집 중 상태 저장/취소 누락 (조용한 데이터 유실)
+- [ ] [프로젝트별] CLAUDE.md "코딩 규칙"에 정의된 언어·프레임워크 체크 항목
+
+### Medium (기록)
+- [ ] 코딩 스타일 불일치
+- [ ] 불필요한 코드/import
+- [ ] 주석 부족 (복잡한 로직)
+
+---
+
+## 7. 커밋 메시지 규칙
+
+### 커밋 메시지 자동 검증 (commit-msg hook)
+
+`.githooks/commit-msg` 가 커밋 시 형식을 자동 검사합니다.
+처음 한 번만 git hook 경로를 설정하세요:
+```bash
+git config core.hooksPath .githooks
+```
+
+### 워크플로우별 적용 기준
+
+| 워크플로우 | 커밋 형식 | 예시 |
+|------------|-----------|------|
+| Sprint (Validator 커밋) | Conventional Commit (`feat:`, `fix:`) | `feat: [sprint-02] 기능 제목` |
+
+> **[필수]** 커밋은 푸쉬 시점에 한 번만 한다. 작업 중간에 커밋하지 않는다.
+
+> **[필수]** 커밋 메시지의 제목 요약과 본문(설명, 목록 등)은 반드시 **한글**로 작성한다.
+> type prefix(`feat:`, `fix:` 등), 브랜치명·스프린트명, 코드 식별자(함수명·변수명)는 영문 유지.
+> **영문 설명은 허용하지 않는다.**
+
+### 올바른 예
+
+```
+feat: [sprint-02] F8 applyWindowLimits / resizePanel floating 제약
+
+- floating 상태에서 최소 크기를 300x200으로 설정하여 사용 가능한 창 크기 보장
+- resizePanel에서 floating 상태 시 크기 제약을 초기화하여 자유 크기 조절 허용
+- applyWindowLimits에서 floating 시 최대 크기 제한 제거
+```
+
+### 잘못된 예 (금지)
+
+```
+feat: [sprint-02] F8 applyWindowLimits / resizePanel floating constraints
+
+- Floating state uses 300x200 min size for usable window   ← 영문 금지
+- resizePanel clears limits in floating state               ← 영문 금지
+```
+
+### Sprint 최종 커밋 (Validator)
+
+```
+feat: [{sprint-name}] {목표 요약}
+
+- 구현 기능 1
+- 구현 기능 2
+
+Sprint: {sprint-name}
+```
+
+---
+
+## 8. 문서 구조
+
+```
+프로젝트 루트/
+├── docs/
+│   ├── PRD_#208801.md                  ← 이슈별 요구사항 (입력 문서, /prd 생성)
+│   └── PRD_#208900.md
+│
+├── workspace/                          ← 이슈별 산출물 루트
+│   ├── #208801/
+│   │   ├── plan.md                     ← 기능 분석 결과 (Orchestrator 생성)
+│   │   ├── STATUS.md                   ← 파이프라인 상태 (이슈별 격리)
+│   │   └── sprints/
+│   │       ├── ROADMAP.md              ← 전체 스프린트 로드맵
+│   │       ├── TECH_DEBT.md            ← 누적 기술 부채 (Validator가 자동 집계)
+│   │       ├── sprint-01/
+│   │       │   ├── GOAL.md             ← 구현 명세서 (Planner 생성)
+│   │       │   ├── DONE.md             ← 완료 보고서 (Validator 생성)
+│   │       │   ├── OUT_OF_SCOPE.md     ← 범위 외 발견사항
+│   │       │   ├── FEEDBACK.md         ← 검증 실패 시 수정 지시 (선택적)
+│   │       │   └── COMMIT_MESSAGE.md   ← 커밋 메시지 (commit-writer 생성)
+│   │       └── sprint-02/
+│   │           └── ...
+│   └── #208900/
+│       └── ...
+│
+├── CLAUDE.md                           ← 기술 스택, 코딩 규칙 (Orchestrator PHASE 4.5 / claude /init)
+├── .gitignore
+├── setup_claude.bat                    ← 최초 설치 (git hook, settings.local, .git/info/exclude)
+├── clone_claude_template.bat / .ps1    ← 템플릿 브랜치의 최신 .claude/ 를 현재 작업 트리로 동기화
+│
+├── .githooks/
+│   └── commit-msg                      ← 커밋 메시지 형식 검증 hook
+│
+└── .claude/
+    ├── ACTIVE_ISSUE                    ← 현재 활성 이슈 포인터 (예: #208801)
+    ├── settings.json                   ← 권한 + 훅 배선
+    ├── harness.json                    ← 프로젝트 어댑터 (빌드/테스트/빠른 검사 명령)
+    ├── loop-policy.json                ← 작업 정책 (gitignore, /prd가 1회 생성)
+    ├── hooks/
+    │   ├── pretooluse-bash-guard.py    ← 위험 Bash 명령 가드
+    │   ├── posttooluse-fast-gate.py    ← 짧은 루프: fast_check 실행
+    │   ├── stop-loop-gate.py           ← 긴 루프: PHASE 6 빌드 / PHASE 7 검증 계약
+    │   └── precompact-preserve.py      ← 컴팩션 시 작업 좌표 보존
+    ├── scripts/
+    │   ├── harness_config.py           ← harness.json 로더/실행기 (run build|test|fast_check)
+    │   ├── gate_harness.py             ← 하네스 무결성 검사
+    │   ├── loop_state.py               ← 루프 카운터·상한·헛돌기 감지
+    │   └── policy.py                   ← 작업 정책 (loop-policy.json)
+    ├── tests/                          ← 하네스 회귀 테스트 (run_all.py — 훅·scripts 수정 후 수동 실행)
+    ├── agents/
+    │   ├── orchestrator.md             ← PHASE 1~4.5
+    │   ├── planner.md                  ← PHASE 5
+    │   ├── implementer.md              ← PHASE 6
+    │   ├── validator.md                ← PHASE 7~10
+    │   ├── deploy-prod.md              ← 프로덕션 배포
+    │   └── commit-writer.md            ← 커밋 메시지 작성 (Validator가 호출)
+    ├── commands/
+    │   ├── prd.md                      ← /prd — PRD.md 생성 + ACTIVE_ISSUE 갱신
+    │   ├── sprint-dev.md               ← /sprint-dev — Sprint 구현 오케스트레이터
+    │   ├── next.md                     ← /next — 다음 에이전트 안내
+    │   ├── status.md                   ← /status — 현재 상태 요약
+    │   ├── rollback.md                 ← /rollback — PHASE 롤백
+    │   ├── sprint-log.md               ← /sprint-log — 스프린트 종합 요약
+    │   ├── debt.md                     ← /debt — Tech Debt 보고
+    │   └── branch.md                   ← /branch — 브랜치 생성
+    ├── skills/
+    │   ├── commit-format/SKILL.md                  ← 커밋 메시지 형식 (commit-writer)
+    │   ├── subagent-driven-development/SKILL.md    ← 항목별 subagent 디스패치 (sprint-dev 4단계)
+    │   ├── requesting-code-review/SKILL.md         ← 코드 리뷰 디스패치 (validator PHASE 7)
+    │   ├── verification-before-completion/SKILL.md ← 완료 선언 전 빌드 증거 (implementer)
+    │   ├── systematic-debugging/SKILL.md           ← 근본원인 디버깅 (validator/sprint-dev)
+    │   └── writing-plans/SKILL.md                  ← 계획 문서 자기검증 (orchestrator/planner)
+    ├── templates/
+    │   ├── prd-format.md                           ← PRD.md 양식 (/prd Phase 3)
+    │   └── goal-format.md                          ← GOAL.md 양식 (planner)
+    ├── refs/
+    │   └── pitfalls.md                             ← 함정 본문 (pitfalls-index.md에서 참조)
+    └── rules/
+        ├── active-issue.md             ← 워크스페이스 해석 규칙 (항상 활성화)
+        ├── sprint-workflow.md          ← Sprint 워크플로우 보완 규칙
+        ├── coding-principles.md        ← 언어 무관 코딩 원칙 (항상 활성화)
+        ├── pitfalls-index.md           ← 함정 인덱스 (상시 로드, 본문은 refs/pitfalls.md)
+        └── dev-process.md              ← 개발 프로세스 정책 (이 문서)
+```
+
+---
+
+## 9. 스프린트 실행 상세
+
+### 9.1 계획 단계 (PHASE 1~5)
+
+1. **docs/PRD_#이슈번호.md 작성** (사용자) — `/prd #이슈번호`로 자동 생성 가능
+   - 목적 & 배경, 핵심 기능 및 요구사항, MVP 기준, 제약 조건
+
+2. **Orchestrator 실행** (PHASE 1~4.5)
+   - PRD 분석 → workspace/#이슈번호/plan.md 생성 → 사용자 확인 → ROADMAP.md 생성
+   - 프로젝트 초기화 + CLAUDE.md 생성
+
+3. **Planner 실행** (PHASE 5)
+   - ROADMAP.md 기준으로 GOAL.md 생성
+   - 기능 체크리스트, 완료 조건, 예상 산출물, 수동 테스트 시나리오
+
+### 9.2 구현 단계 (PHASE 6)
+
+```
+기능별 구현 루프:
+  1. GOAL.md 체크리스트에서 다음 기능 확인
+  2. 구현
+  3. "✅ {기능명} 구현 완료" 텍스트 출력 (GOAL.md 체크박스 수정 금지 — Validator가 독립 검증 후 체크)
+  4. 반복 (커밋하지 않음 — push 시점에 Validator가 최종 커밋)
+```
+
+규칙:
+- GOAL.md 범위 밖 기능 → OUT_OF_SCOPE.md에 기록
+- CLAUDE.md 코딩 원칙 준수
+- coding-principles.md 준수 (단순함 우선, 수술적 변경)
+
+### 9.3 검증 단계 (PHASE 7~8)
+
+1. **자동 검증** (PHASE 7)
+   - `harness.json`의 build / fast_check / test 명령, API 응답
+   - 실패 시: 명백한 오류 직접 수정 → 3회 실패 시 Implementer로 롤백
+
+2. **수동 테스트** (PHASE 8)
+   - GOAL.md의 수동 테스트 시나리오 기반
+   - 사용자가 직접 테스트 후 '통과' 또는 '수정 필요' 입력
+
+### 9.4 종료 단계 (PHASE 9~10)
+
+1. **DONE.md 생성 + 로컬 커밋 → [PAUSE] push 확인 → PR/MR 초안 안내** (PHASE 9)
+   - DONE.md·OUT_OF_SCOPE.md는 리뷰가 모두 끝난 뒤 1회만 쓴다 (덧붙이기 금지)
+   - `git add .` 금지 — 이번 작업 파일만 선별 스테이징
+   - 로컬 커밋은 묻지 않는다. 원격 작업(push)만 확인한다
+2. **다음 스프린트 전환** (PHASE 10) — 모든 스프린트 완료 시 최종 PR/MR(ISSUE_BRANCH → PARENT_BRANCH) 안내
+   - CURRENT_SPRINT 업데이트 → PHASE 5로 복귀
+
+---
+
+## 10. 배포 프로세스
+
+### Sprint 배포
+
+```
+Sprint 완료 (PHASE 10)
+  → deploy-prod 에이전트 실행
+    → 사전 점검 (빌드, 테스트, 완료된 스프린트 확인)
+    → push + PR/MR 생성 안내
+    → 배포 후 검증 가이드 제공
+```
+
+### 롤백
+
+문제 발생 시:
+```bash
+git revert {merge_commit_hash}
+git push origin main
+```
+
+---
+
+## 11. 세션 재개
+
+세션이 끊겼을 때:
+
+1. `/status` 실행 → 현재 이슈(`ACTIVE_ISSUE`)와 PHASE 확인
+2. `/next` 실행 → 다음 에이전트 명령어 확인
+3. 해당 명령어 실행
+
+또는 직접:
+```
+.claude/ACTIVE_ISSUE를 읽고 workspace/{ACTIVE_ISSUE}/STATUS.md에서
+현재 PHASE에 맞는 에이전트를 실행해줘.
+```
+
+이슈가 기억나지 않을 때:
+```
+.claude/ACTIVE_ISSUE    ← 현재 활성 이슈 확인
+workspace/              ← 전체 이슈 목록 확인
+```
+
+---
+
+## 12. 스킬 사용 가이드
+
+| 스킬 | 용도 | 사용 시점 |
+|------|------|----------|
+| `/status` | 현재 파이프라인 상태 요약 | 언제든지 |
+| `/next` | 다음 실행할 에이전트 안내 | 다음 단계가 불확실할 때 |
+| `/rollback` | 특정 PHASE로 되돌리기 | 계획/구현을 다시 하고 싶을 때 |
+| `/sprint-log` | 현재 스프린트 종합 요약 | 스프린트 상태 파악 시 |
+| `/debt` | Tech Debt 종합 보고 | 기술 부채 점검 시 |
+| `/prd [이슈ID]` | 인터뷰 → PRD 생성 → 브랜치 → 개발 착수 | 새 이슈 작업 시작 시 |
+| `commit-format` 스킬 | 커밋 메시지 형식 | commit-writer가 자동 사용 |
+
+---
+
+## 13. 멀티모듈 프로젝트 적용 가이드
+
+여러 빌드 단위(패키지·서비스·앱)를 가진 멀티모듈 프로젝트에서 각 모듈에 이 설정을 적용할 때 확인사항:
+
+### 모듈별 필수 설정
+- `.claude/harness.json` — 해당 모듈의 `build.cmd` / `test.cmd` / `fast_check.cmd` (없는 항목은 빈 문자열)
+- `docs/PRD_#이슈번호.md` — 모듈 루트의 `docs/` 폴더에 배치 (입력 문서)
+- `workspace/#이슈번호/STATUS.md` — 이슈별 산출물 루트에 자동 생성
+- `.claude/ACTIVE_ISSUE` — 현재 활성 이슈 포인터
+- `CLAUDE.md` — 모듈별 기술 스택, 빌드 경로, 출력 경로 명시
+
+### 모듈별 경로 확인
+validator/deploy-prod 에이전트가 참조하는 경로는 모듈마다 다를 수 있습니다.
+CLAUDE.md에 아래 항목을 반드시 기입하세요:
+```
+## 빌드
+- 빌드 명령: {harness.json build.cmd와 동일}
+- 출력 경로: {빌드 산출물 경로}
+
+## 테스트
+- 테스트 명령: {harness.json test.cmd와 동일}
+- 테스트 디렉토리: {테스트 소스 경로}
+```
+
+### 공유 모듈 주의
+CLAUDE.md에 명시한 공유 모듈 경로의 수정은 전체 모듈에 영향을 줍니다.
+반드시 `coding-principles.md`의 "공유 모듈 변경 주의" 규칙을 따르세요.
+
+---
+
+## 14. 프로젝트 시작 체크리스트
+
+새 프로젝트를 시작할 때:
+
+- [ ] docs/PRD_{이슈ID}.md 작성 (목적, 핵심 기능 및 요구사항, MVP, 제약 조건) — `/prd {이슈ID}`
+- [ ] Orchestrator 실행 (PHASE 1~4.5)
+- [ ] plan.md 확인 및 수정
+- [ ] ROADMAP.md 확인
+- [ ] 프로젝트 초기화 (PHASE 4.5)
+- [ ] CLAUDE.md 생성 (`claude /init` 권장) + `.claude/harness.json` 명령 채우기
+- [ ] `.claude/rules/coding-principles.md` 확인
+- [ ] 첫 스프린트 시작 (Planner → Implementer → Validator)

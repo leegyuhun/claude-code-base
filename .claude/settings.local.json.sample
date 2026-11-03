@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Bash(npm run:*)",
+      "Bash(git commit *)",
+      "Bash(* --version)",
+      "Bash(* --help *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(curl *)",
+      "Bash(mkdir *)",
+      "Read",
+      "Search",
+      "Bash(grep *)",
+      "Bash(findstr *)",
+      "WebSearch",
+      "WebFetch",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Get-Item *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Get-Service *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(Get-Help *)",
+      "PowerShell(Get-Variable *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Resolve-Path *)",
+      "PowerShell(Select-String *)",
+      "PowerShell(ls *)",
+      "PowerShell(dir *)",
+      "PowerShell(cat *)",
+      "PowerShell(ps *)"
+    ],
+    "defaultMode": "acceptEdits"
+  }
+}
