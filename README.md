@@ -15,6 +15,7 @@ Claude Code로 PRD → 계획 → 스프린트 구현 → 검증 → 배포까�
 | `main_python` | 스택 변형 | `main`을 Python(FastAPI) + React/TypeScript 스택에 맞게 변환, CI/CD 규칙 + `/review` 추가 |
 | `main_delphi` | 워크플로우 변형 | Delphi 2007 레거시 유지보수용 하네스. GitLab/Redmine 연동, 이슈 기반 브랜치·PR 전략 |
 | `main_delphi_loop` | 워크플로우 변형 | `main_delphi`의 스프린트 방식을 "루프 엔지니어링" 방식으로 전환 (구현⇄검증 자동 반복) |
+| `main_common` | 베이스 템플릿 | `main_delphi` 계열 하네스에서 Delphi·GitLab·Redmine 종속을 걷어낸 언어중립 버전. 이슈 기반 `/prd` → 스프린트/결함 트랙, 루프 게이트 훅, `clone_claude_template`로 템플릿 재동기화 |
 | `main_delphi_sprint-01` | 적용 사례 | `main` 계열 하네스로 실제 구현한 예시 프로젝트 (SNMP 프린터 스캐너, sprint-01 완료본) |
 | `main_harness` | 별도 하네스 | YSR EMR 프로젝트 전용 이슈 기반 버그 수정 하네스 (조사 → 수정 → 커밋) |
 | `main_harness_sprint` | 별도 하네스 변형 | `main_harness`에 스프린트형 Phase A/B/C 패치 패턴과 상태 조회 기능 추가 |
